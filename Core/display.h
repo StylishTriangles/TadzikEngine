@@ -5,16 +5,17 @@
 #include <windows.h>
 #include <vector>
 #include <string>
-namespace tadzik
+namespace Tadzik
 {
-class display
+class Display
 {
 public:
-    display();
-    void operator () ();
+    Display();
+    inline void operator () () {this->render();}
     void resize(int x, int y);
-    void set_text(int x, int y, char* txt, char fgcolor, char bgcolor);
+    void setText(int x, int y, char* txt, char fgcolor, char bgcolor);
     void color(char col);
+    void render();
 
 protected:
     std::vector<std::wstring> bufferOld;
@@ -23,16 +24,16 @@ protected:
     std::vector<std::wstring> bufferColor;
     HANDLE hStdOut;
 };
-display::display():
+Display::Display():
     hStdOut(GetStdHandle(STD_OUTPUT_HANDLE))
 {}
 
-void display::color(char col)
+void Display::color(char col)
 {
     SetConsoleTextAttribute (hStdOut, col);
 }
 
-void display::operator ()()
+void Display::render()
 {
     for(unsigned int i=0; i<buffer.size(); i++)
     {
@@ -57,7 +58,7 @@ void display::operator ()()
 //                if(map_1[x][y]!=map_1[x+1][y])
 //                    forward_map[str].push_back({x, y});
 }
-void display::resize(int x, int y)
+void Display::resize(int x, int y)
 {
     buffer.resize(y);
     bufferOld.resize(y);
