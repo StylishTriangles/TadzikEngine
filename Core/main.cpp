@@ -17,6 +17,8 @@ int main()
     wcout << w << endl;
     wcout << c32 << endl;
     Tadzik::IO io;
+    Tadzik::Display d;
+    d();
     io.open(L"kappa");
     return 0;
 }

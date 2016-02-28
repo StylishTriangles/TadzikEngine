@@ -5,6 +5,9 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <cinttypes>
+#include <cassert>
+#include <stdexcept>
 namespace Tadzik
 {
 class Display
@@ -13,24 +16,31 @@ public:
     Display();
     inline void operator () () {this->render();}
     void resize(int x, int y);
-    void setText(int x, int y, char* txt, char fgcolor, char bgcolor);
-    void color(char col);
+    void text(wchar_t* txt, short length, COORD pos, BYTE color);
     void render();
 
 protected:
+    inline void color(char col) {SetConsoleTextAttribute (hStdOut, col);}
     std::vector<std::wstring> bufferOld;
     std::vector<std::wstring> buffer;
-    std::vector<std::wstring> bufferColorOld;
-    std::vector<std::wstring> bufferColor;
+    std::vector<std::vector<BYTE> > bufferColorOld;
+    std::vector<std::vector<BYTE> > bufferColor;
     HANDLE hStdOut;
 };
 Display::Display():
     hStdOut(GetStdHandle(STD_OUTPUT_HANDLE))
 {}
 
-void Display::color(char col)
+void Display::text(wchar_t *txt, short length, COORD pos, BYTE color)
 {
-    SetConsoleTextAttribute (hStdOut, col);
+    if (pos.Y >= (signed)buffer.size())
+        throw std::out_of_range("Display::text, pos.Y out of range");
+    for (int i = 0; i < length; i++)
+    {
+        buffer[pos.Y].at(pos.X+i) = *txt;
+        ++txt;
+        bufferColor[pos.Y].at(pos.X+i) = color;
+    }
 }
 
 void Display::render()
@@ -42,7 +52,8 @@ void Display::render()
             if(buffer[i][j] != bufferOld[i][j] or bufferColor[i][j] != bufferColorOld[i][j])
             {
                 color(bufferColor[i][j]);
-                WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
+                //WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
+                WriteConsoleOutputCharacterW(hStdOut,&buffer[i][j],1,{(SHORT)j,(SHORT)i},NULL);
                 //putwc(buffer[i][j], stdout);
                 bufferOld[i][j]=buffer[i][j];
                 bufferColorOld[i][j]=bufferColor[i][j];
