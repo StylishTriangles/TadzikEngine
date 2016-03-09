@@ -5,34 +5,45 @@
 #include <windows.h>
 #include <vector>
 #include <string>
-namespace tadzik
+#include <cinttypes>
+#include <cassert>
+#include <stdexcept>
+namespace Tadzik
 {
-class display
+class Display
 {
 public:
-    display();
-    void operator () ();
+    Display();
+    inline void operator () () {this->render();}
     void resize(int x, int y);
-    void set_text(int x, int y, char* txt, char fgcolor, char bgcolor);
-    void color(char col);
+    void text(wchar_t* txt, short length, COORD pos, BYTE color);
+    void render();
 
 protected:
+    inline void color(char col) {SetConsoleTextAttribute (hStdOut, col);}
     std::vector<std::wstring> bufferOld;
     std::vector<std::wstring> buffer;
-    std::vector<std::wstring> bufferColorOld;
-    std::vector<std::wstring> bufferColor;
+    std::vector<std::vector<BYTE> > bufferColorOld;
+    std::vector<std::vector<BYTE> > bufferColor;
     HANDLE hStdOut;
 };
-display::display():
+Display::Display():
     hStdOut(GetStdHandle(STD_OUTPUT_HANDLE))
 {}
 
-void display::color(char col)
+void Display::text(wchar_t *txt, short length, COORD pos, BYTE color)
 {
-    SetConsoleTextAttribute (hStdOut, col);
+    if (pos.Y >= (signed)buffer.size())
+        throw std::out_of_range("Display::text, pos.Y out of range");
+    for (int i = 0; i < length; i++)
+    {
+        buffer[pos.Y].at(pos.X+i) = *txt;
+        ++txt;
+        bufferColor[pos.Y].at(pos.X+i) = color;
+    }
 }
 
-void display::operator ()()
+void Display::render()
 {
     for(unsigned int i=0; i<buffer.size(); i++)
     {
@@ -41,7 +52,8 @@ void display::operator ()()
             if(buffer[i][j] != bufferOld[i][j] or bufferColor[i][j] != bufferColorOld[i][j])
             {
                 color(bufferColor[i][j]);
-                WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
+                //WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
+                WriteConsoleOutputCharacterW(hStdOut,&buffer[i][j],1,{(SHORT)j,(SHORT)i},NULL);
                 //putwc(buffer[i][j], stdout);
                 bufferOld[i][j]=buffer[i][j];
                 bufferColorOld[i][j]=bufferColor[i][j];
@@ -57,7 +69,7 @@ void display::operator ()()
 //                if(map_1[x][y]!=map_1[x+1][y])
 //                    forward_map[str].push_back({x, y});
 }
-void display::resize(int x, int y)
+void Display::resize(int x, int y)
 {
     buffer.resize(y);
     bufferOld.resize(y);

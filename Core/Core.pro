@@ -6,5 +6,6 @@ CONFIG -= qt
 SOURCES += main.cpp
 
 HEADERS += \
-    display.h
+    display.h \
+    io.h
 
