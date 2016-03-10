@@ -1,8 +1,10 @@
+#pragma once
 #include <Windows.h>
+#include <cmath>
+#include "display.h"
 namespace Tadzik
 {
-
-    struct Object
+struct Object
 {
     int x;
     int y;
@@ -17,40 +19,41 @@ class Game
 public:
     Game();
     virtual void onTick();
-    void logic(Object ob);
 protected:
+    void logic(Object& ob);
+    HANDLE hStdOut;
     Tadzik::Display display;
-    std::pair <short, short> dimensions;
+    std::pair <short, short> dimensions; // XY dimensions
     std::vector<std::wstring> mapChar;
     std::vector<std::vector<BYTE> > mapColor;
     std::vector<std::vector<unsigned short> > mapStruct;
-    double g=10;
-    double dt=0.03;
+    static const constexpr double g=10; // m/s^2
+    static const constexpr double dt=0.03; // milliseconds
 };
 
 Game::Game() :
-    dimensions({80,25}),
-    hStdOut(GetStdHandle(HSTDOUT))
+    hStdOut(GetStdHandle(STD_OUTPUT_HANDLE)),
+    dimensions({80,25})
 {
-    display.resize()
+    display.resize(dimensions.first,dimensions.second);
 }
 
-void logic(Object ob)
+void Game::logic(Object &ob)
 {
     double bufy,bufx;
     bufy=ob.posy;
     ob.posy+=ob.vy*dt;
-    if(mapStruct[int(ob.posy)][int(ob.posx)] == 1)
+    if(mapStruct[static_cast<int>(ob.posy)][static_cast<int>(ob.posx)] == 1)
     {
         ob.vy=0;
-        ob.posy=int(bufy);
+        ob.posy=static_cast<int>(bufy);
     }
     bufx=ob.posx;
     ob.posx+=ob.vx*dt;
-    if(mapStruct[int(ob.posy)][int(ob.posx)] == 1)
+    if(mapStruct[static_cast<int>(ob.posy)][static_cast<int>(ob.posx)] == 1)
     {
         ob.vx=0;
-        ob.posy=int(bufx);
+        ob.posy=static_cast<int>(bufx);
     }
     ob.vy+=g*dt;
 }
@@ -62,6 +65,7 @@ void Game::onTick()
     //logika
 
     //display
-    display();
+    display.render();
 }
-}
+
+} // namespace Tadzik

@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <cmath>
 #include <unistd.h>
+#include "game.h"
+#include "display.h"
 using namespace std;
 
 struct pixel
