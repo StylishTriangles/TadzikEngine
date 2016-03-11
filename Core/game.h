@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <cmath>
+#include <fstream>
 #include "display.h"
 namespace Tadzik
 {
@@ -25,13 +26,14 @@ protected:
     HANDLE hStdOut;
     Tadzik::Display display;
     std::pair <short, short> dimensions; // XY dimensions
-    std::vector<std::wstring> mapChar;
+    std::vector<std::wstring> mapChar; // Nie umiem ogarnac czytywania unicode jescze
     std::vector<std::vector<BYTE> > mapColor;
     std::vector<std::vector<unsigned short> > mapStruct;
     static const constexpr double g=10; // m/s^2
     static const constexpr double dt=0.03; // milliseconds
     short aKey,dKey,wKey,sKey;
     Object player;
+    unsigned short x_init,y_init; // Wczytana wielkosc mapy
 };
 
 Game::Game() :
@@ -45,7 +47,27 @@ Game::Game() :
 
 void Game::io()
 {
-    //Wczytywanie 3 map (ta co wrzuci³em to po prostu kopia z mojej gry, mozna jo na start przerobic
+    //Wczytywanie 3 map (ta co wrzucilem to po prostu kopia z mojej gry, mozna jo na start przerobic
+    ifstream myFile;
+    myFile.open("mapa.txt");
+    myFile >> x_init;
+    myFile >> y_init;
+    mapColor.resize(y_init);
+    mapStruct.resize(y_init);
+    char line[x_init];
+    for(int lineNumber = 0; lineNumber < y_init; lineNumber++)
+    {
+        inFile.getline(line,x_init);
+        for (int i=0; i<x_init; i++)
+            mapStruct[lineNumber].push_back((unsigned short)line[i]-48); // Wczytywanie Structa z charu na inta
+    }
+    for(int lineNumber = 0; lineNumber < y_init; lineNumber++)
+    {
+        inFile.getline(line,x_init);
+        for (int i=0; i<x_init; i++)
+            mapColor[lineNumber].push_back((BYTE)line[i]); // Nie wiem czym som kolory i jak je ogarniac
+    }
+    myFile.close();
 }
 
 void Game::input()
@@ -96,6 +118,7 @@ void Game::onTick()
     //jak dodamy npc etc to tu sie doda jakoms kolejke obiektow i wykona na nich logike
 
     //display
+
     display.render();
 }
 
