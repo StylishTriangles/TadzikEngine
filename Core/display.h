@@ -20,7 +20,7 @@ public:
     void render();
 
 protected:
-    inline void color(char col) {SetConsoleTextAttribute (hStdOut, col);}
+    inline void color(BYTE col) {SetConsoleTextAttribute (hStdOut, col);}
     std::vector<std::wstring> bufferOld;
     std::vector<std::wstring> buffer;
     std::vector<std::vector<BYTE> > bufferColorOld;
