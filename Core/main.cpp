@@ -164,8 +164,85 @@ void map_read()
     delete tab_init;
     delete t;
 }
+
+wstring byteToWide(string const& src)
+{
+    wstring dest;
+    dest.resize(src.size());
+    for(unsigned int i = 0; i < src.size(); i++)
+    {
+        dest[i] = static_cast<int>(src[i]);
+    }
+    return dest;
+}
+
+void convertOldMap(const char* filenameSource, const char* filenameDestination)
+{
+    ifstream sourceStream;
+    sourceStream.open(string(filenameSource));
+    int width, height;
+    sourceStream >> width;
+    sourceStream >> height;
+    vector<string> inBuff(height);
+    vector<wstring> outBuff(height);
+    char inputLine[width+1];
+    for (int i = 0; i < height; i++)
+    {
+        sourceStream >> inputLine;
+        inBuff[i] = string(inputLine);
+        //cout << inBuff[i].c_str() << endl;
+    }
+    sourceStream.close();
+    wofstream destStream;
+    destStream.open(filenameDestination);
+    destStream << width << L" ";
+    destStream << height << L"\n";
+    for (int i = 0; i < height; i++)
+    {
+        outBuff[i] = byteToWide(inBuff[i]);
+        for (int j = 0; j < width; j++)
+        {
+            destStream << L' ';
+        }
+        destStream << L'\n';
+    }
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            if (inBuff[i][j] == '0')
+                destStream << static_cast<unsigned short>(BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY);
+            else if (inBuff[i][j] == '2')
+                destStream << static_cast<unsigned short>(BACKGROUND_RED);
+            else if (inBuff[i][j] == 'o')
+                destStream << static_cast<unsigned short>(BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_BLUE);
+            destStream << ' ';
+        }
+        destStream << L'\n';
+    }
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            if (inBuff[i][j] == '2')
+                destStream << static_cast<unsigned>(1);
+            else
+                destStream << static_cast<unsigned>(0);
+            destStream << L' ';
+        }
+        destStream << '\n';
+    }
+    destStream.close();
+}
+
+#define MODE_MAP_CONVERSION
+
 int main()
 {
+#ifdef MODE_MAP_CONVERSION
+    convertOldMap("mapa.txt","nowaMapa.txt");
+    return 0;
+#endif
     Player player;
     map_read();
     ForwardAnalysis();
