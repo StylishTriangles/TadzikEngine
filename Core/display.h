@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include <cinttypes>
-#include <cassert>
+//#include <cassert>
 #include <stdexcept>
 namespace Tadzik
 {
@@ -16,7 +16,8 @@ public:
     Display();
     inline void operator () () {this->render();}
     void resize(int x, int y);
-    void text(wchar_t* txt, short length, COORD pos, BYTE color);
+    void addText(wchar_t* txt, short length, COORD pos, BYTE color);
+    void updateFromMap(std::vector<std::wstring> const& rMap, std::vector<std::vector<BYTE> > const& rColorMap, COORD anchor);
     void render();
 
 protected:
@@ -25,13 +26,15 @@ protected:
     std::vector<std::wstring> buffer;
     std::vector<std::vector<BYTE> > bufferColorOld;
     std::vector<std::vector<BYTE> > bufferColor;
+    std::pair<int, int> bufferSize;
+    int bufferWidth,bufferHeight;
     HANDLE hStdOut;
 };
 Display::Display():
     hStdOut(GetStdHandle(STD_OUTPUT_HANDLE))
 {}
 
-void Display::text(wchar_t *txt, short length, COORD pos, BYTE color)
+void Display::addText(wchar_t *txt, short length, COORD pos, BYTE color)
 {
     if (pos.Y >= (signed)buffer.size())
         throw std::out_of_range("Display::text, pos.Y out of range");
@@ -40,6 +43,21 @@ void Display::text(wchar_t *txt, short length, COORD pos, BYTE color)
         buffer[pos.Y].at(pos.X+i) = *txt;
         ++txt;
         bufferColor[pos.Y].at(pos.X+i) = color;
+    }
+}
+
+void Display::updateFromMap(std::vector<std::wstring> const& rCharMap, const std::vector<std::vector<BYTE> > &rColorMap , COORD anchor)
+{
+    for (int i = 0; i < bufferHeight; i++)
+    {
+        buffer[i] = rCharMap[anchor.Y+i].substr(anchor.X,bufferWidth);
+    }
+    for (int i = 0; i < bufferHeight; i++)
+    {
+        for (int j = 0; j < bufferWidth; j++)
+        {
+            bufferColor[i][j] = rColorMap[i+anchor.Y][j+anchor.X];
+        }
     }
 }
 
@@ -71,6 +89,8 @@ void Display::render()
 }
 void Display::resize(int x, int y)
 {
+    bufferWidth = x;
+    bufferHeight = y;
     buffer.resize(y);
     bufferOld.resize(y);
     bufferColor.resize(y);
@@ -83,4 +103,4 @@ void Display::resize(int x, int y)
         bufferColorOld[i].resize(x);
     }
 }
-}
+} // Tadzik EOF

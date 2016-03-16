@@ -11,7 +11,7 @@
 #include "game.h"
 #include "display.h"
 using namespace std;
-
+/*
 struct pixel
 {
     int x;
@@ -164,7 +164,7 @@ void map_read()
     delete tab_init;
     delete t;
 }
-
+*/
 wstring byteToWide(string const& src)
 {
     wstring dest;
@@ -184,7 +184,7 @@ void convertOldMap(const char* filenameSource, const char* filenameDestination)
     sourceStream >> width;
     sourceStream >> height;
     vector<string> inBuff(height);
-    vector<wstring> outBuff(height);
+    vector<string> outBuff(height);
     char inputLine[width+1];
     for (int i = 0; i < height; i++)
     {
@@ -193,18 +193,18 @@ void convertOldMap(const char* filenameSource, const char* filenameDestination)
         //cout << inBuff[i].c_str() << endl;
     }
     sourceStream.close();
-    wofstream destStream;
+    ofstream destStream;
     destStream.open(filenameDestination);
-    destStream << width << L" ";
-    destStream << height << L"\n";
+    destStream << width << ' ';
+    destStream << height << '\n';
     for (int i = 0; i < height; i++)
     {
-        outBuff[i] = byteToWide(inBuff[i]);
+        outBuff[i] = inBuff[i];
         for (int j = 0; j < width; j++)
         {
-            destStream << L' ';
+            destStream << ' ';
         }
-        destStream << L'\n';
+        destStream << '\n';
     }
     for (int i = 0; i < height; i++)
     {
@@ -218,7 +218,7 @@ void convertOldMap(const char* filenameSource, const char* filenameDestination)
                 destStream << static_cast<unsigned short>(BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_BLUE);
             destStream << ' ';
         }
-        destStream << L'\n';
+        destStream << '\n';
     }
     for (int i = 0; i < height; i++)
     {
@@ -228,14 +228,14 @@ void convertOldMap(const char* filenameSource, const char* filenameDestination)
                 destStream << static_cast<unsigned>(1);
             else
                 destStream << static_cast<unsigned>(0);
-            destStream << L' ';
+            destStream << ' ';
         }
         destStream << '\n';
     }
     destStream.close();
 }
 
-#define MODE_MAP_CONVERSION
+//#define MODE_MAP_CONVERSION
 
 int main()
 {
@@ -243,6 +243,9 @@ int main()
     convertOldMap("mapa.txt","nowaMapa.txt");
     return 0;
 #endif
+    Tadzik::Game theGame;
+    theGame.run();
+    /*
     Player player;
     map_read();
     ForwardAnalysis();
@@ -284,4 +287,6 @@ int main()
             player.display_1((int)round(player.x)-start);
         Sleep(5);
     }
+    */
+    return 0;
 }
