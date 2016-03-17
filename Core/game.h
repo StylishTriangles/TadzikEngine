@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TADZIK_GAME
+#define TADZIK_GAME
 #include <Windows.h>
 #include <cmath>
 #include <fstream>
@@ -15,6 +16,12 @@ struct Object
     double vx;
     double vy;
 };
+
+template<typename T>
+inline COORD constexpr toCOORD(std::pair<T,T> const& in)
+{
+    return {in.first,in.second};
+}
 
 std::wstring byteToWide(const char* in)
 {
@@ -42,6 +49,7 @@ protected:
 
     HANDLE hStdOut;
     SHORT keyState[0xFF];
+    std::pair<short,short> mapAnchor;
     Tadzik::Display display;
     unsigned mapWidth, mapHeight;
     std::pair <short, short> windowSize;
@@ -50,18 +58,22 @@ protected:
     std::vector<std::vector<unsigned short> > mapStruct;
     Object player;
     long long msTickDelay; // delay in milliseconds
+    int tickCount;
     static const constexpr double g=10; // m/s^2
-    static const constexpr double dt=0.03; // seconds
+    static const constexpr double dt=0.1; // seconds
 };
 
 Game::Game() :
     hStdOut(GetStdHandle(STD_OUTPUT_HANDLE)),
+    mapAnchor(0,0),
     windowSize({80,25}),
-    player ({5,5,0,0}),
-    msTickDelay(100)
+    player ({10,5,0,0}),
+    msTickDelay(100),
+    tickCount(0)
 {
     display.resize(windowSize.first,windowSize.second);
-    loadLevelW();
+    SetConsoleScreenBufferSize(hStdOut,toCOORD(windowSize));
+    this->loadLevelW();
 }
 
 void Game::loadLevelA()
@@ -91,17 +103,20 @@ void Game::loadLevelA()
 
 void Game::loadLevelW()
 {
-    std::fstream myFile;
+    std::ifstream myFile;
     myFile.open("nowaMapa.txt");
     myFile >> mapWidth;
     myFile >> mapHeight;
     mapChar.resize(mapHeight);
     mapColor.resize(mapHeight);
     mapStruct.resize(mapHeight);
-    char line[mapWidth+1];
+    char line[mapWidth+10]; //mapWidh + null + additional kappa
+    myFile.get(); // get endline character;
     for(unsigned lineNumber = 0; lineNumber < mapHeight; lineNumber++) // wczytywanie tekstur
     {
-        myFile.getline(line,mapWidth,'\n');
+        myFile.getline(line,mapWidth+1);
+        if (myFile.fail())
+            std::cout << "F#&K" << std::endl;
         mapChar[lineNumber] = byteToWide(line);
     }
     for(unsigned lineNumber = 0; lineNumber < mapHeight; lineNumber++) // wczytywanie kolorow
@@ -159,9 +174,9 @@ void Game::logic(Object &ob)
 void Game::processing(Object &ob)
 {
     if(keyState[0x41]<0 and ob.vx>=-5) // A
-        ob.vx=ob.vx-0.1;
+        ob.vx=ob.vx-1;
     if(keyState[0x44]<0 and ob.vx<=5)  // D
-        ob.vx=ob.vx+0.1; //max 5m/s
+        ob.vx=ob.vx+1; //max 5m/s
     if(keyState[0x57]<0 and ob.posy == static_cast<int> (ob.posy) and mapStruct[static_cast<int>(ob.posy)-1][static_cast<int>(ob.posx)] == 1)
         ob.vy=ob.vy+20;  //czy wsisnienty W | czy calkowity | czy ponizej jest ziemia
 }
@@ -170,6 +185,7 @@ void Game::run()
 {
     while(1)
     {
+        ++tickCount;
         auto tBegin = std::chrono::high_resolution_clock::now();
         this->onTick();
         auto tEnd = std::chrono::high_resolution_clock::now();
@@ -179,7 +195,7 @@ void Game::run()
             std::this_thread::sleep_for(tRemaining);
         else
         {
-            std::cout << "Timeout!" << std::endl;
+            std::cout << "Timeout! @" << tickCount << std::endl;
             system("pause");
         }
     }
@@ -192,11 +208,15 @@ void Game::onTick()
     //logika
     processing(player);
     logic(player);
-    display.updateFromMap(mapChar,mapColor,{0,0});
-    //jak dodamy npc etc to tu sie doda jakas kolejke obiektow i wykona na nich logike
-
+    if ((int)floor(player.posx) > mapAnchor.first+10)
+        mapAnchor.first++;
+    // wczytanie mapy do wyswietlacza
+    display.updateFromMap(mapChar,mapColor,{mapAnchor.first,mapAnchor.second});
+    // to jeszcze niecalkiem TA kolejka obiektow
+    display.addText(L"#",1,{(SHORT)(player.posx-mapAnchor.first),(SHORT)(player.posy-mapAnchor.second)},FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_GREEN);
     //display
     display.render();
 }
 
 } // namespace Tadzik
+#endif // TADZIK_GAME

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TADZIK_DISPLAY
+#define TADZIK_DISPLAY
 #include <iostream>
 #include <stdio.h>
 #include <cwchar>
@@ -22,6 +23,7 @@ public:
 
 protected:
     inline void color(BYTE col) {SetConsoleTextAttribute (hStdOut, col);}
+    inline void gotoxy(unsigned x, unsigned y) {SetConsoleCursorPosition(hStdOut,{(SHORT)x,(SHORT)y});}
     std::vector<std::wstring> bufferOld;
     std::vector<std::wstring> buffer;
     std::vector<std::vector<BYTE> > bufferColorOld;
@@ -63,18 +65,22 @@ void Display::updateFromMap(std::vector<std::wstring> const& rCharMap, const std
 
 void Display::render()
 {
+    std::pair<unsigned,unsigned> lastPos(0,0);
     for(unsigned int i=0; i<buffer.size(); i++)
     {
         for(unsigned int j=0; j<buffer[0].size(); j++)
         {
             if(buffer[i][j] != bufferOld[i][j] or bufferColor[i][j] != bufferColorOld[i][j])
             {
-                color(bufferColor[i][j]);
-                //WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
-                WriteConsoleOutputCharacterW(hStdOut,&buffer[i][j],1,{(SHORT)j,(SHORT)i},NULL);
+                this->color(bufferColor[i][j]);
+                if (lastPos.first != i or lastPos.second != j-1)
+                    this->gotoxy(j,i);
+                WriteConsoleW(hStdOut,&buffer[i][j],1,NULL,NULL);
+                //WriteConsoleOutputCharacterW(hStdOut,&buffer[i][j],1,{(SHORT)j,(SHORT)i},NULL);
                 //putwc(buffer[i][j], stdout);
                 bufferOld[i][j]=buffer[i][j];
                 bufferColorOld[i][j]=bufferColor[i][j];
+                lastPos = {i,j};
             }
         }
     }
@@ -104,3 +110,4 @@ void Display::resize(int x, int y)
     }
 }
 } // Tadzik EOF
+#endif // TADZIK_DISPLAY

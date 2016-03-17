@@ -8,6 +8,5 @@ SOURCES += main.cpp
 
 HEADERS += \
     display.h \
-    io.h \
     game.h
 
