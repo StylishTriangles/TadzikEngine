@@ -30,3 +30,8 @@ build-*
 
 #personal configuration files
 *.user
+
+#code::blocks
+*.cbp
+*.depend
+*.layout
