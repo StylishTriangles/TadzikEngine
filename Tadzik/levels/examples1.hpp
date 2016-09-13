@@ -2,6 +2,7 @@
 #define EXAMPLES1
 
 #include "Scene.hpp"
+#include "AnimatedSprite.hpp"
 
 #include <string>
 

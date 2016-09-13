@@ -4,13 +4,15 @@
 #include "SceneManager.hpp"
 #include "levels/examples1.hpp"
 #include "levels/examples2.hpp"
+#include "levels/example_animated_sprite.hpp"
 
 int main(){
     sf::RenderWindow window(sf::VideoMode(320, 240), "Tadzik");
     SceneManager sceneManager(&window);
     sceneManager.registerScene<ExampleScene1>("Example1", &window);
     sceneManager.registerScene<ExampleScene2>("Example2", &window);
-    sceneManager.setActiveScene("Example1");
+    sceneManager.registerScene<AnimatedSpriteScene>("AnimSprite", &window);
+    sceneManager.setActiveScene("AnimSprite");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;

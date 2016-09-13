@@ -17,10 +17,10 @@ public:
 
     virtual ~Scene(){}
 
-    virtual void onSceneActivate() = 0;
-    virtual void draw(sf::Time& deltaTime) = 0;
-    virtual void deliverEvent(sf::Event&) = 0;
-    virtual void onSceneDeactivate() = 0;
+    virtual void onSceneActivate(){}
+    virtual void draw(sf::Time& deltaTime){}
+    virtual void deliverEvent(sf::Event&){}
+    virtual void onSceneDeactivate(){}
 
     std::string getName(){
         return name;
