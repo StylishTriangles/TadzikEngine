@@ -8,6 +8,7 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
+#include <sstream>
 
 class TREX: public Scene{
 public:
@@ -28,6 +29,8 @@ public:
             std::cout << "cannot load font\n";
         }
 
+        textScore.setFont(font);
+
         animTadzikRun.addFrame(AnimationFrame(&animRunTexture1, 150));
         animTadzikRun.addFrame(AnimationFrame(&animRunTexture2, 150));
 
@@ -42,37 +45,56 @@ public:
     }
 
     virtual void draw(double deltaTime){
-        spTadzik.sprite.move(0, deltaTime * -speedY);
-        spTadzik.update(deltaTime);
-        double critHeight = window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY;
-        //std::cout << spTadzik.sprite.getGlobalBounds().top << " " << critHeight << "\n";
-        if(spTadzik.sprite.getGlobalBounds().top < critHeight)speedY-=g;
-        if(spTadzik.sprite.getGlobalBounds().top > critHeight){
-            speedY=0;
-            spTadzik.sprite.setPosition(offsetX, critHeight);
-            isJumping=false;
-        }
-
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)
-           || sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
-            if(!isJumping){
-                jump();
+        if(gameOver){
+            textScore.setString("press space to play again");
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+                spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                gameOver=false;
+                vecCactus.clear();
+                result=0;
+                isJumping=false;
             }
         }
+        else{
+            spTadzik.sprite.move(0, deltaTime * -speedY);
+            spTadzik.update(deltaTime);
+            double critHeight = window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY;
+            if(spTadzik.sprite.getGlobalBounds().top < critHeight)speedY-=g;
+            if(spTadzik.sprite.getGlobalBounds().top > critHeight){
+                speedY=0;
+                spTadzik.sprite.setPosition(offsetX, critHeight);
+                isJumping=false;
+            }
 
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)){
-            //schylanie
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)
+               || sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+                if(!isJumping){
+                    jump();
+                }
+            }
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)){
+                //schylanie
+            }
+
+            manageObstacles();
+
+            textScore.setString("score: " + stringify((int)result));
+
+            result += speedX/10.0;
         }
-
-        manageObstacles();
-
         window->clear();
         for(sf::Sprite& sp : vecCactus){
             window->draw(sp);
         }
         window->draw(spTadzik.sprite);
+        window->draw(textScore);
     }
 
+    std::string stringify(int x){
+        std::ostringstream o;
+        o << x;
+        return o.str();
+    }
 
     void jump(){
         isJumping=true;
@@ -98,6 +120,9 @@ public:
 
         for(int i = vecCactus.size()-1; i >= 0; i--){
             vecCactus[i].move(-speedX, 0);
+            if(spTadzik.sprite.getGlobalBounds().intersects(vecCactus[i].getGlobalBounds())){
+                gameOver=true;
+            }
         }
     }
 
@@ -109,14 +134,18 @@ protected:
 
     AnimatedSprite spTadzik;
 
-    double speedX=3, speedY=0.0;
+    double speedX=5, speedY=0.0;
 
     double offsetX = 32, offsetY=4;
     bool isJumping=false;
     double g = 0.03;
 
+    double result=0;
+
     std::vector<sf::Sprite> vecCactus;
     sf::Font font;
+    sf::Text textScore;
+    bool gameOver=false;
 };
 
 #endif // TREX_HPP
