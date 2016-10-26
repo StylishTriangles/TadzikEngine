@@ -9,7 +9,7 @@ struct AnimationFrame{
     sf::Texture* texture;
     float duration;
     AnimationFrame(sf::Texture* t, float d)
-    :duration(d)
+    :duration(d)  //[ms]
     {
         texture = t;
     }

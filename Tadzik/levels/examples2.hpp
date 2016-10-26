@@ -22,7 +22,7 @@ public:
         window->setTitle("Tadzik ~Scene2");
     }
 
-    virtual void draw(sf::Time& deltaTime){
+    virtual void draw(double deltaTime){
         window->clear();
         sf::CircleShape shape(std::sin( stoper.getElapsedTime().asSeconds()) * window->getSize().y / 8 + window->getSize().y / 4);
         shape.setOrigin(sf::Vector2f( shape.getRadius(), shape.getRadius()));

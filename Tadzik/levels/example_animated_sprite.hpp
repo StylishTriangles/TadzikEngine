@@ -10,13 +10,14 @@ class AnimatedSpriteScene: public Scene{
 public:
     AnimatedSpriteScene(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
     :Scene(_name, mgr, w)
-    {
+    {}
+
+    virtual void onSceneLoadToMemory(){
         std::cout << "Constructor of example_animated_sprite\n";
         t1.loadFromFile("files/textures/test_anim/frame1.jpg");
         t2.loadFromFile("files/textures/test_anim/frame2.jpg");
         t3.loadFromFile("files/textures/test_anim/frame3.jpg");
         t4.loadFromFile("files/textures/test_anim/frame4.jpg");
-
         anim1.addFrame(AnimationFrame(&t1, 15));
         anim1.addFrame(AnimationFrame(&t2, 15));
         anim1.addFrame(AnimationFrame(&t3, 15));
@@ -30,11 +31,11 @@ public:
         window->setTitle("Tadzik ~example_animated_sprite");
     }
 
-    void example1Logic(sf::Time& deltaTime){
-        sp1.update(deltaTime.asMilliseconds());
+    void example1Logic(double deltaTime){
+        sp1.update(deltaTime);
     }
 
-    virtual void draw(sf::Time& deltaTime){
+    virtual void draw(double deltaTime){
         example1Logic(deltaTime);
 
         window->clear();

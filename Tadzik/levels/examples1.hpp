@@ -25,22 +25,23 @@ public:
         window->setTitle("Tadzik ~Scene1");
     }
 
-    void example1Logic(sf::Time& deltaTime){
+    void example1Logic(double deltaTime){
+        deltaTime *= 1000;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-            x-=deltaTime.asSeconds()*100.0;
+            x-=deltaTime*100.0;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-            x+=deltaTime.asSeconds()*100.0;
+            x+=deltaTime*100.0;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-            y-=deltaTime.asSeconds()*100.0;
+            y-=deltaTime*100.0;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-            y+=deltaTime.asSeconds()*100.0;
+            y+=deltaTime*100.0;
         }
     }
 
-    virtual void draw(sf::Time& deltaTime){
+    virtual void draw(double deltaTime){
         example1Logic(deltaTime);
 
         window->clear();

@@ -27,6 +27,7 @@ public:
     template<typename T>
     void registerScene(std::string name, sf::RenderWindow* w){
         scenes[name] = new T(name, this, w);
+        scenes[name]->onSceneLoadToMemory();
     }
     void unregisterScene(std::string nameId){
         if(scenes.find(nameId) != scenes.end()){
@@ -47,7 +48,7 @@ public:
     void deliverEvent(sf::Event& e){
         actScene->deliverEvent(e);
     }
-    void runSceneFrame(sf::Time delta){
+    void runSceneFrame(double delta){
         actScene->draw(delta);
     }
 

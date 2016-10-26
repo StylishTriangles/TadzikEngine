@@ -5,14 +5,17 @@
 #include "levels/examples1.hpp"
 #include "levels/examples2.hpp"
 #include "levels/example_animated_sprite.hpp"
+#include "levels/trex.hpp"
 
 int main(){
     sf::RenderWindow window(sf::VideoMode(320, 240), "Tadzik");
+    window.setFramerateLimit(60);
     SceneManager sceneManager(&window);
     sceneManager.registerScene<ExampleScene1>("Example1", &window);
     sceneManager.registerScene<ExampleScene2>("Example2", &window);
     sceneManager.registerScene<AnimatedSpriteScene>("AnimSprite", &window);
-    sceneManager.setActiveScene("AnimSprite");
+    sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.setActiveScene("TREX");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
@@ -27,7 +30,8 @@ int main(){
             }
         }
 
-		sceneManager.runSceneFrame(deltaClock.restart());
+		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
+		deltaClock.restart();
         window.display();
     }
     return 0;

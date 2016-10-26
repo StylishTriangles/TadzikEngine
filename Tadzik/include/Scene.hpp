@@ -17,8 +17,9 @@ public:
 
     virtual ~Scene(){}
 
+    virtual void onSceneLoadToMemory(){};
     virtual void onSceneActivate(){}
-    virtual void draw(sf::Time& deltaTime){}
+    virtual void draw(double deltaTime){}
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
 
