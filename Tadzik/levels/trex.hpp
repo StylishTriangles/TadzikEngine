@@ -51,6 +51,7 @@ public:
                 spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
                 gameOver=false;
                 vecCactus.clear();
+                vecVulture.clear();
                 result=0;
                 isJumping=false;
             }
@@ -85,6 +86,10 @@ public:
         window->clear();
         for(sf::Sprite& sp : vecCactus){
             window->draw(sp);
+        }
+        for(AnimatedSprite& sp : vecVulture){
+            sp.update(deltaTime);
+            window->draw(sp.sprite);
         }
         window->draw(spTadzik.sprite);
         window->draw(textScore);
@@ -124,6 +129,29 @@ public:
                 gameOver=true;
             }
         }
+
+        double addVultureChance = (double)rand()/RAND_MAX;
+        if(addVultureChance <= 0.005){
+            AnimatedSprite spTmp;
+            spTmp.setAnimation(&animVultureFly);
+            spTmp.sprite.setPosition(0, 0);
+            spTmp.sprite.setScale(0.4+((double)rand()/RAND_MAX)*0.1, 0.4+((double)rand()/RAND_MAX)*0.1);
+            spTmp.sprite.setPosition(window->getSize().x+50, window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY);
+            vecVulture.push_back(spTmp);
+        }
+
+        for(int i = vecVulture.size()-1; i >= 0; i--){
+            if(vecVulture[i].sprite.getGlobalBounds().left < -100){
+                vecVulture.erase(vecVulture.begin()+i);
+            }
+        }
+
+        for(int i = vecVulture.size()-1; i >= 0; i--){
+            vecVulture[i].sprite.move(-speedX, 0);
+            if(spTadzik.sprite.getGlobalBounds().intersects(vecVulture[i].sprite.getGlobalBounds())){
+                gameOver=true;
+            }
+        }
     }
 
 protected:
@@ -143,6 +171,7 @@ protected:
     double result=0;
 
     std::vector<sf::Sprite> vecCactus;
+    std::vector<AnimatedSprite> vecVulture;
     sf::Font font;
     sf::Text textScore;
     bool gameOver=false;
