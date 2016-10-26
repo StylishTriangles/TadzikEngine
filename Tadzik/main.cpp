@@ -7,7 +7,10 @@
 #include "levels/example_animated_sprite.hpp"
 #include "levels/trex.hpp"
 
+#include <cstdlib>
+
 int main(){
+    srand(0);
     sf::RenderWindow window(sf::VideoMode(320, 240), "Tadzik");
     window.setFramerateLimit(60);
     SceneManager sceneManager(&window);

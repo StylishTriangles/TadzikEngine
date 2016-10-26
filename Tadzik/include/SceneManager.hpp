@@ -27,6 +27,7 @@ public:
     template<typename T>
     void registerScene(std::string name, sf::RenderWindow* w){
         scenes[name] = new T(name, this, w);
+        scenes[name]->setSceneWindow(window);
         scenes[name]->onSceneLoadToMemory();
     }
     void unregisterScene(std::string nameId){

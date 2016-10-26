@@ -40,7 +40,6 @@ public:
     }
 
     void update(float delta){
-        std::cout << delta << "\n";
         currTime += delta;
         if(currTime > currentAnimation->vecFrames[actFrame].duration){
             actFrame=(actFrame+1)%currentAnimation->vecFrames.size();
