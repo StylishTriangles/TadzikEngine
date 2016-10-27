@@ -32,11 +32,12 @@ class AnimatedSprite
 public:
     void setAnimation(Animation* a){
         currentAnimation = a;
+        actFrame=0;
 
         if(currentAnimation->vecFrames.size() == 0){
             std::cout << "dafuq? AnimatedSprite::setAnimation()\n";
         }
-        sprite.setTexture(*currentAnimation->vecFrames[0].texture);
+        sprite.setTexture(*currentAnimation->vecFrames[0].texture, true);
     }
 
     void update(float delta){

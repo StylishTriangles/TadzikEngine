@@ -11,7 +11,7 @@
 
 int main(){
     srand(0);
-    sf::RenderWindow window(sf::VideoMode(320, 240), "Tadzik");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik");
     window.setFramerateLimit(60);
     SceneManager sceneManager(&window);
     sceneManager.registerScene<ExampleScene1>("Example1", &window);
