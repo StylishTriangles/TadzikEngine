@@ -122,20 +122,19 @@ public:
         }
         window->clear(sf::Color::Black); //kolor okna
         for(sf::Sprite& sp : vecCactus){
+            if(debug)
+                Utils::drawBoundingBox(sp, window);
             window->draw(sp);
         }
         for(AnimatedSprite& sp : vecVulture){
             sp.update(deltaTime);
+            if(debug)
+                Utils::drawBoundingBox(sp.sprite, window);
             window->draw(sp.sprite);
         }
-        if (false) // borderbox tadzika
+        if (debug) // borderbox tadzika
         {
-            sf::RectangleShape shp(sf::Vector2f(spTadzik.sprite.getGlobalBounds().width, spTadzik.sprite.getGlobalBounds().height));
-            shp.setPosition(sf::Vector2f(spTadzik.sprite.getGlobalBounds().left, spTadzik.sprite.getGlobalBounds().top));
-            shp.setOutlineColor(sf::Color::Green);
-            shp.setFillColor(sf::Color(0,0,0,0));
-            shp.setOutlineThickness(1);
-            window->draw(shp);
+            Utils::drawBoundingBox(spTadzik.sprite, window);
         }
         window->draw(spTadzik.sprite);
         window->draw(textScore);
@@ -236,6 +235,7 @@ protected:
 
     double obstacleChance = 1;
     int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;
+    bool debug=true;
 
 };
 

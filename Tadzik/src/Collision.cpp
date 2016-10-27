@@ -1,11 +1,7 @@
-
-/*
- * File:   collision.cpp
- * Author: Nick (original version), ahnonay (SFML2 compatibility)
- */
 #include <SFML\Graphics.hpp>
 #include <map>
 #include "Collision.hpp"
+#include "Utils.hpp"
 
 namespace Collision
 {
@@ -60,7 +56,12 @@ namespace Collision
 
     bool PixelPerfectTest(sf::Sprite& Object1, sf::Sprite& Object2, sf::Uint8 AlphaLimit) {
         sf::FloatRect Intersection;
-        if (Object1.getGlobalBounds().intersects(Object2.getGlobalBounds(), Intersection)) {
+        Object1.getGlobalBounds().intersects(Object2.getGlobalBounds(), Intersection);
+
+        sf::FloatRect bound1 = Utils::getBiggerBoundingBox(Object1);
+        sf::FloatRect bound2 = Utils::getBiggerBoundingBox(Object2);
+
+        if (bound1.intersects(bound2)) {
             sf::IntRect O1SubRect = Object1.getTextureRect();
             sf::IntRect O2SubRect = Object2.getTextureRect();
 
