@@ -50,27 +50,23 @@ public:
         spTadzik.setAnimation(&animTadzikRun);
         spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
         spTadzik.sprite.setScale(scaleFactor, scaleFactor);
-
-        std::cout << animTadzikRun.vecFrames.size() << " " << animTadzikDuck.vecFrames.size() << "\n";
     }
 
     void deliverEvent(sf::Event& event){
-        if (event.type == sf::Event::KeyPressed && !amIDucking)
+        if (event.type == sf::Event::KeyPressed && !isDucking && !gameOver)
         {
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
-                amIDucking=true;
+                isDucking=true;
                 spTadzik.setAnimation(&animTadzikDuck);
                 spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
-                std::cout << "start ducking!\n";
             }
         }
-        if (event.type == sf::Event::KeyReleased && amIDucking)
+        if (event.type == sf::Event::KeyReleased && isDucking && !gameOver)
         {
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
-                amIDucking=false;
+                isDucking=false;
                 spTadzik.setAnimation(&animTadzikRun);
                 spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
-                std::cout << "end ducking\n";
             }
         }
 
@@ -80,12 +76,14 @@ public:
         if(gameOver){
             textScore.setString("press space to play again");
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+                spTadzik.setAnimation(&animTadzikRun);
                 spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
                 gameOver=false;
                 vecCactus.clear();
                 vecVulture.clear();
                 result=0;
                 isJumping=false;
+                isDucking=false;
             }
         }
         else{
@@ -124,14 +122,17 @@ public:
             sp.update(deltaTime);
             window->draw(sp.sprite);
         }
-        sf::RectangleShape shp(sf::Vector2f(spTadzik.sprite.getGlobalBounds().width, spTadzik.sprite.getGlobalBounds().height));
-        shp.setPosition(sf::Vector2f(spTadzik.sprite.getGlobalBounds().left, spTadzik.sprite.getGlobalBounds().top));
-        shp.setOutlineColor(sf::Color::Green);
-        shp.setFillColor(sf::Color(0,0,0,0));
-        shp.setOutlineThickness(4);
-        window->draw(shp);
-        window->draw(spTadzik.sprite);
-        window->draw(textScore);
+        if (true) // borderbox tadzika
+        {
+            sf::RectangleShape shp(sf::Vector2f(spTadzik.sprite.getGlobalBounds().width, spTadzik.sprite.getGlobalBounds().height));
+            shp.setPosition(sf::Vector2f(spTadzik.sprite.getGlobalBounds().left, spTadzik.sprite.getGlobalBounds().top));
+            shp.setOutlineColor(sf::Color::Green);
+            shp.setFillColor(sf::Color(0,0,0,0));
+            shp.setOutlineThickness(1);
+            window->draw(shp);
+            window->draw(spTadzik.sprite);
+            window->draw(textScore);
+        }
     }
 
     std::string stringify(int x){
@@ -147,15 +148,32 @@ public:
     }
 
     void manageObstacles(){
-        double addCactusChance = (double)rand()/RAND_MAX;
-        if(addCactusChance <= 0.01 / scaleFactor){
-            sf::Sprite spTmp(texCactus);
-            spTmp.setPosition(0, 0);
-            spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
-            spTmp.setPosition(window->getSize().x+50, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
-            vecCactus.push_back(spTmp);
+        if (result - lastObstacle > minObstacleInterval){
+            obstacleChance+=0.01;
+            if (obstacleChance > (double)rand()/RAND_MAX)
+            {
+                lastObstacle = result;
+                obstacleChance-=(double)rand()/RAND_MAX*0.8+0.2;
+                if ((double)rand()/RAND_MAX<0.66){
+                    sf::Sprite spTmp(texCactus);
+                    spTmp.setPosition(0, 0);
+                    spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
+                    spTmp.setPosition(window->getSize().x+50, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
+                    vecCactus.push_back(spTmp);
+                }
+                else {
+                    AnimatedSprite spTmp;
+                    spTmp.setAnimation(&animVultureFly);
+                    spTmp.sprite.setPosition(0, 0);
+                    spTmp.sprite.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
+                    spTmp.sprite.setPosition(window->getSize().x+50, window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-(double)rand()/RAND_MAX*100);
+                    vecVulture.push_back(spTmp);
+                }
+            }
         }
-
+        if (result - lastObstacle >= maxObstacleInterval) {
+            obstacleChance = 1;
+        }
         for(int i = vecCactus.size()-1; i >= 0; i--){
             if(vecCactus[i].getGlobalBounds().left < -100){
                 vecCactus.erase(vecCactus.begin()+i);
@@ -169,16 +187,6 @@ public:
             }
         }
 
-        double addVultureChance = (double)rand()/RAND_MAX;
-        if(addVultureChance <= 0.005/scaleFactor * 10){
-            AnimatedSprite spTmp;
-            spTmp.setAnimation(&animVultureFly);
-            spTmp.sprite.setPosition(0, 0);
-            spTmp.sprite.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
-            spTmp.sprite.setPosition(window->getSize().x+50, window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-(double)rand()/RAND_MAX*100);
-            vecVulture.push_back(spTmp);
-        }
-
         for(int i = vecVulture.size()-1; i >= 0; i--){
             if(vecVulture[i].sprite.getGlobalBounds().left < -100){
                 vecVulture.erase(vecVulture.begin()+i);
@@ -187,7 +195,7 @@ public:
 
         for(int i = vecVulture.size()-1; i >= 0; i--){
             vecVulture[i].sprite.move(-speedX*scaleFactor, 0);
-            if(spTadzik.sprite.getGlobalBounds().intersects(vecVulture[i].sprite.getGlobalBounds())){
+            if(Collision::PixelPerfectTest(spTadzik.sprite, vecVulture[i].sprite)) {
                 gameOver=true;
             }
         }
@@ -215,8 +223,12 @@ protected:
     sf::Font font;
     sf::Text textScore;
     bool gameOver=false;
-    bool amIDucking=false;
-    double scaleFactor=3.0;
+    bool isDucking=false;
+    double scaleFactor=2.0;
+
+    double obstacleChance = 1;
+    int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;
+
 };
 
 #endif // TREX_HPP
