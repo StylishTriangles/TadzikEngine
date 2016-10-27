@@ -58,7 +58,9 @@ public:
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
                 isDucking=true;
                 spTadzik.setAnimation(&animTadzikDuck);
-                spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                if (!isJumping){
+                    spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                }
             }
         }
         if (event.type == sf::Event::KeyReleased && isDucking && !gameOver)
@@ -66,7 +68,7 @@ public:
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
                 isDucking=false;
                 spTadzik.setAnimation(&animTadzikRun);
-                spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                //spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
             }
         }
 
@@ -89,8 +91,12 @@ public:
         else{
             spTadzik.sprite.move(0, deltaTime * -speedY * scaleFactor);
             spTadzik.update(deltaTime);
+            if ((int)result%100==0) speedX+=0.1;
             double critHeight = window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY;
-            if(spTadzik.sprite.getGlobalBounds().top < critHeight)speedY-=g;
+            if(spTadzik.sprite.getGlobalBounds().top < critHeight) {
+                if (isDucking) speedY-=3*g;
+                else speedY-=g;
+            }
             if(spTadzik.sprite.getGlobalBounds().top > critHeight){
                 speedY=0;
                 spTadzik.sprite.setPosition(offsetX, critHeight);
@@ -114,7 +120,7 @@ public:
 
             result += speedX/10.0;
         }
-        window->clear();
+        window->clear(sf::Color::Black); //kolor okna
         for(sf::Sprite& sp : vecCactus){
             window->draw(sp);
         }
@@ -122,7 +128,7 @@ public:
             sp.update(deltaTime);
             window->draw(sp.sprite);
         }
-        if (true) // borderbox tadzika
+        if (false) // borderbox tadzika
         {
             sf::RectangleShape shp(sf::Vector2f(spTadzik.sprite.getGlobalBounds().width, spTadzik.sprite.getGlobalBounds().height));
             shp.setPosition(sf::Vector2f(spTadzik.sprite.getGlobalBounds().left, spTadzik.sprite.getGlobalBounds().top));
@@ -130,9 +136,9 @@ public:
             shp.setFillColor(sf::Color(0,0,0,0));
             shp.setOutlineThickness(1);
             window->draw(shp);
-            window->draw(spTadzik.sprite);
-            window->draw(textScore);
         }
+        window->draw(spTadzik.sprite);
+        window->draw(textScore);
     }
 
     std::string stringify(int x){
@@ -155,11 +161,13 @@ public:
                 lastObstacle = result;
                 obstacleChance-=(double)rand()/RAND_MAX*0.8+0.2;
                 if ((double)rand()/RAND_MAX<0.66){
-                    sf::Sprite spTmp(texCactus);
-                    spTmp.setPosition(0, 0);
-                    spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
-                    spTmp.setPosition(window->getSize().x+50, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
-                    vecCactus.push_back(spTmp);
+                    for (int i = 0; i<rand()%3+1; i++) {
+                        sf::Sprite spTmp(texCactus);
+                        spTmp.setPosition(0, 0);
+                        spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
+                        spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
+                        vecCactus.push_back(spTmp);
+                    }
                 }
                 else {
                     AnimatedSprite spTmp;
@@ -214,6 +222,7 @@ protected:
 
     double offsetX = 32, offsetY=4;
     bool isJumping=false;
+    bool isDucking=false;
     double g = 0.03;
 
     double result=0;
@@ -223,7 +232,6 @@ protected:
     sf::Font font;
     sf::Text textScore;
     bool gameOver=false;
-    bool isDucking=false;
     double scaleFactor=2.0;
 
     double obstacleChance = 1;
