@@ -4,6 +4,7 @@
 #include "Scene.hpp"
 #include "AnimatedSprite.hpp"
 #include "Collision.hpp"
+#include "Utils.hpp"
 
 #include <string>
 #include <vector>
@@ -29,7 +30,8 @@ public:
 
         texBackground.loadFromFile("files/textures/trex/background.png");
         background.setTexture(texBackground);
-        background.setScale(sf::Vector2f((float)window->getSize().x/(float)texBackground.getSize().x, (float)window->getSize().y/(float)texBackground.getSize().y));
+        background.setScale(sf::Vector2f((float)window->getSize().x/(float)texBackground.getSize().x,
+                                         (float)window->getSize().y/(float)texBackground.getSize().y));
 
         sf::Texture tmp;
         tmp.loadFromFile("files/textures/trex/cactus0.png"), texCactus.push_back(tmp);
@@ -168,15 +170,11 @@ public:
     void manageObstacles(){
         if (result - lastObstacle > minObstacleInterval){
             obstacleChance+=0.01;
-            if (obstacleChance > (double)rand()/RAND_MAX)
             {
                 lastObstacle = result;
-                obstacleChance-=(double)rand()/RAND_MAX*0.8+0.2;
-                if ((double)rand()/RAND_MAX<0.66){
                     for (int i = 0; i<rand()%3+1; i++) {
                         sf::Sprite spTmp(texCactus[rand()%6]);
                         spTmp.setPosition(0, 0);
-                        spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
                         spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
                         vecCactus.push_back(spTmp);
                     }
@@ -185,7 +183,6 @@ public:
                     AnimatedSprite spTmp;
                     spTmp.setAnimation(&animVultureFly);
                     spTmp.sprite.setPosition(0, 0);
-                    spTmp.sprite.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
                     spTmp.sprite.setPosition(window->getSize().x+50, window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-(double)rand()/RAND_MAX*100);
                     vecVulture.push_back(spTmp);
                 }
@@ -249,7 +246,7 @@ protected:
 
     double obstacleChance = 1;
     int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;
-    bool debug=false;
+    bool debug=true;
 
 };
 
