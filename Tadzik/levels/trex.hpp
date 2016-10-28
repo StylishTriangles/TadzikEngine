@@ -27,7 +27,17 @@ public:
         animRunDuckTexture1.loadFromFile("files/textures/trex/trexDuck0.png");
         animRunDuckTexture2.loadFromFile("files/textures/trex/trexDuck1.png");
 
-        texCactus.loadFromFile("files/textures/trex/cactus.png");
+        texBackground.loadFromFile("files/textures/trex/background.png");
+        background.setTexture(texBackground);
+        background.setScale(sf::Vector2f((float)window->getSize().x/(float)texBackground.getSize().x, (float)window->getSize().y/(float)texBackground.getSize().y));
+
+        sf::Texture tmp;
+        tmp.loadFromFile("files/textures/trex/cactus0.png"), texCactus.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cactus1.png"), texCactus.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cactus2.png"), texCactus.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cactus3.png"), texCactus.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cactus4.png"), texCactus.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cactus5.png"), texCactus.push_back(tmp);
 
         if (!font.loadFromFile("files/textures/trex/Carnevalee_Freakshow.ttf")){
             std::cout << "cannot load font\n";
@@ -123,6 +133,7 @@ public:
             result += speedX/10.0;
         }
         window->clear(sf::Color::Black); //kolor okna
+        window->draw(sf::Sprite(background));
         for(sf::Sprite& sp : vecCactus){
             if(debug)
                 Utils::drawBoundingBox(sp, window);
@@ -163,7 +174,7 @@ public:
                 obstacleChance-=(double)rand()/RAND_MAX*0.8+0.2;
                 if ((double)rand()/RAND_MAX<0.66){
                     for (int i = 0; i<rand()%3+1; i++) {
-                        sf::Sprite spTmp(texCactus);
+                        sf::Sprite spTmp(texCactus[rand()%6]);
                         spTmp.setPosition(0, 0);
                         spTmp.setScale(scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1), scaleFactor*(0.4+((double)rand()/RAND_MAX)*0.1));
                         spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
@@ -215,8 +226,9 @@ protected:
     sf::Texture animRunTexture1, animRunTexture2;
     sf::Texture animVultureFlyTexture1, animVultureFlyTexture2;
     sf::Texture animRunDuckTexture1, animRunDuckTexture2;
-    sf::Texture texCactus;
-
+    sf::Texture texBackground;
+    std::vector <sf::Texture> texCactus;
+    sf::Sprite background;
     AnimatedSprite spTadzik;
 
     double speedX=5, speedY=0.0;
@@ -233,11 +245,11 @@ protected:
     sf::Font font;
     sf::Text textScore;
     bool gameOver=false;
-    double scaleFactor=2.0;
+    double scaleFactor=3.0;
 
     double obstacleChance = 1;
     int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;
-    bool debug=true;
+    bool debug=false;
 
 };
 
