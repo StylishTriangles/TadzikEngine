@@ -28,10 +28,14 @@ public:
         animRunDuckTexture1.loadFromFile("files/textures/trex/trexDuck0.png");
         animRunDuckTexture2.loadFromFile("files/textures/trex/trexDuck1.png");
 
+        sf::Sprite tmp1;
         texBackground.loadFromFile("files/textures/trex/background.png");
-        background.setTexture(texBackground);
-        background.setScale(sf::Vector2f((float)window->getSize().x/(float)texBackground.getSize().x,
-                                         (float)window->getSize().y/(float)texBackground.getSize().y));
+        tmp1.setTexture(texBackground);
+        tmp1.setScale(sf::Vector2f((float)window->getSize().x/(float)texBackground.getSize().x*1.1,
+                                   (float)window->getSize().y/(float)texBackground.getSize().y));
+        background.push_back(tmp1);
+        tmp1.setPosition(window->getSize().x, 0);
+        background.push_back(tmp1);
 
         sf::Texture tmp;
         tmp.loadFromFile("files/textures/trex/cactus0.png"), texCactus.push_back(tmp);
@@ -40,6 +44,9 @@ public:
         tmp.loadFromFile("files/textures/trex/cactus3.png"), texCactus.push_back(tmp);
         tmp.loadFromFile("files/textures/trex/cactus4.png"), texCactus.push_back(tmp);
         tmp.loadFromFile("files/textures/trex/cactus5.png"), texCactus.push_back(tmp);
+
+        tmp.loadFromFile("files/textures/trex/cloud0.png"), texCloud.push_back(tmp);
+        tmp.loadFromFile("files/textures/trex/cloud1.png"), texCloud.push_back(tmp);
 
         if (!font.loadFromFile("files/textures/trex/Carnevalee_Freakshow.ttf")){
             std::cout << "cannot load font\n";
@@ -65,24 +72,15 @@ public:
     }
 
     void deliverEvent(sf::Event& event){
-        if (event.type == sf::Event::KeyPressed && !isDucking && !gameOver)
-        {
+        if (event.type == sf::Event::KeyReleased) {
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
-                isDucking=true;
-                spTadzik.setAnimation(&animTadzikDuck);
-                if (!isJumping){
-                    spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                if (isDucking) {
+                    isDucking = false;
+                    if (!gameOver) spTadzik.setAnimation(&animTadzikRun);
                 }
+                quickFall = false;
             }
         }
-        if (event.type == sf::Event::KeyReleased && isDucking && !gameOver)
-        {
-            if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
-                isDucking=false;
-                spTadzik.setAnimation(&animTadzikRun);
-            }
-        }
-
     }
 
     virtual void draw(double deltaTime){
@@ -108,7 +106,7 @@ public:
             if ((int)result%100==0) speedX+=0.1;
             double critHeight = window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY;
             if(spTadzik.sprite.getGlobalBounds().top < critHeight) {
-                if (isDucking) speedY-=3*g;
+                if (quickFall) speedY-=3*g;
                 else speedY-=g;
             }
             if(spTadzik.sprite.getGlobalBounds().top > critHeight){
@@ -124,18 +122,26 @@ public:
                 }
             }
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)){
-                //schylanie
-
+                if (!isDucking)
+                {
+                    if (isJumping) quickFall = true;
+                    else {
+                        isDucking = true;
+                        spTadzik.setAnimation(&animTadzikDuck);
+                        spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
+                    }
+                }
             }
 
-            manageObstacles();
+            manageObjects();
 
             textScore.setString("score: " + stringify((int)result));
 
             result += speedX/10.0;
         }
         window->clear(sf::Color::Black); //kolor okna
-        window->draw(sf::Sprite(background));
+        window->draw(background[0]);
+        window->draw(background[1]);
         for(sf::Sprite& sp : vecCactus){
             if(debug)
                 Utils::drawBoundingBox(sp, window);
@@ -146,6 +152,11 @@ public:
             if(debug)
                 Utils::drawBoundingBox(sp.sprite, window);
             window->draw(sp.sprite);
+        }
+        for(sf::Sprite& sp : vecCloud) {
+            if(debug)
+                Utils::drawBoundingBox(sp, window);
+            window->draw(sp);
         }
         if (debug) // boundingbox tadzika
         {
@@ -167,14 +178,17 @@ public:
         spTadzik.sprite.move(0, -10);
     }
 
-    void manageObstacles(){
+    void manageObjects(){
         if (result - lastObstacle > minObstacleInterval){
             obstacleChance+=0.01;
+            if (obstacleChance > Utils::randF(0, 1))
             {
                 lastObstacle = result;
+                obstacleChance-=Utils::randF(0.2, 1);
+                if (Utils::randF(0, 1)<0.66){
                     for (int i = 0; i<rand()%3+1; i++) {
                         sf::Sprite spTmp(texCactus[rand()%6]);
-                        spTmp.setPosition(0, 0);
+                        spTmp.setScale(scaleFactor*(Utils::randF(0.4, 0.5)), scaleFactor*(Utils::randF(0.4, 0.5)));
                         spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
                         vecCactus.push_back(spTmp);
                     }
@@ -182,21 +196,32 @@ public:
                 else {
                     AnimatedSprite spTmp;
                     spTmp.setAnimation(&animVultureFly);
-                    spTmp.sprite.setPosition(0, 0);
-                    spTmp.sprite.setPosition(window->getSize().x+50, window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-(double)rand()/RAND_MAX*100);
+                    spTmp.sprite.setScale(scaleFactor*Utils::randF(0.4, 0.5), scaleFactor*Utils::randF(0.4, 0.5));
+                    spTmp.sprite.setPosition(window->getSize().x+50,
+                                             window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-Utils::randF(0, 200));
                     vecVulture.push_back(spTmp);
                 }
             }
         }
+
+        if (result>nextCloud) {
+            lastCloud = result;
+            nextCloud += Utils::randF(75, 150);
+            sf::Sprite tmp(texCloud[rand()%texCloud.size()]);
+            tmp.setScale(scaleFactor*Utils::randF(1, 2), scaleFactor*Utils::randF(1, 2));
+            tmp.setPosition(window->getSize().x+50+Utils::randF(0, 1)*10*scaleFactor, 75);
+            vecCloud.push_back(tmp);
+        }
+
         if (result - lastObstacle >= maxObstacleInterval) {
             obstacleChance = 1;
         }
+
         for(int i = vecCactus.size()-1; i >= 0; i--){
             if(vecCactus[i].getGlobalBounds().left < -100){
                 vecCactus.erase(vecCactus.begin()+i);
             }
         }
-
         for(int i = vecCactus.size()-1; i >= 0; i--){
             vecCactus[i].move(-speedX*scaleFactor, 0);
             if(Collision::PixelPerfectTest(spTadzik.sprite, vecCactus[i])) {
@@ -209,12 +234,27 @@ public:
                 vecVulture.erase(vecVulture.begin()+i);
             }
         }
-
         for(int i = vecVulture.size()-1; i >= 0; i--){
             vecVulture[i].sprite.move(-speedX*scaleFactor, 0);
             if(Collision::PixelPerfectTest(spTadzik.sprite, vecVulture[i].sprite)) {
                 gameOver=true;
             }
+        }
+
+        for(int i=vecCloud.size()-1; i>=0; i--) {
+            if(vecCloud[i].getGlobalBounds().left <-400) {
+                vecCloud.erase(vecCloud.begin()+i);
+            }
+        }
+        for(int i=vecCloud.size()-1; i>=0; i--) {
+            vecCloud[i].move(-speedX*scaleFactor*parallax1, 0);
+        }
+
+        background[0].move(-speedX*scaleFactor*parallax2, 0);
+        background[1].move(-speedX*scaleFactor*parallax2, 0);
+        if(background[1].getGlobalBounds().left<0) {
+            std::swap(background[0], background[1]);
+            background[1].move(window->getSize().x, 0);
         }
     }
 
@@ -225,28 +265,34 @@ protected:
     sf::Texture animRunDuckTexture1, animRunDuckTexture2;
     sf::Texture texBackground;
     std::vector <sf::Texture> texCactus;
-    sf::Sprite background;
-    AnimatedSprite spTadzik;
-
-    double speedX=5, speedY=0.0;
-
-    double offsetX = 32, offsetY=4;
-    bool isJumping=false;
-    bool isDucking=false;
-    double g = 0.03;
-
-    double result=0;
+    std::vector <sf::Texture> texCloud;
 
     std::vector<sf::Sprite> vecCactus;
     std::vector<AnimatedSprite> vecVulture;
+    std::vector<sf::Sprite> vecCloud;
+    std::vector<sf::Sprite> background;
+
+    AnimatedSprite spTadzik;
+
+    double speedX=5, speedY=0.0;
+    double offsetX = 32, offsetY=4;
+    double scaleFactor = 3.0;
+    double parallax1 = 0.2, parallax2 = 0.1;
+    double obstacleChance = 1;
+    double g = 0.03;
+    double result=0;
+
+    bool isJumping=false;
+    bool isDucking=false;
+    bool gameOver=false;
+    bool quickFall=false;
+
     sf::Font font;
     sf::Text textScore;
-    bool gameOver=false;
-    double scaleFactor=3.0;
 
-    double obstacleChance = 1;
     int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;
-    bool debug=true;
+    int lastCloud = 0, nextCloud = 100;
+    bool debug=false;
 
 };
 

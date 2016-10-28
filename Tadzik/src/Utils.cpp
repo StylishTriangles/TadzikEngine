@@ -20,6 +20,7 @@ void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window){
     window->draw(shp);
 }
 
+float randF(float from, float to) {
     return ((float)rand()/RAND_MAX*(to-from)+from);
 }
 
