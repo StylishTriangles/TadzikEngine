@@ -68,7 +68,6 @@ public:
             if (event.key.code == sf::Keyboard::S || event.key.code == sf::Keyboard::Down){
                 isDucking=false;
                 spTadzik.setAnimation(&animTadzikRun);
-                //spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);
             }
         }
 
@@ -86,6 +85,9 @@ public:
                 result=0;
                 isJumping=false;
                 isDucking=false;
+                obstacleChance=1;
+                speedX = 5.0;
+                lastObstacle = 0;
             }
         }
         else{
@@ -132,7 +134,7 @@ public:
                 Utils::drawBoundingBox(sp.sprite, window);
             window->draw(sp.sprite);
         }
-        if (debug) // borderbox tadzika
+        if (debug) // boundingbox tadzika
         {
             Utils::drawBoundingBox(spTadzik.sprite, window);
         }
