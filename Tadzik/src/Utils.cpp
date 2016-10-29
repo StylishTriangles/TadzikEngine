@@ -24,4 +24,19 @@ float randF(float from, float to) {
     return ((float)rand()/RAND_MAX*(to-from)+from);
 }
 
+bool isSpriteClicked(sf::Sprite& sp, sf::RenderWindow* window) {
+    sf::Mouse mouse;
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+        if (sf::Mouse::getPosition(*window).x >= sp.getPosition().x && sf::Mouse::getPosition(*window).x <= sp.getPosition().x+sp.getGlobalBounds().width &&
+            sf::Mouse::getPosition(*window).y >= sp.getPosition().y && sf::Mouse::getPosition(*window).y <= sp.getPosition().y+sp.getGlobalBounds().height)
+            return true;
+    }
+    return false;
+}
+
+std::string stringify(int x){
+    std::ostringstream o;
+    o << x;
+    return o.str();
+}
 }

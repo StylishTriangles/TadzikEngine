@@ -10,7 +10,6 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
-#include <sstream>
 
 class TREX: public Scene{
 public:
@@ -48,7 +47,7 @@ public:
         tmp.loadFromFile("files/textures/trex/cloud0.png"), texCloud.push_back(tmp);
         tmp.loadFromFile("files/textures/trex/cloud1.png"), texCloud.push_back(tmp);
 
-        if (!font.loadFromFile("files/textures/trex/Carnevalee_Freakshow.ttf")){
+        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
             std::cout << "cannot load font\n";
         }
 
@@ -135,7 +134,7 @@ public:
 
             manageObjects();
 
-            textScore.setString("score: " + stringify((int)result));
+            textScore.setString("score: " + Utils::stringify((int)result));
 
             result += speedX/10.0;
         }
@@ -164,12 +163,6 @@ public:
         }
         window->draw(spTadzik.sprite);
         window->draw(textScore);
-    }
-
-    std::string stringify(int x){
-        std::ostringstream o;
-        o << x;
-        return o.str();
     }
 
     void jump(){
