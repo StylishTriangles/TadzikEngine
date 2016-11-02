@@ -7,6 +7,7 @@
 #include "levels/example_animated_sprite.hpp"
 #include "levels/trex.hpp"
 #include "levels/clicker.hpp"
+#include "levels/jumper.hpp"
 
 #include <cstdlib>
 
@@ -20,8 +21,10 @@ int main(){
     sceneManager.registerScene<AnimatedSpriteScene>("AnimSprite", &window);
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
     //sceneManager.setActiveScene("TREX");
-    sceneManager.setActiveScene("CLICKER");
+    sceneManager.setActiveScene("JUMPER");
+    //sceneManager.setActiveScene("CLICKER");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
