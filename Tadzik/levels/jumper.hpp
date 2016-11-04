@@ -22,11 +22,26 @@ class platform {
 public:
     sf::Sprite sprite;
     platform(sf::Sprite nSprite) {sprite = nSprite;};
+    bool isAbove(sf::Sprite sp2) {
+        if ((sp2.getPosition().y+sp2.getTextureRect().height*sp2.getScale().y < sprite.getPosition().y)!=playerAbove) {
+            playerAbove=!playerAbove;
+            return true;
+        }
+        return false;
+    }
+    bool testForStanding(sf::Sprite sp2) {
+        if ((sp2.getPosition().x+sp2.getTextureRect().width*sp2.getScale().x > sprite.getPosition().x) &&
+            (sp2.getPosition().x < sprite.getPosition().x+sprite.getTextureRect().width*sprite.getScale().x)) {
+            return true;
+        }
+        return false;
+    }
 protected:
-
+    bool playerAbove = false;
     bool jumpedOn = false;
     double timeTillBreak = 3;
 };
+
 class JUMPER: public Scene{
 public:
     JUMPER(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
@@ -48,7 +63,7 @@ public:
 
         texPlayer.loadFromFile("files/textures/jumper/player.png");
         player.setTexture(texPlayer);
-        player.setPosition(window->getSize().x/2-player.getTextureRect().width/2, 100);
+        player.setPosition(window->getSize().x/2-player.getTextureRect().width/2, window->getSize().y-player.getTextureRect().height*6);
         player.setScale(3, 3);
 
         texPlatform.loadFromFile("files/textures/jumper/platform.png");
@@ -74,6 +89,7 @@ public:
     }
 
     void jump(double speedX) {
+        isStanding = false;
         isJumping = true;
         speedY=-1.5*speedY;
         speedY-=abs(speedX);
@@ -81,6 +97,7 @@ public:
 
     void gameOver() {
         window->close();
+        std::cin.ignore();
     }
     virtual void draw(double deltaTime) {
         if (player.getPosition().y>window->getSize().y) gameOver();
@@ -93,45 +110,56 @@ public:
             player.setPosition(window->getSize().x-player.getTextureRect().width, player.getPosition().y);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            speedX-=0.5;
+            speedX-=addSpeed;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            speedX+=0.5;
+            speedX+=addSpeed;
         }
-        speedY += gravity;
-        if (speedY<0) {
-            isJumping = true;
+        if (isStanding) {
+            player.setPosition(player.getPosition().x,
+                               platforms[standingPlatformNumber].sprite.getPosition().y-player.getTextureRect().height*player.getScale().y);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+                jump(speedX+znak(speedX)*10);
+            }
+            if (!platforms[standingPlatformNumber].testForStanding(player)) isStanding = false;
+
         }
-        if (speedY>0) {
-            isJumping = false;
-        }
-        if (isJumping) {
-            if (player.getPosition().y>window->getSize().y*(1.0/4.0)) {
-                player.move(0, speedY);
+        if (!isStanding) {
+            speedY += gravity;
+            if (speedY>0) {
+                isJumping = false;
+            }
+            if (isJumping) {
+                if (player.getPosition().y>window->getSize().y*(1.0/4.0)) {
+                    player.move(0, speedY);
+                }
+                else {
+                    background1.move(0, -speedY);
+                    background2.move(0, -speedY);
+                    for (int i=0; i<platforms.size(); ++i) {
+                        platforms[i].sprite.move(0, -speedY);
+                    }
+                }
             }
             else {
-                background1.move(0, -speedY);
-                background2.move(0, -speedY);
-                for (int i=0; i<platforms.size(); ++i) {
-                    platforms[i].sprite.move(0, -speedY);
-                }
+                player.move(0, speedY);
             }
+            score-=speedY;
         }
-        else {
-            player.move(0, speedY);
-        }
-        player.move(speedX, 0);
         for (int i=0; i<platforms.size(); ++i) {
-            if (!isJumping) {
-                //if (Collision::PixelPerfectTest(player, platforms[i].sprite) &&
-                //    player.getPosition().y+player.getTextureRect().height*player.getScale().y <= platforms[i].sprite.getPosition().y+10) {
-                if (Collision::PixelPerfectTest(player, platforms[i].sprite)) {
-                    jump(speedX);
+            if (platforms[i].isAbove(player)) {
+                if (platforms[i].testForStanding(player) && !isJumping) {
+                    isStanding = true;
+                    standingPlatformNumber = i;
+                    player.setPosition(player.getPosition().x,
+                                       platforms[standingPlatformNumber].sprite.getPosition().y-player.getTextureRect().height*player.getScale().y);
                 }
             }
+
         }
 
-        speedX -= znak(speedX)*airResistance;
+        player.move(speedX, 0);
+        speedX*=(1-airResistance);
         if (background1.getPosition().y>window->getSize().y) {
             background1.move(0, -1.98*window->getSize().y);
         }
@@ -139,8 +167,7 @@ public:
             background2.move(0, -1.98*window->getSize().y);
         }
 
-        score-=speedY;
-        std::cout << score/100 << std::endl;
+        //std::cout << score/100 << std::endl;
 
         if (score - lastPlatformGenerated > window->getSize().y/2) {
             int tmp = Utils::randF(-100, -50);
@@ -151,13 +178,13 @@ public:
         window->clear();
         window->draw(background1);
         window->draw(background2);
-        window->draw(player);
         for (int i=0; i<platforms.size(); ++i) {
             if (platforms[i].sprite.getPosition().y>window->getSize().y+100) {
                 platforms.erase(platforms.begin()+i);
             }
             window->draw(platforms[i].sprite);
         }
+        window->draw(player);
     }
 
 protected:
@@ -174,13 +201,17 @@ protected:
 
     double speedX = 0;
     double speedY = 0;
-    double gravity = 0.3;
-    double airResistance = 0.003;
+    double gravity = 0.5;
+    double addSpeed = 1;
+    double airResistance = 0.05;
     double lastPlatformGenerated = 0;
+
+    double standingHeight = 0;
+    int standingPlatformNumber = 0;
 
     std::vector <platform> platforms;
     bool isJumping = false;
-    bool isFalling = false;
+    bool isStanding = false;
 
     double score = 0;
 
