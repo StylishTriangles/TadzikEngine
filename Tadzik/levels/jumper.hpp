@@ -69,9 +69,9 @@ public:
         texPlatform.loadFromFile("files/textures/jumper/platform.png");
         tmpPlatform.setTexture(texPlatform);
         tmpPlatform.setPosition(0, window->getSize().y-30);
-        tmpPlatform.setScale((double)window->getSize().x/(double)tmpPlatform.getTextureRect().width, 0.5);
+        tmpPlatform.setScale((double)window->getSize().x/(double)tmpPlatform.getTextureRect().width, 1);
         platforms.push_back(platform(tmpPlatform));
-        tmpPlatform.setScale((double)window->getSize().x/(double)tmpPlatform.getTextureRect().width/3, 0.5);
+        tmpPlatform.setScale((double)window->getSize().x/(double)tmpPlatform.getTextureRect().width/3, 1);
         tmpPlatform.move(10, -(1.0/2.0)*window->getSize().y);
         platforms.push_back(platform(tmpPlatform));
         tmpPlatform.move(10, -(1.0/2.0)*window->getSize().y);
