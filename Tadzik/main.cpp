@@ -8,6 +8,7 @@
 #include "levels/trex.hpp"
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
+#include "levels/synth3d.hpp"
 
 #include <cstdlib>
 
@@ -22,9 +23,11 @@ int main(){
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
     sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     //sceneManager.setActiveScene("TREX");
     sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
+    //sceneManager.setActiveScene("SYNTH3D");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;

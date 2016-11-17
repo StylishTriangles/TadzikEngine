@@ -245,8 +245,8 @@ protected:
     sf::Sprite player;
     sf::Sprite tmpPlatform;
 
-    double speedX = 0;
-    double prevSpeedX = 0;
+    double speedX = 0.01;
+    double prevSpeedX = 0.01;
     double speedY = 0;
     double gravity = 0.5;
     double addSpeed = 1;
