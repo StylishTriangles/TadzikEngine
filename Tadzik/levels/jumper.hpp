@@ -66,14 +66,29 @@ public:
                              (float)window->getSize().y/(float)background2.getTextureRect().height);
         background2.setPosition(0, -0.99*window->getSize().y);
 
-        texPlayerRun.loadFromFile("files/textures/jumper/playerRun.png");
-        texPlayerJump.loadFromFile("files/textures/jumper/playerJump.png");
+        texPlayerRun1.loadFromFile("files/textures/jumper/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
+        texPlayerRun2.loadFromFile("files/textures/jumper/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
+        texPlayerRun3.loadFromFile("files/textures/jumper/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun3, 500));
+        texPlayerRun4.loadFromFile("files/textures/jumper/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
+
+        texPlayerJump.loadFromFile("files/textures/jumper/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
+
         texPlayerRoll.loadFromFile("files/textures/jumper/playerRoll.png");
+
+        texPlayerStand.loadFromFile("files/textures/jumper/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
+
+        spTadzik.setAnimation(&TadzikRun);
+        //spTadzik.sprite.setTexture(texPlayerRun);
+        spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
+                                    window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
+        spTadzik.sprite.setScale(3, 3);
+        spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height);
+        /*
         player.setTexture(texPlayerRun);
         player.setPosition(window->getSize().x/2-player.getTextureRect().width/2, window->getSize().y-player.getTextureRect().height*6);
         player.setScale(3, 3);
         player.setOrigin(player.getTextureRect().width/2, player.getTextureRect().height);
-
+        */
         texPlatform.loadFromFile("files/textures/jumper/platform.png");
         tmpPlatform.setTexture(texPlatform);
         tmpPlatform.setPosition(0, window->getSize().y-30);
@@ -104,15 +119,19 @@ public:
         speedY-=abs(speedX);
     }
     void flip() {
-        if (speedX!=0) player.setScale(-player.getScale().x, player.getScale().y);
+        if (speedX!=0) spTadzik.sprite.setScale(-spTadzik.sprite.getScale().x, spTadzik.sprite.getScale().y);
         //std::cout << "flip\n";
     }
     void gameOver() {
         //std::cout << "gameOver\n";
+        clock.restart();
+        scrolling = 0;
+        isJumping=false;
+        isStanding=false;
         background1.setPosition(0, 0);
         background2.setPosition(0, -0.99*window->getSize().y);
-        player.setPosition(window->getSize().x/2-player.getTextureRect().width/2, window->getSize().y-player.getTextureRect().height*6);
-        player.setScale(abs(player.getScale().x), player.getScale().y);
+        spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2, window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
+        spTadzik.sprite.setScale(abs(spTadzik.sprite.getScale().x), spTadzik.sprite.getScale().y);
 
         platforms.clear();
         tmpPlatform.setPosition(0, window->getSize().y-30);
@@ -126,19 +145,32 @@ public:
         //onSceneLoadToMemory();
         highScore = 0;
         score = 0;
-        speedX=0, speedY=0;
+        speedX=sgn(speedX)*0.01, speedY=0;
         standingPlatformNumber=0;
         lastPlatformGenerated=0;
     }
     virtual void draw(double deltaTime) {
-        if (player.getGlobalBounds().top>window->getSize().y) gameOver();
-        if (player.getGlobalBounds().left<0 && sgn(speedX)==-1) {
-            speedX = -0.66*speedX;
-            player.setPosition(player.getGlobalBounds().width/2, player.getPosition().y);
+        std::cout << deltaTime << "\n";
+        spTadzik.update(abs(speedX)*deltaTime);
+        {
+            if (clock.getElapsedTime().asSeconds()>5) {
+                scrolling+=0.1;
+                clock.restart();
+            }
+            background1.move(0, scrolling);
+            background2.move(0, scrolling);
+            for (int i=0; i<platforms.size(); ++i) {
+                platforms[i].sprite.move(0, scrolling);
+            }
         }
-        if (player.getGlobalBounds().left+player.getGlobalBounds().width>window->getSize().x && sgn(speedX)==1) {
+        if (spTadzik.sprite.getGlobalBounds().top>window->getSize().y) gameOver();
+        if (spTadzik.sprite.getGlobalBounds().left<0 && sgn(speedX)==-1) {
             speedX = -0.66*speedX;
-            player.setPosition(window->getSize().x-player.getGlobalBounds().width/2, player.getPosition().y);
+            spTadzik.sprite.setPosition(spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
+        }
+        else if (spTadzik.sprite.getGlobalBounds().left+spTadzik.sprite.getGlobalBounds().width>window->getSize().x && sgn(speedX)==1) {
+            speedX = -0.66*speedX;
+            spTadzik.sprite.setPosition(window->getSize().x-spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
             speedX-=addSpeed;
@@ -147,24 +179,24 @@ public:
             speedX+=addSpeed;
         }
         if (isStanding) {
-            player.setPosition(player.getPosition().x,
+            spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
                                platforms[standingPlatformNumber].sprite.getPosition().y);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
                 jump(speedX+sgn(speedX)*10);
-                player.setTexture(texPlayerJump);
+                spTadzik.setAnimation(&TadzikJump);
             }
-            if (!platforms[standingPlatformNumber].testForStanding(player)) isStanding = false;
+            if (!platforms[standingPlatformNumber].testForStanding(spTadzik.sprite)) isStanding = false;
 
         }
         if (!isStanding) {
             speedY += gravity;
             if (speedY>0) {
-                if (isJumping) player.setTexture(texPlayerRun);
+                if (isJumping) spTadzik.setAnimation(&TadzikRun);
                 isJumping = false;
             }
             if (isJumping) {
-                if (player.getPosition().y>window->getSize().y*(1.0/3.0)) {
-                    player.move(0, speedY);
+                if (spTadzik.sprite.getPosition().y>window->getSize().y*(1.0/3.0)) {
+                    spTadzik.sprite.move(0, speedY);
                 }
                 else {
                     background1.move(0, -speedY);
@@ -175,17 +207,17 @@ public:
                 }
             }
             else {
-                player.move(0, speedY);
+                spTadzik.sprite.move(0, speedY);
             }
             score-=speedY;
         }
         for (int i=0; i<platforms.size(); ++i) {
-            if (platforms[i].isAbove(player)) {
-                if (platforms[i].testForStanding(player) && !isJumping) {
+            if (platforms[i].isAbove(spTadzik.sprite)) {
+                if (platforms[i].testForStanding(spTadzik.sprite) && !isJumping) {
                     //std::cout << "standing on " << standingPlatformNumber << "\n";
                     isStanding = true;
                     standingPlatformNumber = i;
-                    player.setPosition(player.getPosition().x,
+                    spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
                                        platforms[standingPlatformNumber].sprite.getPosition().y);
                     speedY=0;
                 }
@@ -193,7 +225,7 @@ public:
 
         }
 
-        player.move(speedX, 0);
+        spTadzik.sprite.move(speedX, 0);
         speedX*=(1-airResistance);
         if (sgn(prevSpeedX)!=sgn(speedX)) {
             flip();
@@ -212,6 +244,7 @@ public:
             int tmp = Utils::randF(-100, -50);
             lastPlatformGenerated = score + tmp;
             tmpPlatform.setPosition(Utils::randF(0, window->getSize().x-tmpPlatform.getTextureRect().width), tmp);
+            tmpPlatform.setScale(Utils::randF(1, 3), 1);
             platforms.push_back(platform(tmpPlatform));
         }
         if (score>highScore) highScore=score;
@@ -221,20 +254,34 @@ public:
         window->draw(background2);
         window->draw(textScore);
         for (int i=0; i<platforms.size(); ++i) {
-            if (platforms[i].sprite.getPosition().y>window->getSize().y+100) {
+            if (platforms[i].sprite.getPosition().y>window->getSize().y+500) {
                 platforms.erase(platforms.begin()+i);
             }
             window->draw(platforms[i].sprite);
         }
-        window->draw(player);
+        if (isStanding) {
+            if (abs(speedX)<0.001 && activeAnim!=0) {
+                spTadzik.setAnimation(&TadzikStand);
+                activeAnim = 0;
+            }
+            else if (abs(speedX)>0.001 && activeAnim!=1) {
+                spTadzik.setAnimation(&TadzikRun);
+                activeAnim = 1;
+            }
+        }
+        window->draw(spTadzik.sprite);
     }
 
 protected:
     sf::Texture texBackground;
     sf::Texture texPlatform;
-    sf::Texture texPlayerRun;
+    sf::Texture texPlayerRun1;
+    sf::Texture texPlayerRun2;
+    sf::Texture texPlayerRun3;
+    sf::Texture texPlayerRun4;
     sf::Texture texPlayerRoll;
     sf::Texture texPlayerJump;
+    sf::Texture texPlayerStand;
 
     sf::Text textScore;
 
@@ -242,11 +289,15 @@ protected:
 
     sf::Sprite background1;
     sf::Sprite background2;
-    sf::Sprite player;
+    //sf::Sprite player;
     sf::Sprite tmpPlatform;
+
+    AnimatedSprite spTadzik;
+    Animation TadzikRun, TadzikStand, TadzikRoll, TadzikJump;
 
     double speedX = 0.01;
     double prevSpeedX = 0.01;
+    double scrolling = 0;
     double speedY = 0;
     double gravity = 0.5;
     double addSpeed = 1;
@@ -255,6 +306,7 @@ protected:
 
     //double standingHeight = 0;
     int standingPlatformNumber = 0;
+    int activeAnim = 0;  //stand = 0, run = 1, jump = 2
 
     std::vector <platform> platforms;
     bool isJumping = false;
@@ -262,6 +314,8 @@ protected:
 
     double score = 0;
     double highScore = 0;
+
+    sf::Clock clock;
 
 };
 #endif //JUMPER_HPP
