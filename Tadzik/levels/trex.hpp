@@ -181,7 +181,7 @@ public:
                 if (Utils::randF(0, 1)<0.66){
                     for (int i = 0; i<rand()%3+1; i++) {
                         sf::Sprite spTmp(texCactus[rand()%6]);
-                        spTmp.setScale(scaleFactor*(Utils::randF(0.4, 0.5)), scaleFactor*(Utils::randF(0.4, 0.5)));
+                        spTmp.setScale(scaleFactor*(Utils::randF(0.6, 0.8)), scaleFactor*(Utils::randF(0.6, 0.8)));
                         spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
                         vecCactus.push_back(spTmp);
                     }

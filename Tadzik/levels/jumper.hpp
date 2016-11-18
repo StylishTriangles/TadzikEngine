@@ -73,7 +73,7 @@ public:
 
         texPlayerJump.loadFromFile("files/textures/jumper/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
 
-        texPlayerRoll.loadFromFile("files/textures/jumper/playerRoll.png");
+        texPlayerRoll.loadFromFile("files/textures/jumper/playerRoll.png"), TadzikRoll.addFrame(AnimationFrame(&texPlayerRoll, 150));
 
         texPlayerStand.loadFromFile("files/textures/jumper/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
 
@@ -117,6 +117,11 @@ public:
         isJumping = true;
         speedY=-speedY;
         speedY-=abs(speedX);
+        if (abs(speedY)>1) {
+            spTadzik.setAnimation(&TadzikRoll);
+            isRolling = true;
+        }
+        else spTadzik.setAnimation(&TadzikJump);
     }
     void flip() {
         if (speedX!=0) spTadzik.sprite.setScale(-spTadzik.sprite.getScale().x, spTadzik.sprite.getScale().y);
@@ -183,16 +188,19 @@ public:
                                platforms[standingPlatformNumber].sprite.getPosition().y);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
                 jump(speedX+sgn(speedX)*10);
-                spTadzik.setAnimation(&TadzikJump);
             }
             if (!platforms[standingPlatformNumber].testForStanding(spTadzik.sprite)) isStanding = false;
 
+        }
+        if (isRolling) {
+            spTadzik.sprite.rotate(speedY);
         }
         if (!isStanding) {
             speedY += gravity;
             if (speedY>0) {
                 if (isJumping) spTadzik.setAnimation(&TadzikRun);
                 isJumping = false;
+                isRolling = false;
             }
             if (isJumping) {
                 if (spTadzik.sprite.getPosition().y>window->getSize().y*(1.0/3.0)) {
@@ -311,6 +319,7 @@ protected:
     std::vector <platform> platforms;
     bool isJumping = false;
     bool isStanding = false;
+    bool isRolling = false;
 
     double score = 0;
     double highScore = 0;
