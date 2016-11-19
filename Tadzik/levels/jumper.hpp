@@ -322,13 +322,13 @@ public:
 
 
         //ogarnianie objektow
-        for (int i=0; i<platforms.size(); ++i) {
+        for (int i=platforms.size()-1; i>=0; --i) {
             if (platforms[i].sprite.getPosition().y>window->getSize().y+500) {
                 platforms.erase(platforms.begin()+i);
             }
             window->draw(platforms[i].sprite);
         }
-        for (int i=0; i<powerups.size(); ++i) {
+        for (int i=powerups.size()-1; i>=0; --i) {
             if (Collision::PixelPerfectTest(powerups[i], spTadzik.sprite)) {
                 isSuperman = true;
                 goUp = 40;
@@ -337,7 +337,8 @@ public:
             if (powerups[i].getPosition().y>window->getSize().y+500) {
                 powerups.erase(powerups.begin()+i);
             }
-            window->draw(powerups[i]);
+            if(powerups.size() > 0)
+                window->draw(powerups[i]);
         }
         window->draw(spTadzik.sprite);
     }
