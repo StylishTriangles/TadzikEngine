@@ -17,8 +17,8 @@ int main(){
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik");
     window.setFramerateLimit(60);
     SceneManager sceneManager(&window);
-    sceneManager.registerScene<ExampleScene1>("Example1", &window);
-    sceneManager.registerScene<ExampleScene2>("Example2", &window);
+    //sceneManager.registerScene<ExampleScene1>("Example1", &window);
+    //sceneManager.registerScene<ExampleScene2>("Example2", &window);
     sceneManager.registerScene<AnimatedSpriteScene>("AnimSprite", &window);
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);

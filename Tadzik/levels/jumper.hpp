@@ -72,23 +72,18 @@ public:
         texPlayerRun4.loadFromFile("files/textures/jumper/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
 
         texPlayerJump.loadFromFile("files/textures/jumper/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
+        texPlayerJumpSuper.loadFromFile("files/textures/jumper/playerJumpSuper.png"), TadzikJumpSuper.addFrame(AnimationFrame(&texPlayerJumpSuper, 150));
 
         texPlayerRoll.loadFromFile("files/textures/jumper/playerRoll.png"), TadzikRoll.addFrame(AnimationFrame(&texPlayerRoll, 150));
 
         texPlayerStand.loadFromFile("files/textures/jumper/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
 
         spTadzik.setAnimation(&TadzikRun);
-        //spTadzik.sprite.setTexture(texPlayerRun);
         spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
                                     window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
         spTadzik.sprite.setScale(3, 3);
         spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height);
-        /*
-        player.setTexture(texPlayerRun);
-        player.setPosition(window->getSize().x/2-player.getTextureRect().width/2, window->getSize().y-player.getTextureRect().height*6);
-        player.setScale(3, 3);
-        player.setOrigin(player.getTextureRect().width/2, player.getTextureRect().height);
-        */
+
         texPlatform.loadFromFile("files/textures/jumper/platform.png");
         tmpPlatform.setTexture(texPlatform);
         tmpPlatform.setPosition(0, window->getSize().y-30);
@@ -99,6 +94,9 @@ public:
         platforms.push_back(platform(tmpPlatform));
         tmpPlatform.move(10, -(1.0/2.0)*window->getSize().y);
         platforms.push_back(platform(tmpPlatform));
+
+        texPowerup1.loadFromFile("files/textures/jumper/powerup1.png");
+        powerup1.setTexture(texPowerup1);
     }
 
     virtual void onSceneActivate() {
@@ -117,11 +115,15 @@ public:
         isJumping = true;
         speedY=-speedY;
         speedY-=abs(speedX);
-        if (abs(speedY)>1) {
+        if (abs(speedY)>27) {
+            if (!derpMode) spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2,
+                                                     spTadzik.sprite.getTextureRect().height/2);
             spTadzik.setAnimation(&TadzikRoll);
             isRolling = true;
         }
-        else spTadzik.setAnimation(&TadzikJump);
+        else if (!isSuperman) spTadzik.setAnimation(&TadzikJump);
+        else spTadzik.setAnimation(&TadzikJumpSuper);
+        if (abs(speedY)<20) speedY = -20;
     }
     void flip() {
         if (speedX!=0) spTadzik.sprite.setScale(-spTadzik.sprite.getScale().x, spTadzik.sprite.getScale().y);
@@ -130,15 +132,18 @@ public:
     void gameOver() {
         //std::cout << "gameOver\n";
         clock.restart();
-        scrolling = 0;
         isJumping=false;
         isStanding=false;
+        isSuperman=false;
         background1.setPosition(0, 0);
         background2.setPosition(0, -0.99*window->getSize().y);
-        spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2, window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
+        spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
+                                    window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
         spTadzik.sprite.setScale(abs(spTadzik.sprite.getScale().x), spTadzik.sprite.getScale().y);
 
         platforms.clear();
+        effects.clear();
+        powerups.clear();
         tmpPlatform.setPosition(0, window->getSize().y-30);
         tmpPlatform.setScale((double)window->getSize().x/(double)tmpPlatform.getTextureRect().width, 1);
         platforms.push_back(platform(tmpPlatform));
@@ -150,50 +155,84 @@ public:
         //onSceneLoadToMemory();
         highScore = 0;
         score = 0;
-        speedX=sgn(speedX)*0.01, speedY=0;
+        speedX=0.01, speedY=0, prevSpeedX = 0.01;
         standingPlatformNumber=0;
         lastPlatformGenerated=0;
+        scrolling = 0;
     }
     virtual void draw(double deltaTime) {
-        std::cout << deltaTime << "\n";
-        spTadzik.update(abs(speedX)*deltaTime);
-        {
-            if (clock.getElapsedTime().asSeconds()>5) {
-                scrolling+=0.1;
-                clock.restart();
-            }
-            background1.move(0, scrolling);
-            background2.move(0, scrolling);
-            for (int i=0; i<platforms.size(); ++i) {
-                platforms[i].sprite.move(0, scrolling);
-            }
+        //std::cout << powerups.size() << "\n";
+
+        //statyczne scrollowanie
+        if (clock.getElapsedTime().asSeconds()>5) {
+            scrolling+=0.1;
+            clock.restart();
         }
+        background1.move(0, scrolling);
+        background2.move(0, scrolling);
+        for (int i=0; i<platforms.size(); ++i) {
+            platforms[i].sprite.move(0, scrolling);
+        }
+        for (int i=0; i<powerups.size(); i++) {
+            powerups[i].move(0, scrolling);
+        }
+        for (int i=0; i<effects.size(); i++) {
+            effects[i].move(0, scrolling);
+        }
+
+        //sprawdzanie czy tadzik jest w planszy
         if (spTadzik.sprite.getGlobalBounds().top>window->getSize().y) gameOver();
         if (spTadzik.sprite.getGlobalBounds().left<0 && sgn(speedX)==-1) {
-            speedX = -0.66*speedX;
+            speedX = -1.1*speedX;
             spTadzik.sprite.setPosition(spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
         else if (spTadzik.sprite.getGlobalBounds().left+spTadzik.sprite.getGlobalBounds().width>window->getSize().x && sgn(speedX)==1) {
-            speedX = -0.66*speedX;
+            speedX = -1.1*speedX;
             spTadzik.sprite.setPosition(window->getSize().x-spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
+
+        //input z klawiatury
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
             speedX-=addSpeed;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
             speedX+=addSpeed;
         }
+
+        //przypadki
         if (isStanding) {
+            if (abs(speedX)<0.001 && activeAnim!=0) {
+                spTadzik.setAnimation(&TadzikStand);
+                activeAnim = 0;
+            }
+            else if (abs(speedX)>0.001 && activeAnim!=1) {
+                spTadzik.setAnimation(&TadzikRun);
+                activeAnim = 1;
+            }
             spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
-                               platforms[standingPlatformNumber].sprite.getPosition().y);
+                                        platforms[standingPlatformNumber].sprite.getPosition().y);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
                 jump(speedX+sgn(speedX)*10);
             }
             if (!platforms[standingPlatformNumber].testForStanding(spTadzik.sprite)) isStanding = false;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+                isStanding = false;
+            }
 
         }
+        if (isSuperman && isJumping) {
+            if (goUp<0) {
+                //spTadzik.sprite.setTexture(texPlayerJumpSuper);
+                isSuperman = false;
+            }
+            else {
+                speedY-=1;
+                goUp--;
+                spTadzik.setAnimation(&TadzikJumpSuper);
+            }
+        }
         if (isRolling) {
-            spTadzik.sprite.rotate(speedY);
+            spTadzik.sprite.setRotation(sgn(speedX)*speedY*20);
         }
         if (!isStanding) {
             speedY += gravity;
@@ -201,6 +240,8 @@ public:
                 if (isJumping) spTadzik.setAnimation(&TadzikRun);
                 isJumping = false;
                 isRolling = false;
+                spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height);
+                spTadzik.sprite.setRotation(0);
             }
             if (isJumping) {
                 if (spTadzik.sprite.getPosition().y>window->getSize().y*(1.0/3.0)) {
@@ -212,6 +253,9 @@ public:
                     for (int i=0; i<platforms.size(); ++i) {
                         platforms[i].sprite.move(0, -speedY);
                     }
+                    for (int i=0; i<powerups.size(); i++) {
+                        powerups[i].move(0, -speedY);
+                    }
                 }
             }
             else {
@@ -219,6 +263,8 @@ public:
             }
             score-=speedY;
         }
+
+        //sprawdzanie czy stoi na jakiejs platformie
         for (int i=0; i<platforms.size(); ++i) {
             if (platforms[i].isAbove(spTadzik.sprite)) {
                 if (platforms[i].testForStanding(spTadzik.sprite) && !isJumping) {
@@ -227,18 +273,19 @@ public:
                     standingPlatformNumber = i;
                     spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
                                        platforms[standingPlatformNumber].sprite.getPosition().y);
+                                       spTadzik.setAnimation(&TadzikRun);
                     speedY=0;
                 }
             }
-
         }
 
-        spTadzik.sprite.move(speedX, 0);
-        speedX*=(1-airResistance);
+        //obracanie
         if (sgn(prevSpeedX)!=sgn(speedX)) {
             flip();
             prevSpeedX=speedX;
         }
+
+        //naprawianie tla
         if (background1.getPosition().y>window->getSize().y) {
             background1.move(0, -1.98*window->getSize().y);
         }
@@ -246,36 +293,51 @@ public:
             background2.move(0, -1.98*window->getSize().y);
         }
 
-        //std::cout << score/100 << std::endl;
-
+        //dodawanie platform i powerupow
         if (score - lastPlatformGenerated > window->getSize().y/2) {
+            if (Utils::randF(0, 50)<10) {
+                powerup1.setPosition(Utils::randF(10, window->getSize().x-10), Utils::randF(-100, -50));
+                powerup1.setScale(3, 3);
+                powerups.push_back(powerup1);
+            }
             int tmp = Utils::randF(-100, -50);
             lastPlatformGenerated = score + tmp;
             tmpPlatform.setPosition(Utils::randF(0, window->getSize().x-tmpPlatform.getTextureRect().width), tmp);
             tmpPlatform.setScale(Utils::randF(1, 3), 1);
             platforms.push_back(platform(tmpPlatform));
         }
+
+        //glupoty
+        spTadzik.sprite.move(speedX, 0);
+        speedX*=(1-airResistance);
+        spTadzik.update(abs(speedX)*deltaTime);
         if (score>highScore) highScore=score;
         textScore.setString(Utils::stringify(highScore/10));
+
+        //rysowanie
         window->clear();
         window->draw(background1);
         window->draw(background2);
         window->draw(textScore);
+
+
+        //ogarnianie objektow
         for (int i=0; i<platforms.size(); ++i) {
             if (platforms[i].sprite.getPosition().y>window->getSize().y+500) {
                 platforms.erase(platforms.begin()+i);
             }
             window->draw(platforms[i].sprite);
         }
-        if (isStanding) {
-            if (abs(speedX)<0.001 && activeAnim!=0) {
-                spTadzik.setAnimation(&TadzikStand);
-                activeAnim = 0;
+        for (int i=0; i<powerups.size(); ++i) {
+            if (Collision::PixelPerfectTest(powerups[i], spTadzik.sprite)) {
+                isSuperman = true;
+                goUp = 40;
+                powerups.erase(powerups.begin()+i);
             }
-            else if (abs(speedX)>0.001 && activeAnim!=1) {
-                spTadzik.setAnimation(&TadzikRun);
-                activeAnim = 1;
+            if (powerups[i].getPosition().y>window->getSize().y+500) {
+                powerups.erase(powerups.begin()+i);
             }
+            window->draw(powerups[i]);
         }
         window->draw(spTadzik.sprite);
     }
@@ -289,7 +351,9 @@ protected:
     sf::Texture texPlayerRun4;
     sf::Texture texPlayerRoll;
     sf::Texture texPlayerJump;
+    sf::Texture texPlayerJumpSuper;
     sf::Texture texPlayerStand;
+    sf::Texture texPowerup1;
 
     sf::Text textScore;
 
@@ -297,11 +361,11 @@ protected:
 
     sf::Sprite background1;
     sf::Sprite background2;
-    //sf::Sprite player;
     sf::Sprite tmpPlatform;
+    sf::Sprite powerup1;
 
     AnimatedSprite spTadzik;
-    Animation TadzikRun, TadzikStand, TadzikRoll, TadzikJump;
+    Animation TadzikRun, TadzikStand, TadzikRoll, TadzikJump, TadzikJumpSuper;
 
     double speedX = 0.01;
     double prevSpeedX = 0.01;
@@ -311,15 +375,19 @@ protected:
     double addSpeed = 1;
     double airResistance = 0.05;
     double lastPlatformGenerated = 0;
+    double goUp = 0;
 
-    //double standingHeight = 0;
     int standingPlatformNumber = 0;
     int activeAnim = 0;  //stand = 0, run = 1, jump = 2
 
     std::vector <platform> platforms;
+    std::vector <sf::Sprite> powerups;
+    std::vector <sf::Sprite> effects;
     bool isJumping = false;
     bool isStanding = false;
     bool isRolling = false;
+    bool isSuperman = false;
+    bool derpMode = false;
 
     double score = 0;
     double highScore = 0;
