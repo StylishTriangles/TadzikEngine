@@ -25,9 +25,9 @@ int main(){
     sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     //sceneManager.setActiveScene("TREX");
-    sceneManager.setActiveScene("JUMPER");
+    //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("SYNTH3D");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
