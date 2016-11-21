@@ -31,6 +31,16 @@ public:
         texFloorTile.loadFromFile("files/textures/mario/floor1.png");
         mapa.loadFromFile("files/maps/mario/map1.png");
         loadMap();
+
+        texPlayerRun1.loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
+        texPlayerRun2.loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
+        texPlayerRun3.loadFromFile("files/textures/universal/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun3, 500));
+        texPlayerRun4.loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
+
+        texPlayerJump.loadFromFile("files/textures/universal/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
+
+        texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
+
     }
 
     virtual void onSceneActivate() {
@@ -81,6 +91,8 @@ public:
         prevRight = spTadzik.sprite.getGlobalBounds().left+spTadzik.sprite.getGlobalBounds().width;
         prevX = spTadzik.sprite.getPosition().x;
         prevY = spTadzik.sprite.getPosition().y;
+        prevSpeedX = speedX;
+        prevSpeedY = speedY;
 
 
         spTadzik.move(speedX, 0);
@@ -130,6 +142,9 @@ public:
         }
 
         //rysowanie
+        if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX)) {
+            flip();
+        }
         window->clear();
         window->draw(Background);
         for (auto a:floor) {
@@ -143,23 +158,29 @@ protected:
     sf::Texture texPlayerStand;
     sf::Texture texFloorTile;
 
+    sf::Texture texPlayerRun1;
+    sf::Texture texPlayerRun2;
+    sf::Texture texPlayerRun3;
+    sf::Texture texPlayerRun4;
+    sf::Texture texPlayerJump;
+
     sf::Image mapa;
 
 
-    Animation TadzikStand;
     AnimatedSprite spTadzik;
+    Animation TadzikRun, TadzikStand, TadzikJump;
 
     sf::Sprite Background;
     sf::Sprite FloorTile;
 
     std::vector <sf::Sprite> floor;
 
-    double speedX = 0, speedY=0;
+    double speedX = 0.01, speedY=0;
     double maxSpeed = 10;
     double gravity = 0.5;
     double standingHeight = 0;
 
-    double prevLeft, prevRight, prevTop, prevBot, prevX, prevY;
+    double prevLeft, prevRight, prevTop, prevBot, prevX, prevY, prevSpeedX = 0.01, prevSpeedY = 0;
 
     int onTile = 0;
 
