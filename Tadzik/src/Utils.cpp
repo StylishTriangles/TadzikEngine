@@ -45,4 +45,11 @@ float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot)
     return top.x*(mid.y*bot.z - bot.y*mid.z) - mid.x*(top.y*bot.z - bot.y*top.z) + bot.x*(top.y*mid.z - mid.y*top.z);
 }
 
+int sgn(double x)
+{
+    if (x==0) return 0;
+    if (x>0) return 1;
+    if (x<0) return -1;
+}
+
 }
