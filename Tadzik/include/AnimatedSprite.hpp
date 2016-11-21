@@ -49,6 +49,9 @@ public:
         }
     }
 
+    void move(double x, double y) {
+        sprite.move(x, y);
+    }
     sf::Sprite sprite;
 
 protected:

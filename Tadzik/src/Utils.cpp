@@ -36,4 +36,10 @@ std::string stringify(int x){
     o << x;
     return o.str();
 }
+
+int sgn(double x) {
+    if (x==0) return 0;
+    if (x>0) return 1;
+    if (x<0) return -1;
+}
 }

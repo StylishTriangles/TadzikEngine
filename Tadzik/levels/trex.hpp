@@ -84,6 +84,7 @@ public:
 
     virtual void draw(double deltaTime){
         if(gameOver){
+            std::cout << result << std::endl;
             textScore.setString("press space to play again");
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
                 spTadzik.setAnimation(&animTadzikRun);

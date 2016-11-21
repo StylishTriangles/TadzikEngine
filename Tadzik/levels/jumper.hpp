@@ -12,14 +12,7 @@
 #include <cstdlib>
 #include <cmath>
 
-int sgn(double x) {
-    if (x==0) return 0;
-    if (x>0) return 1;
-    if (x<0) return -1;
-}
-//int abs(double x) {
-//    return (x>=0)*x;
-//}
+
 
 class platform {
 public:
@@ -182,11 +175,11 @@ public:
 
         //sprawdzanie czy tadzik jest w planszy
         if (spTadzik.sprite.getGlobalBounds().top>window->getSize().y) gameOver();
-        if (spTadzik.sprite.getGlobalBounds().left<0 && sgn(speedX)==-1) {
+        if (spTadzik.sprite.getGlobalBounds().left<0 && Utils::sgn(speedX)==-1) {
             speedX = -1.1*speedX;
             spTadzik.sprite.setPosition(spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
-        else if (spTadzik.sprite.getGlobalBounds().left+spTadzik.sprite.getGlobalBounds().width>window->getSize().x && sgn(speedX)==1) {
+        else if (spTadzik.sprite.getGlobalBounds().left+spTadzik.sprite.getGlobalBounds().width>window->getSize().x && Utils::sgn(speedX)==1) {
             speedX = -1.1*speedX;
             spTadzik.sprite.setPosition(window->getSize().x-spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
@@ -212,7 +205,7 @@ public:
             spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
                                         platforms[standingPlatformNumber].sprite.getPosition().y);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-                jump(speedX+sgn(speedX)*10);
+                jump(speedX+Utils::sgn(speedX)*10);
             }
             if (!platforms[standingPlatformNumber].testForStanding(spTadzik.sprite)) isStanding = false;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
@@ -232,7 +225,7 @@ public:
             }
         }
         if (isRolling) {
-            spTadzik.sprite.setRotation(sgn(speedX)*speedY*20);
+            spTadzik.sprite.setRotation(Utils::sgn(speedX)*speedY*20);
         }
         if (!isStanding) {
             speedY += gravity;
@@ -280,7 +273,7 @@ public:
         }
 
         //obracanie
-        if (sgn(prevSpeedX)!=sgn(speedX)) {
+        if (Utils::sgn(prevSpeedX)!=Utils::sgn(speedX)) {
             flip();
             prevSpeedX=speedX;
         }

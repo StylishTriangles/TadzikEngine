@@ -9,6 +9,7 @@
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
 #include "levels/synth3d.hpp"
+#include "levels/mario.hpp"
 
 #include <cstdlib>
 
@@ -24,10 +25,12 @@ int main(){
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
     sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
+    sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    sceneManager.setActiveScene("SYNTH3D");
+    //sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("MARIO");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;

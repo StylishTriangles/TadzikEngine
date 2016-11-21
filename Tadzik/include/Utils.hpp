@@ -11,6 +11,7 @@ void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window);
 float randF(float from, float to);
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window);
 std::string stringify(int x);
+int sgn(double x);
 
 }
 
