@@ -45,7 +45,6 @@ public:
     Camera(SYNTH3D* parent);
     void display();
 protected:
-    sf::Vector3f process(sf::Vector3f* vTrans);
     sf::Vertex lina[2];
     SYNTH3D* p;
     sf::Vector3f center;
@@ -54,6 +53,9 @@ protected:
     sf::Vector3f eye;
     sf::Vector3f vPlaneTop;
     sf::Vector3f vPlaneSide;
+    void calcPlane();
+    sf::Vector3f planeCross(sf::Vector3f* vTrans);
+    sf::Vector2f process(sf::Vector3f* point);
 };
 
 class SYNTH3D: public Scene
@@ -129,19 +131,32 @@ protected:
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     center({0,0,0}),
-    eye({0,0,-1}),
-    side({1,0,0}),
-    top({0,1,0})
+    eye({0,0,-50}),
+    side({50,0,0}),
+    top({0,50,0})
 {}
 
-sf::Vector3f Camera::process(sf::Vector3f* vTrans) //*point = costam nizej  a tutaj zmien se na vTrans
+sf::Vector3f Camera::planeCross(sf::Vector3f* vTrans)
 {
     *vTrans -= eye;
-    return eye + *vTrans*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -*vTrans);
+    return eye + *vTrans*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -(*vTrans));
+}
+
+void  Camera::calcPlane()
+{
+    vPlaneTop = top - center;
+    vPlaneSide = side - center;
+}
+
+sf::Vector2f Camera::process(sf::Vector3f* point)
+{
+    float scale = 10, movement = 300;
+    return {planeCross(point).x*scale + movement, planeCross(point).y*scale + movement};
 }
 
 void Camera::display()
 {
+    calcPlane();
     for(int i=0; i<p->world.size();i++)
     {
         for(int j=0; j< p->world[i].size(); j++)
@@ -149,8 +164,10 @@ void Camera::display()
                 int mod = p->world[i].wallie[j].size();
                 for(int k=0; k< p->world[i].wallie[j].size(); k++)
                 {
-                    lina[0] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[k]->x, p->world[i].wallie[j].coord[k]->y));
-                    lina[1] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[(k+1)%mod]->x, p->world[i].wallie[j].coord[(k+1)%mod]->y));
+                    lina[0] = process(p->world[i].wallie[j].coord[k]);
+                    lina[1] = process(p->world[i].wallie[j].coord[(k+1)%mod]);
+                    //lina[0] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[k]->x, p->world[i].wallie[j].coord[k]->y));
+                    //lina[1] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[(k+1)%mod]->x, p->world[i].wallie[j].coord[(k+1)%mod]->y));
                     p->window->draw(lina, 2, sf::Lines);
                 }
             }
