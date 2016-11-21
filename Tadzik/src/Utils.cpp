@@ -36,4 +36,13 @@ std::string stringify(int x){
     o << x;
     return o.str();
 }
+
+float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot)
+{
+    // top.x mid.x bot.x
+    // top.y mid.y bot.y
+    // top.z mid.z bot.z
+    return top.x*(mid.y*bot.z - bot.y*mid.z) - mid.x*(top.y*bot.z - bot.y*top.z) + bot.x*(top.y*mid.z - mid.y*top.z);
+}
+
 }

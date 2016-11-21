@@ -7,6 +7,8 @@
 #include "Utils.hpp"
 #include <vector>
 
+using namespace Utils;
+
 struct wall
 {
     std::vector <sf::Vector3f*> coord;
@@ -43,8 +45,15 @@ public:
     Camera(SYNTH3D* parent);
     void display();
 protected:
+    sf::Vector3f process(sf::Vector3f* vTrans);
     sf::Vertex lina[2];
     SYNTH3D* p;
+    sf::Vector3f center;
+    sf::Vector3f side;
+    sf::Vector3f top;
+    sf::Vector3f eye;
+    sf::Vector3f vPlaneTop;
+    sf::Vector3f vPlaneSide;
 };
 
 class SYNTH3D: public Scene
@@ -118,8 +127,18 @@ protected:
     Camera c;
 };
 Camera::Camera(SYNTH3D* parent):
-    p(parent)
+    p(parent),
+    center({0,0,0}),
+    eye({0,0,-1}),
+    side({1,0,0}),
+    top({0,1,0})
 {}
+
+sf::Vector3f Camera::process(sf::Vector3f* vTrans) //*point = costam nizej  a tutaj zmien se na vTrans
+{
+    *vTrans -= eye;
+    return eye + *vTrans*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -*vTrans);
+}
 
 void Camera::display()
 {
@@ -127,9 +146,9 @@ void Camera::display()
     {
         for(int j=0; j< p->world[i].size(); j++)
             {
+                int mod = p->world[i].wallie[j].size();
                 for(int k=0; k< p->world[i].wallie[j].size(); k++)
                 {
-                    int mod = p->world[i].wallie[j].size();
                     lina[0] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[k]->x, p->world[i].wallie[j].coord[k]->y));
                     lina[1] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[(k+1)%mod]->x, p->world[i].wallie[j].coord[(k+1)%mod]->y));
                     p->window->draw(lina, 2, sf::Lines);
