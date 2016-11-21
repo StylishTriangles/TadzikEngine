@@ -59,17 +59,17 @@ public:
                              (float)window->getSize().y/(float)background2.getTextureRect().height);
         background2.setPosition(0, -0.99*window->getSize().y);
 
-        texPlayerRun1.loadFromFile("files/textures/jumper/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
-        texPlayerRun2.loadFromFile("files/textures/jumper/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
-        texPlayerRun3.loadFromFile("files/textures/jumper/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun3, 500));
-        texPlayerRun4.loadFromFile("files/textures/jumper/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
+        texPlayerRun1.loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
+        texPlayerRun2.loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
+        texPlayerRun3.loadFromFile("files/textures/universal/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun3, 500));
+        texPlayerRun4.loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
 
-        texPlayerJump.loadFromFile("files/textures/jumper/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
+        texPlayerJump.loadFromFile("files/textures/universal/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
         texPlayerJumpSuper.loadFromFile("files/textures/jumper/playerJumpSuper.png"), TadzikJumpSuper.addFrame(AnimationFrame(&texPlayerJumpSuper, 150));
 
         texPlayerRoll.loadFromFile("files/textures/jumper/playerRoll.png"), TadzikRoll.addFrame(AnimationFrame(&texPlayerRoll, 150));
 
-        texPlayerStand.loadFromFile("files/textures/jumper/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
+        texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
 
         spTadzik.setAnimation(&TadzikRun);
         spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
