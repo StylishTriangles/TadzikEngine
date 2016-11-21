@@ -2,9 +2,6 @@
 #include <cmath>
 
 #include "SceneManager.hpp"
-#include "levels/examples1.hpp"
-#include "levels/examples2.hpp"
-#include "levels/example_animated_sprite.hpp"
 #include "levels/trex.hpp"
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
@@ -18,9 +15,6 @@ int main(){
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik");
     window.setFramerateLimit(60);
     SceneManager sceneManager(&window);
-    //sceneManager.registerScene<ExampleScene1>("Example1", &window);
-    //sceneManager.registerScene<ExampleScene2>("Example2", &window);
-    sceneManager.registerScene<AnimatedSpriteScene>("AnimSprite", &window);
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
     sceneManager.registerScene<JUMPER>("JUMPER", &window);
