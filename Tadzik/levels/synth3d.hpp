@@ -6,7 +6,6 @@
 #include "Scene.hpp"
 #include "Utils.hpp"
 #include <vector>
-
 using namespace Utils;
 
 struct wall
@@ -54,7 +53,7 @@ protected:
     sf::Vector3f vPlaneTop;
     sf::Vector3f vPlaneSide;
     void calcPlane();
-    sf::Vector3f planeCross(sf::Vector3f* vTrans);
+    sf::Vector3f planeCross(sf::Vector3f* point);
     sf::Vector2f process(sf::Vector3f* point);
 };
 
@@ -90,13 +89,13 @@ public:
 
         wallie[1].push_back(terrain[1]);
         wallie[1].push_back(terrain[2]);
-        wallie[1].push_back(terrain[5]);
         wallie[1].push_back(terrain[6]);
+        wallie[1].push_back(terrain[5]);
 
         wallie[2].push_back(terrain[0]);
         wallie[2].push_back(terrain[1]);
-        wallie[2].push_back(terrain[4]);
         wallie[2].push_back(terrain[5]);
+        wallie[2].push_back(terrain[4]);
 
         wallie[3].push_back(terrain[0]);
         wallie[3].push_back(terrain[1]);
@@ -105,13 +104,13 @@ public:
 
         wallie[4].push_back(terrain[0]);
         wallie[4].push_back(terrain[3]);
-        wallie[4].push_back(terrain[4]);
         wallie[4].push_back(terrain[7]);
+        wallie[4].push_back(terrain[4]);
 
         wallie[5].push_back(terrain[2]);
         wallie[5].push_back(terrain[3]);
-        wallie[5].push_back(terrain[6]);
         wallie[5].push_back(terrain[7]);
+        wallie[5].push_back(terrain[6]);
 
         for(int i=0;i<6;i++)
             cube.push_back(wallie[i]);
@@ -131,15 +130,15 @@ protected:
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     center({0,0,0}),
-    eye({0,0,-50}),
-    side({50,0,0}),
-    top({0,50,0})
+    eye({0,0,-1}),
+    side({1,0,0}),
+    top({0,1,0})
 {}
 
-sf::Vector3f Camera::planeCross(sf::Vector3f* vTrans)
+sf::Vector3f Camera::planeCross(sf::Vector3f* point)
 {
-    *vTrans -= eye;
-    return eye + *vTrans*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -(*vTrans));
+    sf::Vector3f temp = *point - eye;
+    return eye + temp*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -temp);
 }
 
 void  Camera::calcPlane()
@@ -150,12 +149,13 @@ void  Camera::calcPlane()
 
 sf::Vector2f Camera::process(sf::Vector3f* point)
 {
-    float scale = 10, movement = 300;
+    float scale = 100, movement = 300;
     return {planeCross(point).x*scale + movement, planeCross(point).y*scale + movement};
 }
 
 void Camera::display()
 {
+    p->window->clear();
     calcPlane();
     for(int i=0; i<p->world.size();i++)
     {
@@ -164,8 +164,8 @@ void Camera::display()
                 int mod = p->world[i].wallie[j].size();
                 for(int k=0; k< p->world[i].wallie[j].size(); k++)
                 {
-                    lina[0] = process(p->world[i].wallie[j].coord[k]);
-                    lina[1] = process(p->world[i].wallie[j].coord[(k+1)%mod]);
+                    lina[0] = sf::Vertex(process(p->world[i].wallie[j].coord[k]), p->world[i].wallie[j].color);
+                    lina[1] = sf::Vertex(process(p->world[i].wallie[j].coord[(k+1)%mod]), p->world[i].wallie[j].color);
                     //lina[0] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[k]->x, p->world[i].wallie[j].coord[k]->y));
                     //lina[1] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[(k+1)%mod]->x, p->world[i].wallie[j].coord[(k+1)%mod]->y));
                     p->window->draw(lina, 2, sf::Lines);
