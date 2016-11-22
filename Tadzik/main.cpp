@@ -8,6 +8,7 @@
 #include "levels/synth3d.hpp"
 #include "levels/mario.hpp"
 #include "levels/levelselect.hpp"
+#include "levels/isayparty.hpp"
 
 #include <cstdlib>
 
@@ -22,12 +23,14 @@ int main(){
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     sceneManager.registerScene<MARIO>("MARIO", &window);
     sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
+    sceneManager.registerScene<ISAYPARTY>("I_SAY_PARTY", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
-    sceneManager.setActiveScene("MARIO");
+    //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
+    sceneManager.setActiveScene("I_SAY_PARTY");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
