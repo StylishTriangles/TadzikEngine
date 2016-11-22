@@ -52,10 +52,13 @@ public:
     void move(double x, double y) {
         sprite.move(x, y);
     }
+    Animation* getAnimation() {
+        return currentAnimation;
+    }
     sf::Sprite sprite;
+    Animation* currentAnimation;
 
 protected:
-    Animation* currentAnimation;
     float currTime=0;
     int actFrame=0;
 };
