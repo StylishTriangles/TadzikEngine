@@ -35,8 +35,8 @@ public:
         texPlayerRun4.loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
 
         texPlayerJump.loadFromFile("files/textures/universal/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
-
         texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
+        texPlayerFall.loadFromFile("files/textures/universal/playerFall.png"), TadzikFall.addFrame(AnimationFrame(&texPlayerFall, 150));
 
         spTadzik.setAnimation(&TadzikRun);
         spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
@@ -55,23 +55,18 @@ public:
     }
 
     void loadMap() {
+        FloorTile.setTexture(texFloorTile);
+        FloorTile.setScale((int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height,
+                           (int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height);
         for (int i=0; i<mapa.getSize().x; i++) {
             for (int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==sf::Color::Black) {
-                    sf::Sprite tmp;
-                    tmp.setTexture(texFloorTile);
-                    tmp.setScale((int)((double)window->getSize().y/(double)tilesPerY)/tmp.getGlobalBounds().height,
-                                 (int)((double)window->getSize().y/(double)tilesPerY)/tmp.getGlobalBounds().height);
-                    tmp.setPosition(i*tmp.getGlobalBounds().width, j*tmp.getGlobalBounds().height);
-                    floor.push_back(tmp);
+                    FloorTile.setPosition(i*FloorTile.getGlobalBounds().width, j*FloorTile.getGlobalBounds().height);
+                    floor.push_back(FloorTile);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color::White) {
-                    sf::Sprite tmp;
-                    tmp.setTexture(texFloorTile);
-                    tmp.setScale((int)((double)window->getSize().y/(double)tilesPerY)/tmp.getGlobalBounds().height,
-                                 (int)((double)window->getSize().y/(double)tilesPerY)/tmp.getGlobalBounds().height);
-                    tmp.setPosition(i*tmp.getGlobalBounds().width, j*tmp.getGlobalBounds().height);
-                    hitboxlessBack.push_back(tmp);
+                    FloorTile.setPosition(i*FloorTile.getGlobalBounds().width, j*FloorTile.getGlobalBounds().height);
+                    hitboxlessBack.push_back(FloorTile);
                 }
             }
         }
@@ -81,13 +76,14 @@ public:
     }
 
     void jump() {
-        speedY=13;
+        speedY=-13;
         isStanding = false;
         isJumping = true;
         spTadzik.setAnimation(&TadzikJump);
     }
     void flip() {
-        spTadzik.sprite.setScale(-spTadzik.sprite.getScale().x, spTadzik.sprite.getScale().y);
+        if (speedX!=0)
+            spTadzik.sprite.setScale(abs(spTadzik.sprite.getScale().x)*sgn(speedX), spTadzik.sprite.getScale().y);
     }
 
     bool checkForStanding(sf::Sprite s1) {
@@ -99,6 +95,8 @@ public:
 
     virtual void draw(double deltaTime) {
         spTadzik.update(abs(speedX)*deltaTime);
+
+        //przepisywanie z poprzedniej klatki
         prevTop = spTadzik.sprite.getGlobalBounds().top;
         prevBot = spTadzik.sprite.getGlobalBounds().top+spTadzik.sprite.getGlobalBounds().height;
         prevLeft = spTadzik.sprite.getGlobalBounds().left;
@@ -108,6 +106,7 @@ public:
         prevSpeedX = speedX;
         prevSpeedY = speedY;
 
+        //przewijanie i movement
         if ((spTadzik.sprite.getPosition().x>(double)window->getSize().x*(3.0/4.0) && speedX>0) ||
             (spTadzik.sprite.getPosition().x<(double)window->getSize().x*(1.0/5.0) && speedX<0 && floor[0].getPosition().x<0)) {
             for (int i=0; i<floor.size(); i++) {
@@ -122,16 +121,16 @@ public:
             prevLeft-=speedX;
             prevRight-=speedX;
             prevX-=speedX;
-            Background1.move(-speedX, 0);
-            Background2.move(-speedX, 0);
+            Background1.move(-speedX*parallax, 0);
+            Background2.move(-speedX*parallax, 0);
         }
         else {
             spTadzik.move(speedX, 0);
         }
-        speedY-=gravity;
-        spTadzik.sprite.move(0, -speedY);
+        speedY+=gravity;
+        spTadzik.sprite.move(0, speedY);
 
-
+        //ogarnianie kolizji
         for (auto s:floor) {
             if (Collision::BoundingBoxTest(spTadzik.sprite, s)) {
                 if (s.getGlobalBounds().top+s.getGlobalBounds().height<prevTop) {
@@ -141,8 +140,6 @@ public:
                 }
                 if (s.getGlobalBounds().top>=prevBot) {
                     isStanding = true;
-                    touched = true;
-                    //prevY = s.getGlobalBounds().top;
                     spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x, s.getGlobalBounds().top);
                     speedY = 0;
                     if (spTadzik.currentAnimation!=&TadzikRun)spTadzik.setAnimation(&TadzikRun);
@@ -157,9 +154,12 @@ public:
                 }
             }
         }
-        touched = false;
+
         if (isJumping) {
-            if (speedY>0) isJumping = false;
+            if (speedY>0) {
+                isJumping = false;
+                spTadzik.setAnimation(&TadzikFall);
+            }
         }
         speedX*=0.9;
 
@@ -188,6 +188,7 @@ public:
         if (-Background2.getGlobalBounds().left > window->getSize().x) Background2.move(2*(int)window->getSize().x, 0);
         if (Background1.getGlobalBounds().left > window->getSize().x) Background1.move(-2*(int)window->getSize().x, 0);
         if (Background2.getGlobalBounds().left > window->getSize().x) Background2.move(-2*(int)window->getSize().x, 0);
+
         //rysowanie
         if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX) && Utils::sgn(speedX)!=0) {
             flip();
@@ -217,11 +218,12 @@ protected:
     sf::Texture texPlayerRun3;
     sf::Texture texPlayerRun4;
     sf::Texture texPlayerJump;
+    sf::Texture texPlayerFall;
 
     sf::Image mapa;
 
     AnimatedSprite spTadzik;
-    Animation TadzikRun, TadzikStand, TadzikJump;
+    Animation TadzikRun, TadzikStand, TadzikJump, TadzikFall;
 
     sf::Sprite Background1;
     sf::Sprite Background2;
@@ -235,6 +237,7 @@ protected:
     double maxSpeed = 10;
     double gravity = 0.5;
     double standingHeight = 0;
+    double parallax = 0.66;
 
     double prevLeft, prevRight, prevTop, prevBot, prevX, prevY, prevSpeedX = 0.01, prevSpeedY = 0;
 
@@ -243,6 +246,5 @@ protected:
 
     bool isStanding = false;
     bool isJumping = false;
-    bool touched = false;
 };
 #endif //mario

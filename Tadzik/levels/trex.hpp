@@ -175,14 +175,14 @@ public:
     void manageObjects(){
         if (result - lastObstacle > minObstacleInterval){
             obstacleChance+=0.01;
-            if (obstacleChance > Utils::randF(0, 1))
+            if (obstacleChance > Utils::randFloat(0, 1))
             {
                 lastObstacle = result;
-                obstacleChance-=Utils::randF(0.2, 1);
-                if (Utils::randF(0, 1)<0.66){
+                obstacleChance-=Utils::randFloat(0.2, 1);
+                if (Utils::randFloat(0, 1)<0.66){
                     for (int i = 0; i<rand()%3+1; i++) {
                         sf::Sprite spTmp(texCactus[rand()%6]);
-                        spTmp.setScale(scaleFactor*(Utils::randF(0.6, 0.8)), scaleFactor*(Utils::randF(0.6, 0.8)));
+                        spTmp.setScale(scaleFactor*(Utils::randFloat(0.6, 0.8)), scaleFactor*(Utils::randFloat(0.6, 0.8)));
                         spTmp.setPosition(window->getSize().x+50+i*10*scaleFactor, window->getSize().y-spTmp.getGlobalBounds().height-offsetY);
                         vecCactus.push_back(spTmp);
                     }
@@ -190,9 +190,9 @@ public:
                 else {
                     AnimatedSprite spTmp;
                     spTmp.setAnimation(&animVultureFly);
-                    spTmp.sprite.setScale(scaleFactor*Utils::randF(0.4, 0.5), scaleFactor*Utils::randF(0.4, 0.5));
+                    spTmp.sprite.setScale(scaleFactor*Utils::randFloat(0.4, 0.5), scaleFactor*Utils::randFloat(0.4, 0.5));
                     spTmp.sprite.setPosition(window->getSize().x+50,
-                                             window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-Utils::randF(0, 200));
+                                             window->getSize().y-spTmp.sprite.getGlobalBounds().height-offsetY-Utils::randFloat(0, 200));
                     vecVulture.push_back(spTmp);
                 }
             }
@@ -200,10 +200,10 @@ public:
 
         if (result>nextCloud) {
             lastCloud = result;
-            nextCloud += Utils::randF(75, 150);
+            nextCloud += Utils::randFloat(75, 150);
             sf::Sprite tmp(texCloud[rand()%texCloud.size()]);
-            tmp.setScale(scaleFactor*Utils::randF(1, 2), scaleFactor*Utils::randF(1, 2));
-            tmp.setPosition(window->getSize().x+50+Utils::randF(0, 1)*10*scaleFactor, 75);
+            tmp.setScale(scaleFactor*Utils::randFloat(1, 2), scaleFactor*Utils::randFloat(1, 2));
+            tmp.setPosition(window->getSize().x+50+Utils::randFloat(0, 1)*10*scaleFactor, 75);
             vecCloud.push_back(tmp);
         }
 

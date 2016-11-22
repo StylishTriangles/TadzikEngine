@@ -116,8 +116,8 @@ public:
         tmp.setTexture(texture);
         for (int i=0; i<howMany; i++) {
             cost*=multiplier;
-            tmp.setPosition(background.getPosition().x+Utils::randF(0.2, 0.65)*(background.getTextureRect().width*background.getScale().x-tmp.getTextureRect().width),
-            background.getPosition().y+Utils::randF(0, 0.5)*(background.getTextureRect().height*background.getScale().y-tmp.getTextureRect().height));
+            tmp.setPosition(background.getPosition().x+Utils::randFloat(0.2, 0.65)*(background.getGlobalBounds().width-tmp.getTextureRect().width),
+            background.getPosition().y+Utils::randFloat(0, 0.5)*(background.getGlobalBounds().height-tmp.getTextureRect().height));
             container.push_back(tmp);
         }
         buyAmountChanged(howMany);
