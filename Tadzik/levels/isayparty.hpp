@@ -1,6 +1,8 @@
 #ifndef ISAYPARTY_HPP
 #define ISAYPARTY_HPP
 
+#include <SFML/Audio.hpp>
+
 #include "Scene.hpp"
 #include "AnimatedSprite.hpp"
 #include "Utils.hpp"
@@ -11,6 +13,15 @@
 #include <cstdlib>
 #include <algorithm>
 
+struct Track{
+    Track(){};
+    Track(std::string n, std::string a, int b)
+    :name(n), author(a), bpm(b)
+    {}
+    std::string name;
+    std::string author;
+    int bpm;
+};
 
 //minecraft's style text
 struct TextCraft{
@@ -55,6 +66,7 @@ public:
     {}
 
     virtual void onSceneLoadToMemory(){
+        srand(time(NULL));
         texArrowLeft.loadFromFile("files/textures/isaydisco/arrow_left.png");
         texArrowUp.loadFromFile("files/textures/isaydisco/arrow_up.png");
         texArrowRight.loadFromFile("files/textures/isaydisco/arrow_right.png");
@@ -79,6 +91,12 @@ public:
         vecSteps[1] = DanceStep(nullptr, {1, 2, 5, 8}, {3, 2, 4, 4});
         //actStep = &vecSteps[0];
         setDanceStep(&vecSteps[0]);
+
+        vecTracks.resize(2);
+        vecTracks[0] = Track("Da_Funk", "Daft Punk", 112);
+        vecTracks[1] = Track("nieeee", "Gall Anonim", 42);
+
+        loadNewTrack();
     }
 
     virtual void onSceneActivate(){
@@ -111,6 +129,10 @@ public:
             if(vecText[i].time < 0.0){
                 vecText.erase(vecText.begin()+i);
             }
+        }
+
+        if(actMusic.getStatus() == sf::SoundSource::Status::Stopped){
+            loadNewTrack();
         }
 
         window->clear(sf::Color::Black);
@@ -198,10 +220,17 @@ public:
         vecText.push_back(TextCraft(txt, Utils::randF(500.0, 1000.0), type));
     }
 
+    void loadNewTrack(){
+        actTrack = &vecTracks[rand()%vecTracks.size()];
+        bpm = actTrack->bpm;
+        actMusic.openFromFile("files/audio/isaydisco/"+actTrack->name+".ogg");
+        actMusic.play();
+    }
+
 protected:
     int tempo = 8;
     int score=0;
-    double bpm=40;          //uderzenia na minute
+    double bpm=20;          //uderzenia na minute
     double tmpTime=0.0;     //w sekundach
     std::vector<sf::CircleShape> vCircles;
     sf::Font font;
@@ -213,6 +242,10 @@ protected:
     sf::Texture texArrowLeft, texArrowUp, texArrowRight, texArrowDown;
     std::vector<sf::Sprite> vecArrows;
     std::vector<TextCraft> vecText;
+    std::vector<Track> vecTracks;
+    Track* actTrack;
+
+    sf::Music actMusic;
 
 };
 
