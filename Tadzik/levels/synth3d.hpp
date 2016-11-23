@@ -44,26 +44,30 @@ class Camera
 {
 public:
     Camera(SYNTH3D* parent);
-    void display();
-    void setPos(sf::Vector3f position);
-    void setAngle(sf::Vector3f aGiven);
+    void display();                     //Wyswietlanie
+    void setPos(sf::Vector3f posGiven); //Ustaw pozycje kamery
+    void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
+    void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
+    bool eyeTurn;                       //Wlacz badz wylacz emulacje obrotu plaszczyzny wzgledem oka
 protected:
     sf::Vertex lina[2];
     SYNTH3D* p;
-    sf::Vector3f defCenter, center;
-    sf::Vector3f defSide, side;
-    sf::Vector3f defTop, top;
-    sf::Vector3f defEye, eye;
-    sf::Vector3f vPlaneTop;
-    sf::Vector3f vPlaneSide;
-    sf::Vector3f angle;
-    void calcPlane();
-    sf::Vector3f planeCross(sf::Vector3f* point);
-    sf::Vector2f process(sf::Vector3f* point);
-    void calcPos();
-    void calcAngle();
-    sf::Vector3f pointTranslation(sf::Vector3f centre, sf::Vector3f target, sf::Vector3f aGiven);
-    sf::Vector3f matrixPointTranslation(sf::Vector3f centre, sf::Vector3f target, sf::Vector3f aGiven);
+    sf::Vector3f position;      //Pozycja kamery
+    sf::Vector3f center;        //Centrum plaszczyzny
+    sf::Vector3f defSide, side; //Bok plaszczyzny
+    sf::Vector3f defTop, top;   //Gora plaszczyzny
+    sf::Vector3f defEye, eye;   //Oko
+    sf::Vector3f vPlaneTop;     //Wektor plaszczyzny gorny
+    sf::Vector3f vPlaneSide;    //Wektor plaszczyzny dolny
+    sf::Vector3f angle;         //Kat skierowania kamery
+    void calcPlane();           //Wylicz wektory plaszczyzny
+    sf::Vector3f planeCross(sf::Vector3f* point); //Policz przeciecie punktu z ekranem
+    sf::Vector2f process(sf::Vector3f* point);    //Podaj wspolrzedne na ekranie
+    void calcPos();                               //Przywroc plaszczyzne do default wartosci
+    void calcAngle();                             //Obroc plaszczyzne o kat skierowania
+    sf::Vector3f pointTranslation(sf::Vector3f centre, sf::Vector3f target, sf::Vector3f aGiven);       //Obroc punkt wzgledem punktu o kat dany
+    sf::Vector3f centerTranslation(sf::Vector3f target, sf::Vector3f aGiven);                           //Obroc punkt wzgledem srodka ukladu wspolrzednych o kat dany
+    sf::Vector3f matrixPointTranslation(sf::Vector3f centre, sf::Vector3f target, sf::Vector3f aGiven); //Obroc punkt wzgledem punktu o kat dany za pomoca macierzy
 };
 
 class SYNTH3D: public Scene
@@ -71,7 +75,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0,0,0}), cameraAngle({0,0,0})
+        :Scene(_name,mgr,w), c(this), cameraPos({0,0,0}), cameraAngle({0,0,0}), eyeDistance(-3), t(false)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -129,13 +133,17 @@ public:
     virtual void draw(double dt)
     {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-                cameraPos.x+=0.1;
+                cameraPos.x-=1;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-                cameraPos.x-=0.1;
+                cameraPos.x+=1;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-                cameraPos.z+=0.1;
+                cameraPos.z+=1;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-                cameraPos.z-=0.1;
+                cameraPos.z-=1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+                cameraPos.y+=1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+                cameraPos.y-=1;
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
                 cameraAngle.y+=0.5;
@@ -149,9 +157,28 @@ public:
                 cameraAngle.z-=0.5;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
                 cameraAngle.z+=0.5;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+            {
+                for(int i=0; i<8;i++)
+                    terrain[i].z--;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+            {
+                for(int i=0; i<8;i++)
+                    terrain[i].x++;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
+                eyeDistance+=0.1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
+                eyeDistance-=0.1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) and t==1)
+                    c.eyeTurn-=1;
+            if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T))
+                t=1; else t=0;
 
             c.setPos(cameraPos);
             c.setAngle(cameraAngle);
+            c.setEyeDistance(eyeDistance);
             c.display();
     }
 protected:
@@ -161,47 +188,50 @@ protected:
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
+    float eyeDistance;
+    bool t;
 };
 Camera::Camera(SYNTH3D* parent):
     p(parent),
-    defCenter({0,0,0}),
-    defEye({0,0,-1}),
-    defSide({1,0,0}),
-    defTop({0,1,0}),
-    angle({0,0,0})
+    //         X   Y   Z
+       center({0,  0,  0}),
+       defEye({0,  0, -1}),
+      defSide({1,  0,  0}),
+       defTop({0,  1,  0}),
+    //--------------------
+    eyeTurn(true),
+    angle({0, 0, 0})
 {}
 
 sf::Vector3f Camera::planeCross(sf::Vector3f* point)
 {
-    sf::Vector3f temp = *point - eye;
-    return eye + temp*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop,vPlaneSide, -temp);
+    sf::Vector3f temp = *point - position;
+    if(eyeTurn == true)
+        temp += (eye - defEye); //Emulacja obrotu wzgledem oka
+    return eye + temp*det3f(vPlaneTop, vPlaneSide, eye)/det3f(vPlaneTop, vPlaneSide, -temp);
 }
 
 void  Camera::calcPlane()
 {
-    vPlaneTop = top - center;
-    vPlaneSide = side - center;
+    vPlaneTop = top - center; // zawsze od centrum ukladu
+    vPlaneSide = side - center; // z zawsze = 0
 }
 
 sf::Vector2f Camera::process(sf::Vector3f* point)
 {
-    float scale = 100, movement = 300;
-    //return {planeCross(point).x*scale + movement, planeCross(point).y*scale + movement};
-    sf::Vector3f tempPlane;
-    tempPlane = pointTranslation(center, planeCross(point), -angle);
-    return {tempPlane.x*scale + movement, tempPlane.y*scale + movement};
+    float scale = 100;
+    sf::Vector3f tempPlane = pointTranslation(center, planeCross(point), -angle);
+    return {tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2};
 }
 
 void Camera::calcPos()
 {
-    eye = (defEye - defCenter) + center;
-    side = (defSide - defCenter) + center;
-    top = (defTop - defCenter) + center;
+    eye = defEye, side = defSide, top = defTop;
 }
 
-void Camera::setPos(sf::Vector3f position)
+void Camera::setPos(sf::Vector3f posGiven)
 {
-    center = position;
+    position = posGiven;
 }
 
 void Camera::setAngle(sf::Vector3f aGiven)
@@ -214,9 +244,9 @@ void Camera::setAngle(sf::Vector3f aGiven)
 
 void Camera::calcAngle()
 {
-    eye = pointTranslation(center, eye, angle);
-    top = pointTranslation(center, top, angle);
-    side = pointTranslation(center, side, angle);
+    eye = centerTranslation(eye, angle);
+    top = centerTranslation(top, angle);
+    side = centerTranslation(side, angle);
 }
 
 sf::Vector3f Camera::pointTranslation(sf::Vector3f centre, sf::Vector3f target, sf::Vector3f aGiven = {0,0,0})
@@ -233,6 +263,23 @@ sf::Vector3f Camera::pointTranslation(sf::Vector3f centre, sf::Vector3f target, 
     target = newTarget;
     newTarget.x = (target.x - centre.x)*cosf(aGiven.z) - (target.y - centre.y)*sinf(aGiven.z) + centre.x;
     newTarget.y = (target.x - centre.x)*sinf(aGiven.z) + (target.y - centre.y)*cosf(aGiven.z) + centre.y;
+    return newTarget;
+}
+
+sf::Vector3f Camera::centerTranslation(sf::Vector3f target, sf::Vector3f aGiven = {0,0,0})
+{
+    sf::Vector3f newTarget = target;
+    //x translation
+    newTarget.z = target.z*cosf(aGiven.x) - target.y*sinf(aGiven.x);
+    newTarget.y = target.z*sinf(aGiven.x) + target.y*cosf(aGiven.x);
+    //y translation
+    target = newTarget;
+    newTarget.x = target.x*cosf(aGiven.y) - target.z*sinf(aGiven.y);
+    newTarget.z = target.x*sinf(aGiven.y) + target.z*cosf(aGiven.y);
+    //z trasnlation
+    target = newTarget;
+    newTarget.x = target.x*cosf(aGiven.z) - target.y*sinf(aGiven.z);
+    newTarget.y = target.x*sinf(aGiven.z) + target.y*cosf(aGiven.z);
     return newTarget;
 }
 
@@ -253,14 +300,18 @@ sf::Vector3f Camera::matrixPointTranslation(sf::Vector3f centre, sf::Vector3f ta
     return target;
 }
 
+void Camera::setEyeDistance(float distance)
+{
+    defEye = {0, 0, distance};
+}
+
 void Camera::display()
 {
     p->window->clear();
     calcPos();
     calcAngle();
     calcPlane();
-    //sf::Vector3f a=pointTranslation({0,0,0}, {0,0,10}, {M_PI/4,-M_PI/4,0});
-    //std::cout << "X: " << a.x << " Y: " << a.y << " Z: " << a.z << "\n";
+    std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " eyeTurn: " << eyeTurn << "\n";
     for(int i=0; i<p->world.size();i++)
     {
         for(int j=0; j< p->world[i].size(); j++)
@@ -270,8 +321,6 @@ void Camera::display()
                 {
                     lina[0] = sf::Vertex(process(p->world[i].wallie[j].coord[k]), p->world[i].wallie[j].color);
                     lina[1] = sf::Vertex(process(p->world[i].wallie[j].coord[(k+1)%mod]), p->world[i].wallie[j].color);
-                    //lina[0] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[k]->x, p->world[i].wallie[j].coord[k]->y));
-                    //lina[1] = sf::Vertex(sf::Vector2f( p->world[i].wallie[j].coord[(k+1)%mod]->x, p->world[i].wallie[j].coord[(k+1)%mod]->y));
                     p->window->draw(lina, 2, sf::Lines);
                 }
             }
