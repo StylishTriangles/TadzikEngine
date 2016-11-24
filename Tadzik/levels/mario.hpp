@@ -12,6 +12,43 @@
 #include <cstdlib>
 #include <cmath>
 
+class classBreakable {
+public:
+    classBreakable() {
+        textures.clear();
+    }
+    void loadTextures(std::vector <sf::Texture>& t) {
+        textures.clear();
+        hits = t.size();
+        for (int i=0; i<t.size(); i++) {
+            textures.push_back(&t[i]);
+        }
+    }
+    void addTexture(sf::Texture* texture) {
+        textures.push_back(texture);
+        hits++;
+    }
+    void setTexture(int i) {
+        sprite.setTexture(*textures[i]);
+    }
+    bool hit() {
+        totalHits++;
+        if (hits<=totalHits) return 1;
+        sprite.setTexture(*textures[totalHits]);
+        return 0;
+    }
+    int left() { return sprite.getGlobalBounds().left;}
+    int right() { return sprite.getGlobalBounds().left+sprite.getGlobalBounds().width;}
+    int top() { return sprite.getGlobalBounds().top;}
+    int bottom() { return sprite.getGlobalBounds().top+sprite.getGlobalBounds().height;}
+    sf::Vector2f center() { return {sprite.getGlobalBounds().left+sprite.getGlobalBounds().width/2,
+                                    sprite.getGlobalBounds().top+sprite.getGlobalBounds().height/2};}
+    sf::Sprite sprite;
+    std::vector <sf::Texture*> textures;
+private:
+    int hits = 0;
+    int totalHits = 0;
+};
 class MARIO: public Scene{
 public:
     MARIO(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
@@ -26,13 +63,23 @@ public:
         Background2.move(window->getSize().x, 0);
 
         texFloorTile.loadFromFile("files/textures/mario/floor1.png");
+        FloorTile.setTexture(texFloorTile);
+
+        texBreakableTile.resize(3);
+        texBreakableTile[0].loadFromFile("files/textures/mario/breakable1.png");
+        texBreakableTile[1].loadFromFile("files/textures/mario/breakable2.png");
+        texBreakableTile[2].loadFromFile("files/textures/mario/breakable3.png");
+        BreakableTile.loadTextures(texBreakableTile);
+        BreakableTile.setTexture(0);
+
         mapa.loadFromFile("files/maps/mario/map1.png");
         loadMap();
 
-        texPlayerRun1.loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
-        texPlayerRun2.loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
-        texPlayerRun3.loadFromFile("files/textures/universal/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun3, 500));
-        texPlayerRun4.loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun4, 500));
+        texPlayerRun.resize(4);
+        texPlayerRun[0].loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[0], 500));
+        texPlayerRun[1].loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[1], 500));
+        texPlayerRun[2].loadFromFile("files/textures/universal/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[2], 500));
+        texPlayerRun[3].loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[3], 500));
 
         texPlayerJump.loadFromFile("files/textures/universal/playerJump.png"), TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
         texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
@@ -55,9 +102,11 @@ public:
     }
 
     void loadMap() {
-        FloorTile.setTexture(texFloorTile);
-        FloorTile.setScale((int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height,
+        FloorTile.setScale((int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().width,
                            (int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height);
+        BreakableTile.sprite.setScale((int)((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().width,
+                                      (int)((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().height);
+
         for (int i=0; i<mapa.getSize().x; i++) {
             for (int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==sf::Color::Black) {
@@ -67,6 +116,10 @@ public:
                 else if(mapa.getPixel(i, j)==sf::Color::White) {
                     FloorTile.setPosition(i*FloorTile.getGlobalBounds().width, j*FloorTile.getGlobalBounds().height);
                     hitboxlessBack.push_back(FloorTile);
+                }
+                else if(mapa.getPixel(i, j)==sf::Color(255, 0, 0)) {
+                    BreakableTile.sprite.setPosition(i*BreakableTile.sprite.getGlobalBounds().width, j*BreakableTile.sprite.getGlobalBounds().height);
+                    breakable.push_back(BreakableTile);
                 }
             }
         }
@@ -92,7 +145,10 @@ public:
             }
         }
 
-
+    bool isInWindow(sf::Sprite s) {
+        if (s.getGlobalBounds().left>window->getSize().x || s.getGlobalBounds().left+s.getGlobalBounds().width<0) return 0;
+        else return 1;
+    }
     virtual void draw(double deltaTime) {
         spTadzik.update(abs(speedX)*deltaTime);
 
@@ -118,6 +174,9 @@ public:
             for (int i=0; i<hitboxlessFront.size(); i++) {
                 hitboxlessFront[i].move(-speedX, 0);
             }
+            for (int i=0; i<breakable.size(); i++) {
+                breakable[i].sprite.move(-speedX, 0);
+            }
             prevLeft-=speedX;
             prevRight-=speedX;
             prevX-=speedX;
@@ -132,7 +191,7 @@ public:
 
         //ogarnianie kolizji
         for (auto s:floor) {
-            if (Collision::BoundingBoxTest(spTadzik.sprite, s)) {
+            if (isInWindow(s) && Collision::BoundingBoxTest(spTadzik.sprite, s)) {
                 if (s.getGlobalBounds().top+s.getGlobalBounds().height<prevTop) {
                     speedY = 0;
                     spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
@@ -144,7 +203,7 @@ public:
                     speedY = 0;
                     if (spTadzik.currentAnimation!=&TadzikRun)spTadzik.setAnimation(&TadzikRun);
                 }
-                else if (s.getGlobalBounds().left>prevRight) {
+                else if (s.getGlobalBounds().left>prevRight-1) {
                     spTadzik.sprite.setPosition(prevX, spTadzik.sprite.getPosition().y);
                     speedX = 0;
                 }
@@ -152,6 +211,47 @@ public:
                     spTadzik.sprite.setPosition(prevX, spTadzik.sprite.getPosition().y);
                     speedX = 0;
                 }
+            }
+        }
+
+        //ogarnianie breakable
+        closestBreakable=-1;
+        for (int i=breakable.size()-1; i>=0; --i) {
+            if (isInWindow(breakable[i].sprite)) {
+                classBreakable& s = breakable[i];
+                if (Collision::BoundingBoxTest(spTadzik.sprite, s.sprite)) {
+                    if (s.bottom()<prevTop) {
+                        speedY = 0;
+                        spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x,
+                                                    s.bottom()+spTadzik.sprite.getGlobalBounds().height);
+                        if (closestBreakable==-1) {
+                            closestBreakable = i;
+                        }
+                        else if (abs(spTadzik.sprite.getPosition().x-breakable[closestBreakable].center().x) >
+                                 abs(spTadzik.sprite.getPosition().x-breakable[i].center().x)) {
+                                    closestBreakable = i;
+                                }
+                    }
+                    if (s.top()>=prevBot) {
+                        isStanding = true;
+                        spTadzik.sprite.setPosition(spTadzik.sprite.getPosition().x, s.top());
+                        speedY = 0;
+                        if (spTadzik.currentAnimation!=&TadzikRun)spTadzik.setAnimation(&TadzikRun);
+                    }
+                    else if (s.left()>prevRight-1) {
+                        spTadzik.sprite.setPosition(prevX, spTadzik.sprite.getPosition().y);
+                        speedX = 0;
+                    }
+                    else if (s.right()<prevLeft+1) {
+                        spTadzik.sprite.setPosition(prevX, spTadzik.sprite.getPosition().y);
+                        speedX = 0;
+                    }
+                }
+            }
+        }
+        if (breakable.size()>0 && closestBreakable!=-1) {
+            if (breakable[closestBreakable].hit()) {
+                breakable.erase(breakable.begin()+closestBreakable);
             }
         }
 
@@ -200,11 +300,14 @@ public:
             window->draw(a);
         }
         for (auto a:hitboxlessBack) {
-            window->draw(a);
+            if (isInWindow(a)) window->draw(a);
         }
         window->draw(spTadzik.sprite);
         for (auto a:hitboxlessFront) {
-            window->draw(a);
+            if (isInWindow(a)) window->draw(a);
+        }
+        for (auto a:breakable) {
+            if (isInWindow(a.sprite)) window->draw(a.sprite);
         }
     }
 
@@ -213,10 +316,8 @@ protected:
     sf::Texture texPlayerStand;
     sf::Texture texFloorTile;
 
-    sf::Texture texPlayerRun1;
-    sf::Texture texPlayerRun2;
-    sf::Texture texPlayerRun3;
-    sf::Texture texPlayerRun4;
+    std::vector <sf::Texture> texBreakableTile;
+    std::vector <sf::Texture> texPlayerRun;
     sf::Texture texPlayerJump;
     sf::Texture texPlayerFall;
 
@@ -233,6 +334,9 @@ protected:
     std::vector <sf::Sprite> hitboxlessFront;
     std::vector <sf::Sprite> hitboxlessBack;
 
+    std::vector <classBreakable> breakable;
+    classBreakable BreakableTile;
+
     double speedX = 0.01, speedY=0;
     double maxSpeed = 10;
     double gravity = 0.5;
@@ -243,7 +347,7 @@ protected:
 
     int onTile = 0;
     int tilesPerY = 20;
-
+    int closestBreakable = -1;
     bool isStanding = false;
     bool isJumping = false;
 };
