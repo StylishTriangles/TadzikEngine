@@ -52,6 +52,9 @@ public:
     void move(double x, double y) {
         sprite.move(x, y);
     }
+    void setPosition(float x, float y) {
+        sprite.setPosition(x, y);
+    }
     Animation* getAnimation() {
         return currentAnimation;
     }
