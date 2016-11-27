@@ -15,12 +15,14 @@
 enum animationType {
     STAND, RUN, JUMP, FALL
 };
+
 struct positions {
     double left;
     double right;
     double top;
     double bottom;
 };
+
 class classBreakable {
 public:
     classBreakable() {
@@ -61,21 +63,22 @@ private:
 
 class classMovingEntity {
 public:
+    void loadAnimations(std::vector <Animation*> a) { animations = a;}
     double speedX = 0.01, speedY = 0;
-    updateAnimation(float delta)    {aSprite.update(delta);};
-    setAnimation(Animation* a)      {aSprite.setAnimation(a);}
-    changeAnimation(animationType a)          {aSprite.setAnimation(animations[a]), currentAnimation = a;}
-    addAnimation(Animation* a)      {animations.push_back(a);}
-    setOrigin(float x, float y)     {aSprite.sprite.setOrigin(x, y);}
-    setOrigin(sf::Vector2f v)       {aSprite.sprite.setOrigin(v);}
+    void updateAnimation(float delta)    {aSprite.update(delta);};
+    void setAnimation(Animation* a)      {aSprite.setAnimation(a);}
+    void changeAnimation(animationType a)          {aSprite.setAnimation(animations[a]), currentAnimation = a;}
+    void addAnimation(Animation* a)      {animations.push_back(a);}
+    void setOrigin(float x, float y)     {aSprite.sprite.setOrigin(x, y);}
+    void setOrigin(sf::Vector2f v)       {aSprite.sprite.setOrigin(v);}
     sf::FloatRect getGlobalBounds() {return aSprite.sprite.getGlobalBounds();}
     sf::IntRect getTextureRect()    {return aSprite.sprite.getTextureRect();}
-    setScale(float x, float y)      {aSprite.sprite.setScale(x, y);}
-    setPosition(float x, float y)   {aSprite.sprite.setPosition(x, y);}
+    void setScale(float x, float y)      {aSprite.sprite.setScale(x, y);}
+    void setPosition(float x, float y)   {aSprite.sprite.setPosition(x, y);}
     sf::Vector2f getScale()         {return aSprite.sprite.getScale();}
     sf::Vector2f getPosition()      {return aSprite.sprite.getPosition();}
-    move (double x, double y)       {aSprite.move(x, y);}
-    updatePrev() {
+    void move (double x, double y)       {aSprite.move(x, y);}
+    void updatePrev() {
         pos.top = getGlobalBounds().top;
         pos.bottom = getGlobalBounds().top+getGlobalBounds().height;
         pos.left = getGlobalBounds().left;
@@ -86,16 +89,16 @@ public:
         prevSpeedY = speedY;
 
     }
-    flipSprite() {
+    void flipSprite() {
         setScale(abs(getScale().x)*Utils::sgn(speedX), getScale().y);
     }
-    jump() {
+    void jump() {
         speedY=-13;
         isStanding = false;
         isJumping = true;
         changeAnimation(JUMP);
     }
-    update() {
+    void update() {
         speedY+=0.5;
         move(0, speedY);
 
@@ -158,6 +161,9 @@ public:
         texCoin.loadFromFile("files/textures/mario/coin1.png"), coinRotate.addFrame(AnimationFrame(&texCoin, 500));
         spCoin.setAnimation(&coinRotate);
 
+        texPowerup.loadFromFile("files/textures/mario/powerup.png"), powerupAnim.addFrame(AnimationFrame(&texPowerup, 500));
+        spPowerup.setAnimation(&powerupAnim);
+
         texEnemy1Stand.loadFromFile("files/textures/mario/enemy1Stand.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1Stand, 500));
         texEnemy1Run.loadFromFile("files/textures/mario/enemy1Run.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run, 500));
         spEnemy1.addAnimation(&enemy1Stand);
@@ -181,10 +187,29 @@ public:
         texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
         texPlayerFall.loadFromFile("files/textures/universal/playerFall.png"),   TadzikFall.addFrame(AnimationFrame(&texPlayerFall, 150));
 
-        spTadzik.addAnimation(&TadzikStand);
-        spTadzik.addAnimation(&TadzikRun);
-        spTadzik.addAnimation(&TadzikJump);
-        spTadzik.addAnimation(&TadzikFall);
+        texPlayerMiniRun.resize(4);
+        texPlayerMiniRun[0].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[0], 500));
+        texPlayerMiniRun[1].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[1], 500));
+        texPlayerMiniRun[2].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[2], 500));
+        texPlayerMiniRun[3].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[3], 500));
+
+        texPlayerMiniJump.loadFromFile("files/textures/mario/playerSmallJump.png"),   TadzikMiniJump.addFrame(AnimationFrame(&texPlayerMiniJump, 150));
+        texPlayerMiniStand.loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniStand.addFrame(AnimationFrame(&texPlayerMiniStand, 150));
+        texPlayerMiniFall.loadFromFile("files/textures/mario/playerSmallStand.png"),   TadzikMiniFall.addFrame(AnimationFrame(&texPlayerMiniFall, 150));
+
+        animTadzikMedium.push_back(&TadzikStand);
+        animTadzikMedium.push_back(&TadzikRun);
+        animTadzikMedium.push_back(&TadzikJump);
+        animTadzikMedium.push_back(&TadzikFall);
+
+
+        animTadzikSmall.push_back(&TadzikMiniStand);
+        animTadzikSmall.push_back(&TadzikMiniRun);
+        animTadzikSmall.push_back(&TadzikMiniJump);
+        animTadzikSmall.push_back(&TadzikMiniFall);
+
+        spTadzik.loadAnimations(animTadzikSmall);
+
         spTadzik.changeAnimation(FALL);
         spTadzik.setOrigin(sf::Vector2f(spTadzik.getTextureRect().width/2, spTadzik.getTextureRect().height));
         spTadzik.setScale(2, 2);
@@ -231,6 +256,10 @@ public:
                     spEnemy1.setPosition(i*TileSize, j*TileSize);
                     enemies1.push_back(spEnemy1);
                 }
+                else if(mapa.getPixel(i, j)==sf::Color(0, 255, 255)) {
+                    spPowerup.setPosition(i*TileSize, j*TileSize);
+                    powerups.push_back(spPowerup);
+                }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 0, 255)) {
                     spTadzik.setPosition(i*TileSize, j*TileSize);
                 }
@@ -251,12 +280,6 @@ public:
         coins.clear();
         loadMap();
         //spTadzik.setPosition(100, 10);
-    }
-
-    bool checkForStanding(sf::Sprite s1) {
-        if (Collision::BoundingBoxTest(s1, spTadzik.aSprite.sprite)) {
-            standingHeight = s1.getGlobalBounds().top;
-        }
     }
 
     bool isActive(sf::Sprite s, double multiplier = 1) {
@@ -318,6 +341,7 @@ public:
             for (int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
             for (int i=0; i<breakable.size(); i++)          { breakable[i].sprite.move(-speedX, 0);}
             for (int i=0; i<coins.size(); i++)              { coins[i].sprite.move(-speedX, 0);}
+            for (int i=0; i<powerups.size(); i++)              { powerups[i].sprite.move(-speedX, 0);}
             for (int i=0; i<enemies1.size(); i++)           { enemies1[i].move(-speedX, 0), enemies1[i].updatePrev();}
             spTadzik.pos.left-=speedX;
             spTadzik.pos.right-=speedX;
@@ -399,12 +423,23 @@ public:
             }
         }
 
-        //ogarnianie monet
+        //ogarnianie monet i powerupow
         if (coins.size()>0) {
             for (int i=coins.size()-1; i>=0; --i) {
                 if (Collision::PixelPerfectTest(coins[i].sprite, spTadzik.aSprite.sprite)) {
                     score++;
                     coins.erase(coins.begin()+i);
+                }
+            }
+        }
+        if (powerups.size()>0) {
+            for (int i=powerups.size()-1; i>=0; --i) {
+                if (Collision::PixelPerfectTest(powerups[i].sprite, spTadzik.aSprite.sprite)) {
+                    powerLevel++;
+                    spTadzik.loadAnimations(animTadzikMedium);
+                    spTadzik.changeAnimation(spTadzik.currentAnimation);
+                    spTadzik.setOrigin(sf::Vector2f(spTadzik.getTextureRect().width/2, spTadzik.getTextureRect().height));
+                    powerups.erase(powerups.begin()+i);
                 }
             }
         }
@@ -444,13 +479,13 @@ public:
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
         for (auto a:breakable) { if (isActive(a.sprite)) window->draw(a.sprite);}
         for (auto a:coins) { window->draw(a.sprite);}
+        for (auto a:powerups) { window->draw(a.sprite);}
         for (auto a:enemies1) { window->draw(a.aSprite.sprite);}
         window->draw(textScore);
     }
 
 protected:
     sf::Texture texBackground;
-    sf::Texture texPlayerStand;
     sf::Texture texFloorTile;
     sf::Texture texCoin;
 
@@ -458,17 +493,26 @@ protected:
     sf::Texture texEnemy1Run;
 
     std::vector <sf::Texture> texBreakableTile;
+
     std::vector <sf::Texture> texPlayerRun;
+    sf::Texture texPlayerStand;
     sf::Texture texPlayerJump;
     sf::Texture texPlayerFall;
+    sf::Texture texPowerup;
+
+    std::vector <sf::Texture> texPlayerMiniRun;
+    sf::Texture texPlayerMiniStand;
+    sf::Texture texPlayerMiniJump;
+    sf::Texture texPlayerMiniFall;
 
     sf::Image mapa;
 
     classMovingEntity spTadzik, spEnemy1;
-    AnimatedSprite spCoin;
+    AnimatedSprite spCoin, spPowerup;
     Animation TadzikRun, TadzikStand, TadzikJump, TadzikFall;
+    Animation TadzikMiniRun, TadzikMiniStand, TadzikMiniJump, TadzikMiniFall;
     Animation enemy1Stand, enemy1Run;
-    Animation coinRotate;
+    Animation coinRotate, powerupAnim;
 
     sf::Sprite Background1;
     sf::Sprite Background2;
@@ -477,8 +521,13 @@ protected:
     std::vector <sf::Sprite> floor;
     std::vector <sf::Sprite> hitboxlessFront;
     std::vector <sf::Sprite> hitboxlessBack;
+    std::vector <AnimatedSprite> powerups;
     std::vector <AnimatedSprite> coins;
     std::vector <classMovingEntity> enemies1;
+
+    std::vector <Animation*> animTadzikSmall;
+    std::vector <Animation*> animTadzikMedium;
+    std::vector <Animation*> animTadzikBig;
 
     std::vector <classBreakable> breakable;
     classBreakable BreakableTile;
@@ -495,6 +544,7 @@ protected:
     int tilesPerY = 20;
     int closestBreakable = -1;
     int score = 0;
+    int powerLevel = 0;
 
     sf::Text textScore;
     sf::Font font;
