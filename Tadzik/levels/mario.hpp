@@ -12,6 +12,9 @@
 #include <cstdlib>
 #include <cmath>
 
+enum animationType {
+    STAND, RUN, JUMP, FALL
+};
 struct positions {
     double left;
     double right;
@@ -61,6 +64,8 @@ public:
     double speedX = 0.01, speedY = 0;
     updateAnimation(float delta)    {aSprite.update(delta);};
     setAnimation(Animation* a)      {aSprite.setAnimation(a);}
+    changeAnimation(animationType a)          {aSprite.setAnimation(animations[a]), currentAnimation = a;}
+    addAnimation(Animation* a)      {animations.push_back(a);}
     setOrigin(float x, float y)     {aSprite.sprite.setOrigin(x, y);}
     setOrigin(sf::Vector2f v)       {aSprite.sprite.setOrigin(v);}
     sf::FloatRect getGlobalBounds() {return aSprite.sprite.getGlobalBounds();}
@@ -70,7 +75,7 @@ public:
     sf::Vector2f getScale()         {return aSprite.sprite.getScale();}
     sf::Vector2f getPosition()      {return aSprite.sprite.getPosition();}
     move (double x, double y)       {aSprite.move(x, y);}
-    updatePos() {
+    updatePrev() {
         pos.top = getGlobalBounds().top;
         pos.bottom = getGlobalBounds().top+getGlobalBounds().height;
         pos.left = getGlobalBounds().left;
@@ -81,15 +86,45 @@ public:
         prevSpeedY = speedY;
 
     }
+    flipSprite() {
+        setScale(abs(getScale().x)*Utils::sgn(speedX), getScale().y);
+    }
+    jump() {
+        speedY=-13;
+        isStanding = false;
+        isJumping = true;
+        changeAnimation(JUMP);
+    }
     update() {
+        speedY+=0.5;
+        move(0, speedY);
+
+        //flip
+        if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX) && Utils::sgn(speedX)!=0)
+            flipSprite();
+
+        if (isJumping && speedY>0) {
+            isJumping = false;
+            changeAnimation(FALL);
+        }
+        speedX*=0.9;
+
+        if (abs(speedX)<0.1 && isStanding && currentAnimation!=STAND) {
+            changeAnimation(STAND);
+        }
+        if (abs(speedX)>0.1 && isStanding && currentAnimation!=RUN) {
+            changeAnimation(RUN);
+        }
 
     }
     double prevX, prevY;
     double prevSpeedX, prevSpeedY;
     positions pos;
     AnimatedSprite aSprite;
+    std::vector <Animation*> animations;
     bool isStanding = 0;
     bool isJumping = 0;
+    animationType currentAnimation = STAND;
 private:
 
 };
@@ -123,9 +158,13 @@ public:
         texCoin.loadFromFile("files/textures/mario/coin1.png"), coinRotate.addFrame(AnimationFrame(&texCoin, 500));
         spCoin.setAnimation(&coinRotate);
 
-        texEnemy1.loadFromFile("files/textures/mario/enemy1.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1, 500));
+        texEnemy1Stand.loadFromFile("files/textures/mario/enemy1Stand.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1Stand, 500));
+        texEnemy1Run.loadFromFile("files/textures/mario/enemy1Run.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run, 500));
+        spEnemy1.addAnimation(&enemy1Stand);
+        spEnemy1.addAnimation(&enemy1Run);
+
         spEnemy1.setAnimation(&enemy1Stand);
-        spEnemy1.setOrigin(0, spEnemy1.getTextureRect().height);
+        spEnemy1.setOrigin(spEnemy1.getTextureRect().width/2, spEnemy1.getTextureRect().height);
         spEnemy1.setScale(3, 3);
 
 
@@ -142,7 +181,11 @@ public:
         texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
         texPlayerFall.loadFromFile("files/textures/universal/playerFall.png"),   TadzikFall.addFrame(AnimationFrame(&texPlayerFall, 150));
 
-        spTadzik.setAnimation(&TadzikRun);
+        spTadzik.addAnimation(&TadzikStand);
+        spTadzik.addAnimation(&TadzikRun);
+        spTadzik.addAnimation(&TadzikJump);
+        spTadzik.addAnimation(&TadzikFall);
+        spTadzik.changeAnimation(FALL);
         spTadzik.setOrigin(sf::Vector2f(spTadzik.getTextureRect().width/2, spTadzik.getTextureRect().height));
         spTadzik.setScale(2, 2);
 
@@ -159,20 +202,20 @@ public:
     }
 
     void loadMap() {
-        FloorTile.setScale((int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().width,
-                           (int)((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height);
-        BreakableTile.sprite.setScale((int)((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().width,
-                                      (int)((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().height);
-        spCoin.sprite.setScale((int)((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getGlobalBounds().width,
-                               (int)((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getGlobalBounds().height);
+        FloorTile.setScale(((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().width,
+                           ((double)window->getSize().y/(double)tilesPerY)/FloorTile.getGlobalBounds().height);
+        BreakableTile.sprite.setScale(((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().width,
+                                      ((double)window->getSize().y/(double)tilesPerY)/BreakableTile.sprite.getGlobalBounds().height);
+        spCoin.sprite.setScale(((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getGlobalBounds().width,
+                               ((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getGlobalBounds().height);
         int TileSize = FloorTile.getGlobalBounds().width;
         for (int i=0; i<mapa.getSize().x; i++) {
             for (int j=0; j<mapa.getSize().y; j++) {
-                if (mapa.getPixel(i, j)==sf::Color::Black) {
+                if (mapa.getPixel(i, j)==sf::Color(0, 0, 0)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
                     floor.push_back(FloorTile);
                 }
-                else if(mapa.getPixel(i, j)==sf::Color::White) {
+                else if(mapa.getPixel(i, j)==sf::Color(255, 255, 255)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
                     hitboxlessBack.push_back(FloorTile);
                 }
@@ -188,69 +231,85 @@ public:
                     spEnemy1.setPosition(i*TileSize, j*TileSize);
                     enemies1.push_back(spEnemy1);
                 }
+                else if(mapa.getPixel(i, j)==sf::Color(0, 0, 255)) {
+                    spTadzik.setPosition(i*TileSize, j*TileSize);
+                }
             }
         }
     }
-    void gameOver() {
-        onSceneLoadToMemory();
-    }
 
-    void jump() {
-        spTadzik.speedY=-13;
-        spTadzik.isStanding = false;
-        spTadzik.isJumping = true;
-        spTadzik.setAnimation(&TadzikJump);
-    }
-    void flip() {
-        if (spTadzik.speedX!=0)
-            spTadzik.setScale(abs(spTadzik.getScale().x)*sgn(spTadzik.speedX), spTadzik.getScale().y);
+    void gameOver() {
+        sf::Text t;
+        t.setString("YOU SUCK");
+        t.setPosition(100, 100);
+        window->draw(t);
+        floor.clear();
+        enemies1.clear();
+        breakable.clear();
+        hitboxlessBack.clear();
+        hitboxlessFront.clear();
+        coins.clear();
+        loadMap();
+        //spTadzik.setPosition(100, 10);
     }
 
     bool checkForStanding(sf::Sprite s1) {
-            if (Collision::BoundingBoxTest(s1, spTadzik.aSprite.sprite)) {
-                standingHeight = s1.getGlobalBounds().top;
-            }
+        if (Collision::BoundingBoxTest(s1, spTadzik.aSprite.sprite)) {
+            standingHeight = s1.getGlobalBounds().top;
         }
+    }
 
-    bool isInWindow(sf::Sprite s) {
-        if (s.getGlobalBounds().left>window->getSize().x || s.getGlobalBounds().left+s.getGlobalBounds().width<0) return 0;
+    bool isActive(sf::Sprite s, double multiplier = 1) {
+        if (s.getGlobalBounds().left>window->getSize().x*multiplier ||
+            s.getGlobalBounds().left+s.getGlobalBounds().width<(1.0-multiplier)*window->getSize().x) return 0;
         else return 1;
     }
 
-    void manageCollision(classMovingEntity& entity) {
-        for (auto s:floor) {
-            if (isInWindow(s) && Collision::BoundingBoxTest(entity.aSprite.sprite, s)) {
-                if (s.getGlobalBounds().top+s.getGlobalBounds().height<entity.pos.top) {
-                    entity.speedY = 0;
-                    entity.setPosition(entity.getPosition().x,
-                                        s.getGlobalBounds().top+s.getGlobalBounds().height+entity.getGlobalBounds().height);
-                }
-                if (s.getGlobalBounds().top>=entity.pos.bottom) {
-                    entity.isStanding = true;
-                    entity.setPosition(entity.getPosition().x, s.getGlobalBounds().top);
-                    entity.speedY = 0;
-                    if (entity.aSprite.currentAnimation!=&TadzikRun) entity.aSprite.setAnimation(&TadzikRun);
-                }
-                else if (s.getGlobalBounds().left>entity.pos.right-1) {
-                    entity.setPosition(entity.prevX, entity.getPosition().y);
-                    entity.speedX = 0;
-                }
-                else if (s.getGlobalBounds().left+s.getGlobalBounds().width<entity.pos.left+1) {
-                    entity.setPosition(entity.prevX, entity.getPosition().y);
-                    entity.speedX = 0;
-                }
+    void manageCollision(classMovingEntity& entity, sf::Sprite s) {
+        if (isActive(s, 1.2) && Collision::BoundingBoxTest(entity.aSprite.sprite, s)) {
+            if (s.getGlobalBounds().top+s.getGlobalBounds().height<entity.pos.top) {
+                entity.speedY = 0;
+                entity.setPosition(entity.getPosition().x,
+                                    s.getGlobalBounds().top+s.getGlobalBounds().height+entity.getGlobalBounds().height);
+            }
+            if (s.getGlobalBounds().top>=entity.pos.bottom) {
+                entity.isStanding = true;
+                entity.setPosition(entity.getPosition().x, s.getGlobalBounds().top);
+                entity.speedY = 0;
+            }
+            else if (s.getGlobalBounds().left>entity.pos.right-1) {
+                entity.setPosition(entity.prevX, entity.getPosition().y);
+                entity.speedX = 0;
+            }
+            else if (s.getGlobalBounds().left+s.getGlobalBounds().width<entity.pos.left+1) {
+                entity.setPosition(entity.prevX, entity.getPosition().y);
+                entity.speedX = 0;
             }
         }
     }
 
-
-
-
-    //}
     virtual void draw(double deltaTime) {
+        spTadzik.updatePrev();
         spTadzik.updateAnimation(abs(spTadzik.speedX)*deltaTime);
 
-        spTadzik.updatePos();
+        for (int i=0; i<enemies1.size(); i++) {
+            if (isActive(enemies1[i].aSprite.sprite, 1.1)) {
+                enemies1[i].updatePrev();
+                enemies1[i].updateAnimation(enemies1[i].speedX*deltaTime);
+            }
+        }
+
+        //input z klawiatury
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -speedX<maxSpeed) {
+            speedX-=1;
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && speedX<maxSpeed) {
+            speedX+=1;
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && spTadzik.isStanding) {
+            spTadzik.jump();
+        }
+
         //przewijanie i movement
         if ((spTadzik.getPosition().x>(double)window->getSize().x*(3.0/4.0) && speedX>0) ||
             (spTadzik.getPosition().x<(double)window->getSize().x*(1.0/5.0) && speedX<0 && floor[0].getPosition().x<0)) {
@@ -258,8 +317,8 @@ public:
             for (int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
             for (int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
             for (int i=0; i<breakable.size(); i++)          { breakable[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<coins.size(); i++) {            coins[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<enemies1.size(); i++)           { enemies1[i].move(-speedX, 0);}
+            for (int i=0; i<coins.size(); i++)              { coins[i].sprite.move(-speedX, 0);}
+            for (int i=0; i<enemies1.size(); i++)           { enemies1[i].move(-speedX, 0), enemies1[i].updatePrev();}
             spTadzik.pos.left-=speedX;
             spTadzik.pos.right-=speedX;
             spTadzik.prevX-=speedX;
@@ -269,41 +328,41 @@ public:
         else {
             spTadzik.move(speedX, 0);
         }
-        spTadzik.speedY+=gravity;
-        spTadzik.move(0, speedY);
-        for (auto a:enemies1) {
-            a.speedY+=gravity;
-            a.move(0, a.speedY);
+        for (int i=0; i<enemies1.size(); i++) {
+            if (isActive(enemies1[i].aSprite.sprite, 1.1))
+                enemies1[i].move(enemies1[i].speedX, 0);
         }
-        //ogarnianie kolizji
-        for (auto s:floor) {
-            if (isInWindow(s) && Collision::BoundingBoxTest(spTadzik.aSprite.sprite, s)) {
-                if (s.getGlobalBounds().top+s.getGlobalBounds().height<spTadzik.pos.top) {
-                    speedY = 0;
-                    spTadzik.setPosition(spTadzik.getPosition().x,
-                                        s.getGlobalBounds().top+s.getGlobalBounds().height+spTadzik.getGlobalBounds().height);
-                }
-                if (s.getGlobalBounds().top>=spTadzik.pos.bottom) {
-                    spTadzik.isStanding = true;
-                    spTadzik.setPosition(spTadzik.getPosition().x, s.getGlobalBounds().top);
-                    speedY = 0;
-                    if (spTadzik.aSprite.currentAnimation!=&TadzikRun)spTadzik.setAnimation(&TadzikRun);
-                }
-                else if (s.getGlobalBounds().left>spTadzik.pos.right-1) {
-                    spTadzik.setPosition(spTadzik.prevX, spTadzik.getPosition().y);
-                    speedX = 0;
-                }
-                else if (s.getGlobalBounds().left+s.getGlobalBounds().width<spTadzik.pos.left+1) {
-                    spTadzik.setPosition(spTadzik.prevX, spTadzik.getPosition().y);
-                    speedX = 0;
-                }
+        spTadzik.update();
+        for (int i=0; i<enemies1.size(); i++) {
+            if (isActive(enemies1[i].aSprite.sprite, 1.1)) {
+                enemies1[i].update();
             }
+        }
+
+        //ogarnianie kolizji
+        for (auto a:floor) manageCollision(spTadzik, a);
+        for (int i=0; i<enemies1.size(); i++) {
+            if (isActive(enemies1[i].aSprite.sprite, 1.1))
+            {
+                for (auto a:floor)
+                    manageCollision(enemies1[i], a);
+                for (auto a:breakable)
+                    manageCollision(enemies1[i], a.sprite);
+            }
+        }
+
+        //enemies AI
+        for (int i=0; i<enemies1.size(); i++) {
+            if (enemies1[i].speedX==0) {
+                enemies1[i].setScale(-enemies1[i].getScale().x, enemies1[i].getScale().y);
+            }
+            enemies1[i].speedX=1*Utils::sgn(enemies1[i].getScale().x);
         }
 
         //ogarnianie breakable
         closestBreakable=-1;
         for (int i=breakable.size()-1; i>=0; --i) {
-            if (isInWindow(breakable[i].sprite)) {
+            if (isActive(breakable[i].sprite, 1)) {
                 classBreakable& s = breakable[i];
                 if (Collision::BoundingBoxTest(spTadzik.aSprite.sprite, s.sprite)) {
                     if (s.bottom()<spTadzik.pos.top) {
@@ -322,7 +381,6 @@ public:
                         spTadzik.isStanding = true;
                         spTadzik.setPosition(spTadzik.getPosition().x, s.top());
                         speedY = 0;
-                        if (spTadzik.aSprite.currentAnimation!=&TadzikRun)spTadzik.setAnimation(&TadzikRun);
                     }
                     else if (s.left()>spTadzik.pos.right-1) {
                         spTadzik.setPosition(spTadzik.prevX, spTadzik.getPosition().y);
@@ -343,7 +401,7 @@ public:
 
         //ogarnianie monet
         if (coins.size()>0) {
-            for (int i=coins.size(); i>=0; --i) {
+            for (int i=coins.size()-1; i>=0; --i) {
                 if (Collision::PixelPerfectTest(coins[i].sprite, spTadzik.aSprite.sprite)) {
                     score++;
                     coins.erase(coins.begin()+i);
@@ -351,32 +409,17 @@ public:
             }
         }
 
-        if (spTadzik.isJumping) {
-            if (speedY>0) {
-                spTadzik.isJumping = false;
-                spTadzik.setAnimation(&TadzikFall);
-            }
-        }
-        speedX*=0.9;
-
-        if (abs(speedX)<0.01 && spTadzik.isStanding) {
-            spTadzik.setAnimation(&TadzikStand);
-        }
-        //input z klawiatury
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -speedX<maxSpeed) {
-            speedX-=1;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && speedX<maxSpeed) {
-            speedX+=1;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && spTadzik.isStanding) {
-            jump();
-        }
-
         //gameover
         if (spTadzik.getGlobalBounds().top>window->getSize().y) {
             floor.clear();
             gameOver();
+        }
+        for (int i=0; i<enemies1.size(); i++) {
+            if (isActive(enemies1[i].aSprite.sprite)) {
+                if (Collision::PixelPerfectTest(spTadzik.aSprite.sprite, enemies1[i].aSprite.sprite)) {
+                    gameOver();
+                }
+            }
         }
 
         //fixowanie backgroundu
@@ -386,10 +429,8 @@ public:
         if (Background2.getGlobalBounds().left > window->getSize().x) Background2.move(-2*(int)window->getSize().x, 0);
 
         textScore.setString(Utils::stringify(score));
+
         //rysowanie
-        if (Utils::sgn(spTadzik.speedX)!=Utils::sgn(spTadzik.prevSpeedX) && Utils::sgn(spTadzik.speedX)!=0) {
-            flip();
-        }
         window->clear();
         window->draw(Background1);
         window->draw(Background2);
@@ -397,11 +438,11 @@ public:
             window->draw(a);
         }
         for (auto a:hitboxlessBack) {
-            if (isInWindow(a)) window->draw(a);
+            if (isActive(a)) window->draw(a);
         }
         window->draw(spTadzik.aSprite.sprite);
-        for (auto a:hitboxlessFront) { if (isInWindow(a)) window->draw(a);}
-        for (auto a:breakable) { if (isInWindow(a.sprite)) window->draw(a.sprite);}
+        for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
+        for (auto a:breakable) { if (isActive(a.sprite)) window->draw(a.sprite);}
         for (auto a:coins) { window->draw(a.sprite);}
         for (auto a:enemies1) { window->draw(a.aSprite.sprite);}
         window->draw(textScore);
@@ -412,19 +453,22 @@ protected:
     sf::Texture texPlayerStand;
     sf::Texture texFloorTile;
     sf::Texture texCoin;
-    sf::Texture texEnemy1;
+
+    sf::Texture texEnemy1Stand;
+    sf::Texture texEnemy1Run;
 
     std::vector <sf::Texture> texBreakableTile;
     std::vector <sf::Texture> texPlayerRun;
     sf::Texture texPlayerJump;
     sf::Texture texPlayerFall;
-    //sf::Texture texHealthBar;
 
     sf::Image mapa;
 
     classMovingEntity spTadzik, spEnemy1;
     AnimatedSprite spCoin;
-    Animation TadzikRun, TadzikStand, TadzikJump, TadzikFall, coinRotate, enemy1Stand;
+    Animation TadzikRun, TadzikStand, TadzikJump, TadzikFall;
+    Animation enemy1Stand, enemy1Run;
+    Animation coinRotate;
 
     sf::Sprite Background1;
     sf::Sprite Background2;
@@ -447,14 +491,10 @@ protected:
     double parallax = 0.66;
     double timeLeft = 30;
 
-    //double prevLeft, prevRight, prevTop, prevBot, prevX, prevY, prevSpeedX = 0.01, prevSpeedY = 0;
-
     int onTile = 0;
     int tilesPerY = 20;
     int closestBreakable = -1;
     int score = 0;
-    //bool isStanding = false;
-    //bool isJumping = false;
 
     sf::Text textScore;
     sf::Font font;
