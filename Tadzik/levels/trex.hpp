@@ -179,7 +179,7 @@ public:
             {
                 lastObstacle = result;
                 obstacleChance-=Utils::randFloat(0.2, 1);
-                if (Utils::randFloat(0, 1)<0.66){
+                if (Utils::randFloat(0, 1)<0.5){
                     for (int i = 0; i<rand()%3+1; i++) {
                         sf::Sprite spTmp(texCactus[rand()%6]);
                         spTmp.setScale(scaleFactor*(Utils::randFloat(0.6, 0.8)), scaleFactor*(Utils::randFloat(0.6, 0.8)));
