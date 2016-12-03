@@ -15,11 +15,12 @@ struct wall
     std::vector <sf::Vector3f*> coord;
     sf::Color color=sf::Color::Green;
     bool trans=0;
+    float pSize=500;
     void push_back(sf::Vector3f &c)
     {
         coord.push_back(&c);
     }
-    unsigned int size()
+    unsigned int size() const
     {
         return coord.size();
     }
@@ -57,6 +58,10 @@ protected:
     sf::Vector3f planeCross(sf::Vector3f* point); //Policz przeciecie punktu z ekranem
     sf::Vector2f process(sf::Vector3f* point);    //Podaj wspolrzedne na ekranie
     sf::Vector3f vecTransform(sf::Vector3f vec);
+    void drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color);
+    void drawDot(sf::Vector2f spot, float size, sf::Color color);
+    void drawWall(wall const& wallie);
+    float dotSize(float dot, sf::Vector3f vec);
 };
 
 class SYNTH3D: public Scene
@@ -231,21 +236,87 @@ void Camera::setEyeDistance(float distance)
     eye = distance;
 }
 
+float Camera::dotSize(float dot, sf::Vector3f vec)
+{
+    return ((-eye)/vecTransform(vec - position).z)*dot;
+}
+
+void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color)
+{
+    sf::ConvexShape line;
+    line.setPointCount(4);
+    sf::Vector2f norm;
+    float temp, lenght;
+
+    norm = (vec1 - vec2);
+    lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
+    norm.x /= lenght, norm.y /= lenght;
+    temp = norm.x, norm.x = -norm.y, norm.y = temp;
+
+    line.setPoint(0, vec1 + norm*size1);
+    line.setPoint(1, vec2 + norm*size2);
+    line.setPoint(2, vec2 - norm*size2);
+    line.setPoint(3, vec1 - norm*size1);
+    line.setFillColor(color);
+    p->window->draw(line);
+}
+
+void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
+{
+    sf::CircleShape circle(size);
+        circle.setFillColor(color);
+        spot.x -= size, spot.y -= size;
+        circle.setPosition(spot);
+        p->window->draw(circle);
+}
+
+void Camera::drawWall(wall const& wallie)
+{
+    /*auto drawDot = [](sf::Vector2f spot, float size, sf::Color color) -> void
+    {};*/
+
+    for(int i=0;i<wallie.size();i++)
+    {
+        //drawLine() od process od punktow
+        drawLine(process(wallie.coord[i]),
+                 process(wallie.coord[(i+1)%wallie.size()]),
+                 dotSize(wallie.pSize, *wallie.coord[i]),
+                 dotSize(wallie.pSize, *wallie.coord[(i+1)%wallie.size()]),
+                 //wallie.pSize,
+                 //wallie.pSize,
+                 wallie.color);
+        drawDot(process(wallie.coord[i]), dotSize(wallie.pSize, *wallie.coord[i]), wallie.color);
+        //drawDot(process(wallie.coord[i]), wallie.pSize, wallie.color);
+    }
+}
+
 void Camera::display()
 {
     p->window->clear();
-    std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n";
+    std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
     for(int i=0; i<p->world.size();i++)
     {
         for(int j=0; j< p->world[i].size(); j++)
             {
+
+                drawWall(p->world[i].wallie[j]);
+
+                /*sf::ConvexShape line;
+                line.setPointCount(4);
+                for(int k=0; k< p->world[i].wallie[j].size(); k++)
+                    line.setPoint(k, process(p->world[i].wallie[j].coord[k]));
+                //line.setFillColor(sf::Color(j*100, j*73, j*22));
+                line.setFillColor(sf::Color::Transparent);
+                line.setOutlineThickness(-15);
+                p->window->draw(line);
+                //--------------------
                 int mod = p->world[i].wallie[j].size();
                 for(int k=0; k< p->world[i].wallie[j].size(); k++)
                 {
                     lina[0] = sf::Vertex(process(p->world[i].wallie[j].coord[k]), p->world[i].wallie[j].color);
                     lina[1] = sf::Vertex(process(p->world[i].wallie[j].coord[(k+1)%mod]), p->world[i].wallie[j].color);
                     p->window->draw(lina, 2, sf::Lines);
-                }
+                }*/
             }
     }
 }
