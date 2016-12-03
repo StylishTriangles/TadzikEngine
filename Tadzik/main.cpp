@@ -15,6 +15,7 @@ int main(){
     srand(0);
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik");
     window.setFramerateLimit(60);
+    window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
