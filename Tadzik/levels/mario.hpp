@@ -168,7 +168,7 @@ public:
         isJumping = true;
         changeAnimation(JUMP);
     }
-    void update1() {
+    void updateEntity() {
         speedY+=0.5;
         sprite.move(0, speedY);
         //flip
@@ -181,6 +181,9 @@ public:
         }
         speedX*=0.9;
 
+
+    }
+    void updateAnimations() {
         if (abs(speedX)<0.1 && isStanding && current!=STAND) {
             changeAnimation(STAND);
         }
@@ -188,7 +191,6 @@ public:
             changeAnimation(RUN);
         }
     }
-
     double prevX, prevY;
     double prevSpeedX, prevSpeedY;
     positions pos;
@@ -208,11 +210,12 @@ public:
         speedX = cos(angle)*velocity;
         speedY = sin(angle)*velocity;
         accY=acY;
+        setRotation(atan2(speedY, speedX)*180.0/M_PI);
     }
     void update() {
         move(speedX, speedY);
         speedY+=accY;
-        setRotation(atan(speedY/speedX)*180.0/M_PI);
+        setRotation(atan2(speedY, speedX)*180.0/M_PI);
     }
 private:
     double speedX;
@@ -283,37 +286,35 @@ public:
         mapa.loadFromFile("files/maps/mario/map1.png");
         loadMap();
 
-        texPlayerRun.resize(4);
-        texPlayerRun[0].loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[0], 500));
-        texPlayerRun[1].loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[1], 500));
-        texPlayerRun[2].loadFromFile("files/textures/universal/playerRun3.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[2], 500));
-        texPlayerRun[3].loadFromFile("files/textures/universal/playerRun4.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun[3], 500));
+        texPlayerLVL1Run.resize(4);
+        texPlayerLVL1Run[0].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Run.addFrame(AnimationFrame(&texPlayerLVL1Run[0], 500));
+        texPlayerLVL1Run[1].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Run.addFrame(AnimationFrame(&texPlayerLVL1Run[1], 500));
+        texPlayerLVL1Run[2].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Run.addFrame(AnimationFrame(&texPlayerLVL1Run[2], 500));
+        texPlayerLVL1Run[3].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Run.addFrame(AnimationFrame(&texPlayerLVL1Run[3], 500));
+        texPlayerLVL1Jump.loadFromFile("files/textures/mario/playerSmallJump.png"),   TadzikLVL1Jump.addFrame(AnimationFrame(&texPlayerLVL1Jump, 150));
+        texPlayerLVL1Stand.loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Stand.addFrame(AnimationFrame(&texPlayerLVL1Stand, 150));
+        texPlayerLVL1Fall.loadFromFile("files/textures/mario/playerSmallStand.png"),  TadzikLVL1Fall.addFrame(AnimationFrame(&texPlayerLVL1Fall, 150));
 
-        texPlayerJump.loadFromFile("files/textures/universal/playerJump.png"),   TadzikJump.addFrame(AnimationFrame(&texPlayerJump, 150));
-        texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
-        texPlayerFall.loadFromFile("files/textures/universal/playerFall.png"),   TadzikFall.addFrame(AnimationFrame(&texPlayerFall, 150));
+        texPlayerLVL2Run.resize(4);
+        texPlayerLVL2Run[0].loadFromFile("files/textures/universal/playerRun1.png"), TadzikLVL2Run.addFrame(AnimationFrame(&texPlayerLVL2Run[0], 500));
+        texPlayerLVL2Run[1].loadFromFile("files/textures/universal/playerRun2.png"), TadzikLVL2Run.addFrame(AnimationFrame(&texPlayerLVL2Run[1], 500));
+        texPlayerLVL2Run[2].loadFromFile("files/textures/universal/playerRun3.png"), TadzikLVL2Run.addFrame(AnimationFrame(&texPlayerLVL2Run[2], 500));
+        texPlayerLVL2Run[3].loadFromFile("files/textures/universal/playerRun4.png"), TadzikLVL2Run.addFrame(AnimationFrame(&texPlayerLVL2Run[3], 500));
+        texPlayerLVL2Jump.loadFromFile("files/textures/universal/playerJump.png"),   TadzikLVL2Jump.addFrame(AnimationFrame(&texPlayerLVL2Jump, 150));
+        texPlayerLVL2Stand.loadFromFile("files/textures/universal/playerStand.png"), TadzikLVL2Stand.addFrame(AnimationFrame(&texPlayerLVL2Stand, 150));
+        texPlayerLVL2Fall.loadFromFile("files/textures/universal/playerFall.png"),   TadzikLVL2Fall.addFrame(AnimationFrame(&texPlayerLVL2Fall, 150));
 
-        texPlayerMiniRun.resize(4);
-        texPlayerMiniRun[0].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[0], 500));
-        texPlayerMiniRun[1].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[1], 500));
-        texPlayerMiniRun[2].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[2], 500));
-        texPlayerMiniRun[3].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniRun.addFrame(AnimationFrame(&texPlayerMiniRun[3], 500));
+        animTadzikLVL1.push_back(&TadzikLVL1Stand);
+        animTadzikLVL1.push_back(&TadzikLVL1Run);
+        animTadzikLVL1.push_back(&TadzikLVL1Jump);
+        animTadzikLVL1.push_back(&TadzikLVL1Fall);
 
-        texPlayerMiniJump.loadFromFile("files/textures/mario/playerSmallJump.png"),   TadzikMiniJump.addFrame(AnimationFrame(&texPlayerMiniJump, 150));
-        texPlayerMiniStand.loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikMiniStand.addFrame(AnimationFrame(&texPlayerMiniStand, 150));
-        texPlayerMiniFall.loadFromFile("files/textures/mario/playerSmallStand.png"),   TadzikMiniFall.addFrame(AnimationFrame(&texPlayerMiniFall, 150));
+        animTadzikLVL2.push_back(&TadzikLVL2Stand);
+        animTadzikLVL2.push_back(&TadzikLVL2Run);
+        animTadzikLVL2.push_back(&TadzikLVL2Jump);
+        animTadzikLVL2.push_back(&TadzikLVL2Fall);
 
-        animTadzikMedium.push_back(&TadzikStand);
-        animTadzikMedium.push_back(&TadzikRun);
-        animTadzikMedium.push_back(&TadzikJump);
-        animTadzikMedium.push_back(&TadzikFall);
-
-        animTadzikSmall.push_back(&TadzikMiniStand);
-        animTadzikSmall.push_back(&TadzikMiniRun);
-        animTadzikSmall.push_back(&TadzikMiniJump);
-        animTadzikSmall.push_back(&TadzikMiniFall);
-
-        spTadzik.loadAnimations(animTadzikSmall);
+        spTadzik.loadAnimations(animTadzikLVL1);
 
         spTadzik.changeAnimation(FALL);
         spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
@@ -355,6 +356,10 @@ public:
                 else if(mapa.getPixel(i, j)==sf::Color(100, 100, 100)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
                     hitboxlessBack.push_back(FloorTile);
+                }
+                else if(mapa.getPixel(i, j)==sf::Color(200, 200, 200)) {
+                    FloorTile.setPosition(i*TileSize, j*TileSize);
+                    hitboxlessFront.push_back(FloorTile);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(200, 100, 100)) {
                     BreakableTile.setPosition(i*TileSize, j*TileSize);
@@ -408,11 +413,13 @@ public:
 
     bool manageCollision(MovingEntity& entity, Tile s) {
         bool check = false;
-        if (isActive(s, 1.2) && Collision::BoundingBoxTest(entity.sprite, s)) {
+        if (isActive(s, 2) && Collision::BoundingBoxTest(entity.sprite, s)) {
             if (s.getGlobalBounds().top+s.getGlobalBounds().height<entity.pos.top) {
                 entity.speedY = 0;
                 entity.sprite.setPosition(entity.sprite.getPosition().x,
                                           s.getGlobalBounds().top+s.getGlobalBounds().height+entity.sprite.getGlobalBounds().height);
+                //entity.pos.top = entity.sprite.getGlobalBounds().top;
+                //entity.pos.bottom = entity.sprite.getGlobalBounds().top+entity.sprite.getGlobalBounds().height;
                 check = true;
             }
             if (s.getGlobalBounds().top>=entity.pos.bottom) {
@@ -502,11 +509,11 @@ public:
         else {
             spTadzik.move(speedX, 0);
         }
-        spTadzik.update1();
+        spTadzik.updateEntity();
         for (int i=0; i<enemies1.size(); i++) {
             if (isActive(enemies1[i].sprite, 1.1)) {
                 enemies1[i].move(enemies1[i].speedX, 0);
-                enemies1[i].update1();
+                enemies1[i].updateEntity();
             }
         }
 
@@ -521,7 +528,7 @@ public:
                 else if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(breakable[i].center().x-spTadzik.sprite.getPosition().x))
                     closestBreakable = i;
             }
-            }
+        }
 
         closestQuestionBlock = -1;
         for (int i=powerupBlocks.size()-1; i>=0; i--) {
@@ -530,14 +537,17 @@ public:
                 else if (abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
                     closestQuestionBlock = i;
             }
-        }
-        if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
-            closestBreakable = -1;
-        }
-        else {
-            closestQuestionBlock = -1;
+        if (powerLevel == 0) closestBreakable = -1;
         }
 
+        if (closestBreakable != -1 && closestQuestionBlock != -1) {
+            if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
+                closestBreakable = -1;
+            }
+            else {
+                closestQuestionBlock = -1;
+            }
+        }
         if (powerupBlocks.size()>0 && closestQuestionBlock!=-1) {
             if (powerupBlocks[closestQuestionBlock].hit(powerLevel) && powerLevel==0) {
                 spritePowerup.setAnimation(&powerupAnim);
@@ -552,7 +562,7 @@ public:
 
 
         for (int i=0; i<enemies1.size(); i++) {
-            if (isActive(enemies1[i].sprite, 1.1))
+            if (isActive(enemies1[i].sprite, 1.2))
             {
                 for (auto a:floor)
                     manageCollision(enemies1[i], a);
@@ -586,7 +596,7 @@ public:
             for (int i=powerups.size()-1; i>=0; --i)
                 if (Collision::PixelPerfectTest(powerups[i].sprite, spTadzik.sprite)) {
                     powerLevel=1;
-                    spTadzik.loadAnimations(animTadzikMedium);
+                    spTadzik.loadAnimations(animTadzikLVL2);
                     spTadzik.changeAnimation(spTadzik.current);
                     spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
                     powerups.erase(powerups.begin()+i);
@@ -612,7 +622,9 @@ public:
                             }
                             else {
                                 powerLevel--;
-                                spTadzik.loadAnimations(animTadzikSmall);
+                                speedX = -3*speedX;
+                                speedY = - abs(speedY);
+                                spTadzik.loadAnimations(animTadzikLVL1);
                                 spTadzik.changeAnimation(spTadzik.current);
                                 spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
                                 invincibility.restart();
@@ -637,6 +649,10 @@ public:
                 gameOver();
             }
         }
+        if (spTadzik.sprite.getGlobalBounds().left<0) {
+            spTadzik.setPosition(spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
+        }
+        spTadzik.updateAnimations();
 
         //rysowanie
         window->clear();
@@ -675,26 +691,24 @@ protected:
     std::vector <sf::Texture> texBreakableTile;
 
 
-    std::vector <sf::Texture> texPlayerRun;
-    sf::Texture texPlayerStand;
-    sf::Texture texPlayerJump;
-    sf::Texture texPlayerFall;
+    std::vector <sf::Texture> texPlayerLVL2Run;
+    sf::Texture texPlayerLVL2Stand;
+    sf::Texture texPlayerLVL2Jump;
+    sf::Texture texPlayerLVL2Fall;
 
-    std::vector <sf::Texture> texPlayerMiniRun;
-    sf::Texture texPlayerMiniStand;
-    sf::Texture texPlayerMiniJump;
-    sf::Texture texPlayerMiniFall;
+    std::vector <sf::Texture> texPlayerLVL1Run;
+    sf::Texture texPlayerLVL1Stand;
+    sf::Texture texPlayerLVL1Jump;
+    sf::Texture texPlayerLVL1Fall;
 
     sf::Image mapa;
 
     MovingEntity spTadzik, spEnemy1;
     AnimatedSprite spCoin;
-    Animation TadzikRun, TadzikStand, TadzikJump, TadzikFall;
-    Animation TadzikMiniRun, TadzikMiniStand, TadzikMiniJump, TadzikMiniFall;
+    Animation TadzikLVL2Run, TadzikLVL2Stand, TadzikLVL2Jump, TadzikLVL2Fall;
+    Animation TadzikLVL1Run, TadzikLVL1Stand, TadzikLVL1Jump, TadzikLVL1Fall;
     Animation enemy1Stand, enemy1Run;
     Animation coinRotate, powerupAnim;
-
-    //Animation
 
     sf::Sprite Background1;
     sf::Sprite Background2;
@@ -710,9 +724,9 @@ protected:
     std::vector <AnimatedSprite> coins;
     std::vector <MovingEntity> enemies1;
 
-    std::vector <Animation*> animTadzikSmall;
-    std::vector <Animation*> animTadzikMedium;
-    std::vector <Animation*> animTadzikBig;
+    std::vector <Animation*> animTadzikLVL1;
+    std::vector <Animation*> animTadzikLVL2;
+    std::vector <Animation*> animTadzikLVL3;
 
     std::vector <BreakableBlock> breakable;
     BreakableBlock BreakableTile;
