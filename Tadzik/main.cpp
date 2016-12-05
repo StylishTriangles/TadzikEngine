@@ -13,7 +13,9 @@
 
 int main(){
     srand(0);
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik");
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     window.setFramerateLimit(60);
     SceneManager sceneManager(&window);
     sceneManager.registerScene<TREX>("TREX", &window);
