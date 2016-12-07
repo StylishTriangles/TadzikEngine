@@ -16,7 +16,15 @@
 
 class MARIO;
 
-enum animationType {
+
+class MARIO: public Scene{
+public:
+    friend class Tile;
+    MARIO(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
+        :Scene(_name, mgr, w)
+    {}
+
+    enum animationType {
     STAND, RUN, JUMP, FALL
 };
 
@@ -224,12 +232,6 @@ private:
     double accY;
 };
 
-class MARIO: public Scene{
-public:
-    friend class Tile;
-    MARIO(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name, mgr, w)
-    {}
 
     virtual void onSceneLoadToMemory() {
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")) {
