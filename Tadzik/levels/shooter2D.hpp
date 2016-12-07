@@ -64,13 +64,17 @@ public:
         bool bouncy = false;
     };
 
+    bool angleCompare (const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f, double> &right) {
+        return atan2(left.first.y-spTadzik.getPosition().y, left.first.x-spTadzik.getPosition().x) < atan2(right.first.y-spTadzik.getPosition().y, right.first.x-spTadzik.getPosition().x);
+    }
+
     void updateShadow(lightSource& ls, int alpha) {
         ls.points.clear();
         ls.points.push_back(getIntersection(ls, sf::Vector2f(0, 0)));
         ls.points.push_back(getIntersection(ls, sf::Vector2f(window->getSize().x, 0)));
         ls.points.push_back(getIntersection(ls, sf::Vector2f(window->getSize().x, window->getSize().y)));
         ls.points.push_back(getIntersection(ls, sf::Vector2f(0, window->getSize().y)));
-        for (unsigned int i=0; i<vecWalls.size(); i++)
+        for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++){
                 ls.points.push_back(getIntersection(ls, vecWalls[i].points[j]));
                 //ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, 1)));
@@ -85,9 +89,10 @@ public:
                 c.setPosition(rotatedPoint(vecWalls[i].points[j], ls, -1));
                 rDebug.draw(c);
             }
-            std::sort(ls.points.begin(), ls.points.end(), [](const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f,double> &right) {
-        return left.second < right.second;
-        });
+        }
+        std::sort(ls.points.begin(), ls.points.end(), [](const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f,double> &right) {
+            return left.second < right.second; });
+        //std::sort(ls.points.begin(), ls.points.end(), angleCompare);
         ls.shadow.clear();
         ls.shadow.append(sf::Vertex(ls, sf::Color(0, 0, 0, alpha)));
         for (int i=0; i<ls.points.size(); i++) {
@@ -106,7 +111,6 @@ public:
     sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, double d) {
         double a = atan2(p.y-center.y, p.x-center.x);
         double l = sqrt((p.y-center.y)*(p.y-center.y)+(p.x-center.x)*(p.x-center.x));
-        //a=1/a;
         sf::Vector2f r;
         r.x = p.x+5*d*sin(a);
         r.y = p.y-5*d*cos(a);
@@ -354,6 +358,7 @@ public:
         if (health<0) gameOver();
 
         spTadzik.update();
+        spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         handleCollision(spTadzik, vecSprites);
 
         spTadzik.velocity.x*=0.8;
@@ -417,7 +422,6 @@ protected:
 
     sf::Image mapa;
     sf::Font font;
-    sf::Transform trans;
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
 
@@ -436,8 +440,6 @@ protected:
     Bullet tmpBullet;
 
     std::vector <Bullet> vecBullets;
-
-    std::vector <sf::CircleShape> bullets;
 
     std::vector <sf::Sprite> vecSprites;
     double speedX = 0, speedY = 0;
