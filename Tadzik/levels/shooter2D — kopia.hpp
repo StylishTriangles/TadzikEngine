@@ -12,6 +12,23 @@
 #include <cstdlib>
 #include <cmath>
 
+sf::Vector2f getPoint(sf::Vector2f p1, sf::Vector2f p2, sf::RenderWindow* window) {
+    double a = (p1.y-p2.y) / (p2.x-p1.x);
+    sf::Vector2f onX;
+    sf::Vector2f onY;
+    if (p2.x-p1.x>0)
+        onY = sf::Vector2f(window->getSize().x, p1.y-a*(window->getSize().x-p1.x));
+    else
+        onY = sf::Vector2f(0, p1.y+a*(p1.x));
+    if (p2.y-p1.y>0)
+        onX = sf::Vector2f(p1.x-(window->getSize().y-p1.y)/a, window->getSize().y);
+    else
+        onX = sf::Vector2f(p1.x+p1.y/a, 0);
+    if (onX.x<0 || onX.x>window->getSize().x)
+        return onX;
+    return onY;
+}
+
 
 class MovingEntity1: public sf::Sprite {
 public:
@@ -27,120 +44,61 @@ public:
     public:
         std::vector <sf::Vector2f> points;
         std::vector <sf::Sprite> sprites;
-    };
-
-    class lightSource: public sf::Vector2f {
-    public:
-        void operator= (sf::Vector2f v) {
-            x = v.x;
-            y = v.y;
-        }
-        void update() {
-        };
-        std::vector <std::pair <sf::Vector2f, double> > points;
-        sf::Vector2f velocity;
-    };
-
-    void drawLine(sf::Vector2f p1, sf::Vector2f p2) {
-        sf::VertexArray a (sf::Lines, 2);
-        a[0]=p1;
-        a[1]=p2;
-        window->draw(a);
-    }
-
-    sf::Vector2f getPoint(sf::Vector2f p1, sf::Vector2f p2) {
-        double a = (p1.y-p2.y) / (p2.x-p1.x);
-        sf::Vector2f onX;
-        sf::Vector2f onY;
-        if (p2.x-p1.x>0)
-            onY = sf::Vector2f(window->getSize().x, p1.y-a*(window->getSize().x-p1.x));
-        else
-            onY = sf::Vector2f(0, p1.y+a*(p1.x));
-        if (p2.y-p1.y>0)
-            onX = sf::Vector2f(p1.x-(window->getSize().y-p1.y)/a, window->getSize().y);
-        else
-            onX = sf::Vector2f(p1.x+p1.y/a, 0);
-        if (onX.x<0 || onX.x>window->getSize().x)
-            return onX;
-        return onY;
-    }
-
-
-    std::pair <sf::Vector2f, double> getIntersection (sf::Vector2f rp, sf::Vector2f p2) {
-        sf::Vector2f rd = {p2.x-rp.x, p2.y-rp.y};
-        sf::Vector2f sp;
-        sf::Vector2f sd;
-        sf::Vector2f v2;
-        double T1Min=10;
-        double T1, T2;
-        sf::Vector2f MIN = p2;
-
-        sp = {0, 0};
-        v2 = {window->getSize().x, 0};
-        sd = {v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {window->getSize().x, 0};
-        v2 = {window->getSize().x, window->getSize().y};
-        sd ={v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {window->getSize().x, window->getSize().y};
-        v2 = {0, window->getSize().y};
-        sd ={v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {0, window->getSize().y};
-        v2 = {0, 0};
-        sd = {v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        for (int i=0; i<vecWalls.size(); i++) {
-            for (int j=0; j<vecWalls[i].points.size(); j++) {
-                sp = vecWalls[i].points[j%vecWalls[i].points.size()];
-                v2 = vecWalls[i].points[(j+1)%vecWalls[i].points.size()];
-                sd ={v2.x-sp.x, v2.y-sp.y};
-                T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-                T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-                if (T1<T1Min && T1>0 && T2>0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-                    T1Min=T1;
-                    MIN.x = sp.x+sd.x*T2;
-                    MIN.y = sp.y+sd.y*T2;
+        int getRightPoint(sf::Vector2f p1) {
+            sf::Vector2f v1 = {sprites[sprites.size()/2].getPosition().x - p1.x , sprites[sprites.size()/2].getPosition().y-p1.y};
+            int RightPoint;
+            double angle = -M_PI;
+            double angle2;
+            for (int i=0; i<points.size(); i++) {
+                sf::Vector2f& p2 = points[i];
+                angle2 = atan2(v1.y, v1.x) - atan2(p2.y-p1.y, p2.x-p1.x);
+                if (angle2>M_PI) angle2-=M_PI;
+                if (angle2<-M_PI) angle2+=M_PI;
+                if (angle2 > angle) {
+                    angle = angle2;
+                    RightPoint = i;
                 }
             }
+            return RightPoint;
         }
-        return {MIN, atan2(MIN.y-rp.y, MIN.x-rp.x)};
-    }
+        int getLeftPoint(sf::Vector2f p1) {
+            sf::Vector2f v1 = {sprites[sprites.size()/2].getPosition().x - p1.x , sprites[sprites.size()/2].getPosition().y-p1.y};
+            int LeftPoint;
+            double angle = M_PI;
+            double angle2;
+            for (int i=0; i<points.size(); i++) {
+                sf::Vector2f& p2 = points[i];
+                angle2 = atan2(v1.y, v1.x) - atan2(p2.y-p1.y, p2.x-p1.x);
+                if (angle2 < angle) {
+                    angle = angle2;
+                    LeftPoint = i;
+                }
+            }
+            return LeftPoint;
+        }
+        sf::VertexArray getShadow(sf::Vector2f p1, sf::RenderWindow* window) {
+            int right = getLeftPoint(p1);
+            int left = getRightPoint(p1);
+            sf::VertexArray a(sf::TrianglesFan);
+            a.resize(4);
+            a[0]=getPoint(p1, points[left], window);
+            a[1]=getPoint(p1, points[right], window);
+            a[2]=points[right];
+            int p=3;
+            int i=right;
+            while (i!=left) {
+                i--;
+                if (i<0) i+=points.size();
+                a.resize(p+1);
+                a[p]=points[i];
+                p++;
+            }
+            a.resize(p+1);
+            a[p]=points[left];
 
-    sf::Vector2f rotated (sf::Vector2f c, sf::Vector2f p, double angle) {
-        double a = atan2(c.y-p.y, c.x-p.x);
-        a+=angle;
-        return sf::Vector2f(c.x+1, c.y+tan(a));
-    }
+            return a;
+        }
+    };
 
     virtual void onSceneLoadToMemory() {
         font.loadFromFile("files/Carnevalee_Freakshow.ttf");
@@ -160,12 +118,6 @@ public:
         spHealthFrame.setTexture(texHealthFrame);
 
         loadMap();
-
-        spBullet.setFillColor(sf::Color::White);
-        spBullet.setRadius(3);
-        spBullet.setOrigin(3, 3);
-
-        rTexture.create(window->getSize().x, window->getSize().y);
     }
 
     virtual void onSceneActivate() {
@@ -282,6 +234,32 @@ public:
         }
     }
 
+
+    sf::ConvexShape getPlayerShadow() {
+        sf::ConvexShape convex;
+        convex.setFillColor(sf::Color::Green);
+        sf::Vector2f tmp;
+        sf::Vector2f p1 = spTadzik.getPosition();
+        sf::Vector2i p2 = sf::Mouse::getPosition(*window);
+        convex.setPointCount(4);
+        convex.setPoint(0, p1);
+        convex.setPoint(3, p1);
+        double a = (p1.y-p2.y) / (p2.x-p1.x);
+        double a1 = tan(atan(a)-angle);
+        if (p2.x-p1.x>0)
+            tmp = sf::Vector2f(window->getSize().x, p1.y-a1*(window->getSize().x-p1.x));
+        else
+            tmp = sf::Vector2f(0, p1.y+a1*(p1.x));
+        convex.setPoint(1, tmp);
+        a1 = tan(atan(a)+angle);
+        if (p2.x-p1.x>0)
+            tmp = sf::Vector2f(window->getSize().x, p1.y-a1*(window->getSize().x-p1.x));
+        else
+            tmp = sf::Vector2f(0, p1.y+a1*(p1.x));
+        convex.setPoint(2, tmp);
+        return convex;
+    }
+
     virtual void draw(double deltaTime) {
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < maxSpeed) {
             spTadzik.velocity.x -= acceleration;
@@ -296,7 +274,6 @@ public:
             spTadzik.velocity.x += acceleration;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) health-=10;
-        //if (sf::Mouse::)
 
         spTadzik.move(spTadzik.velocity.x, spTadzik.velocity.y);
 
@@ -309,45 +286,29 @@ public:
         spTadzik.velocity.y*=0.8;
         spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
 
-        lsTadzik = spTadzik.getPosition();
-        rTexture.clear(sf::Color::Black);
+
         window->clear(sf::Color(50, 50, 100));
 
+        //window->draw(getPlayerShadow());
+        window->draw(spTadzik);
         for (int i=0; i<vecWalls.size(); i++)
             for (int j=0; j<vecWalls[i].sprites.size(); j++)
                 window->draw(vecWalls[i].sprites[j]);
-
-        criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(0, 0)));
-        criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(window->getSize().x, 0)));
-        criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(window->getSize().x, window->getSize().y)));
-        criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(0, window->getSize().y)));
-        for (int i=0; i<vecWalls.size(); i++)
-            for (int j=0; j<vecWalls[i].points.size(); j++){
-                criticalPoints.push_back(getIntersection(lsTadzik, vecWalls[i].points[j]));
-                criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(vecWalls[i].points[j].x+0.01, vecWalls[i].points[j].y)));
-                criticalPoints.push_back(getIntersection(lsTadzik, sf::Vector2f(vecWalls[i].points[j].x-0.01, vecWalls[i].points[j].y)));
-            }
-        std::sort(criticalPoints.begin(), criticalPoints.end(), [](const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f,double> &right) {
-            return left.second < right.second;
-        });
-        sf::VertexArray shadow(sf::TrianglesFan, 0);
-        shadow.append(sf::Vertex(lsTadzik, sf::Color(0, 0, 0, 0)));
-        for (int i=0; i<criticalPoints.size(); i++) {
-            shadow.append(sf::Vertex(criticalPoints[i].first, sf::Color(0, 0, 0, 0)));
-        }
-        shadow.append(sf::Vertex(criticalPoints[0].first, sf::Color(0, 0, 0, 0)));
-        criticalPoints.clear();
-
-        rTexture.draw(shadow, sf::BlendNone);
-        rTexture.display();
-        window->draw(sf::Sprite(rTexture.getTexture()));
+        //drawShadow(vecWalls);
+        window->draw(spHealthBar);
+        window->draw(spHealthFrame);
+        for (auto a:bullets) window->draw(a);
+        spBullet.setFillColor(sf::Color::White);
+        spBullet.setRadius(3);
         for (int i=0; i<vecWalls.size(); i++) {
+            window->draw(vecWalls[i].getShadow(spTadzik.getPosition(), window));
             for (int j=0; j<vecWalls[i].points.size(); j++) {
-                drawLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]);
+                spBullet.setPosition(vecWalls[i].points[j]);
+                window->draw(spBullet);
             }
         }
-        window->draw(spTadzik);
-
+        //window->draw(vecWalls[0].getShadow(spTadzik.getPosition(), window));
+        //std::cout << vecWalls.size();
     }
 
 protected:
@@ -358,8 +319,6 @@ protected:
     sf::Texture texHealthFrame;
     sf::Image mapa;
     sf::Font font;
-    sf::Transform trans;
-    sf::RenderTexture rTexture;
 
     MovingEntity1 spTadzik;
     sf::Sprite spWall;
@@ -367,12 +326,7 @@ protected:
     sf::Sprite spHealthFrame;
     sf::CircleShape spBullet;
 
-    lightSource lsTadzik;
-    std::vector <lightSource> lsLights;
-
     std::vector <Object> vecWalls;
-
-    std::vector <std::pair <sf::Vector2f, double> > criticalPoints;
 
     std::vector <sf::CircleShape> bullets;
 
