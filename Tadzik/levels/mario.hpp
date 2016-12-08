@@ -185,10 +185,12 @@ public:
         texPowerup.loadFromFile("files/textures/mario/powerup.png"), powerupAnim.addFrame(AnimationFrame(&texPowerup, 500));
         spPowerup.setAnimation(&powerupAnim);
 
-        texEnemy1Run.resize(2);
-        texEnemy1Run[0].loadFromFile("files/textures/mario/enemy1Run2.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[0], 500));
-        texEnemy1Run[1].loadFromFile("files/textures/mario/enemy1Run1.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[1], 500));
-        texEnemy1Stand.loadFromFile("files/textures/mario/enemy1Stand.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1Stand, 500));
+        texEnemy1Run.resize(4);
+        texEnemy1Run[0].loadFromFile("files/textures/mario/enemy1Run1.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[0], 400));
+        texEnemy1Run[1].loadFromFile("files/textures/mario/enemy1Run2.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[1], 250));
+        texEnemy1Run[2].loadFromFile("files/textures/mario/enemy1Run3.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[2], 200));
+        texEnemy1Run[3].loadFromFile("files/textures/mario/enemy1Run2.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[3], 250));
+        texEnemy1Stand.loadFromFile("files/textures/mario/enemy1Stand.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1Stand, 50));
         spEnemy1.addAnimation(&enemy1Stand);
         spEnemy1.addAnimation(&enemy1Run);
 
