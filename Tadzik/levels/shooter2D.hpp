@@ -32,20 +32,49 @@ public:
         std::vector <sf::Sprite> sprites;
     };
 
+    class CrossingPoint{
+    public:
+        CrossingPoint(sf::Vector2f v, double a)
+        :point(v), angle(a)
+        {}
+
+        bool operator<(CrossingPoint& p){
+            return angle < p.angle;
+        }
+
+        sf::Vector2f point;
+        double angle;
+    };
+
     class lightSource: public sf::Vector2f {
     public:
+
+        lightSource(){
+            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+        }
+        lightSource(sf::Vector2f f) {
+            x=f.x, y=f.y;
+            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+        }
         void operator= (sf::Vector2f v) {
             x = v.x;
             y = v.y;
             sprite.setPosition(x, y);
         }
-        void update() {
 
+        void update() {
+            sortPoints();
         }
-        std::vector <std::pair <sf::Vector2f, double> > points;
+
+        void sortPoints(){
+            std::sort(points.begin(), points.end());
+        }
+
+        std::vector <CrossingPoint> points;
         sf::Vector2f velocity;
         sf::VertexArray shadow = sf::VertexArray(sf::TrianglesFan, 0);
         sf::Sprite sprite;
+        sf::Color color;
     };
 
     class Bullet: public sf::Sprite {
@@ -64,9 +93,9 @@ public:
         bool bouncy = false;
     };
 
-    bool angleCompare (const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f, double> &right) {
-        return atan2(left.first.y-spTadzik.getPosition().y, left.first.x-spTadzik.getPosition().x) < atan2(right.first.y-spTadzik.getPosition().y, right.first.x-spTadzik.getPosition().x);
-    }
+    //bool angleCompare (const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f, double> &right) {
+    //    return atan2(left.first.y-spTadzik.getPosition().y, left.first.x-spTadzik.getPosition().x) < atan2(right.first.y-spTadzik.getPosition().y, right.first.x-spTadzik.getPosition().x);
+    //}
 
     void updateShadow(lightSource& ls, int alpha) {
         ls.points.clear();
@@ -90,15 +119,15 @@ public:
                 rDebug.draw(c);
             }
         }
-        std::sort(ls.points.begin(), ls.points.end(), [](const std::pair<sf::Vector2f, double> &left, const std::pair<sf::Vector2f,double> &right) {
-            return left.second < right.second; });
-        //std::sort(ls.points.begin(), ls.points.end(), angleCompare);
+        ls.update();
         ls.shadow.clear();
-        ls.shadow.append(sf::Vertex(ls, sf::Color(0, 0, 0, alpha)));
+        ls.color.a = alpha;
+        ls.shadow.append(sf::Vertex(ls, ls.color));
         for (int i=0; i<ls.points.size(); i++) {
-            ls.shadow.append(sf::Vertex(ls.points[i].first, sf::Color(0, 0, 0, alpha)));
+            ls.shadow.append(sf::Vertex(ls.points[i].point, ls.color));
         }
-        ls.shadow.append(sf::Vertex(ls.points[0].first, sf::Color(0, 0, 0, alpha)));
+        ls.shadow.append(sf::Vertex(ls.points[0].point, ls.color));
+        //std::cout << (int)ls.color.r << "\n";
     }
 
     void drawLine(sf::Vector2f p1, sf::Vector2f p2) {
@@ -117,7 +146,7 @@ public:
         return r;
     }
 
-    std::pair <sf::Vector2f, double> getIntersection (sf::Vector2f rp, sf::Vector2f p2) {
+    CrossingPoint getIntersection (sf::Vector2f rp, sf::Vector2f p2) {
         sf::Vector2f rd = {p2.x-rp.x, p2.y-rp.y};
         sf::Vector2f sp;
         sf::Vector2f sd;
@@ -184,7 +213,7 @@ public:
                 }
             }
         }
-        return {MIN, atan2(MIN.y-rp.y, MIN.x-rp.x)};
+        return CrossingPoint(MIN, atan2(MIN.y-rp.y, MIN.x-rp.x));
     }
 
     virtual void onSceneLoadToMemory() {
@@ -333,7 +362,7 @@ public:
                 vecBullets.push_back(tmpBullet);
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
-                tmpLightsource = sf::Vector2f(sf::Mouse::getPosition(*window));
+                tmpLightsource = lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)));
                 vecLights.push_back(tmpLightsource);
             }
         }
@@ -366,9 +395,9 @@ public:
         spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
 
         lsTadzik = spTadzik.getPosition();
-        updateShadow(lsTadzik, 0);
+        updateShadow(lsTadzik, 100);
         for (unsigned int i=0; i<vecLights.size(); i++)
-            updateShadow(vecLights[i], 10);
+            updateShadow(vecLights[i], 100);
 
         window->clear(sf::Color(50, 50, 100));
 
@@ -389,12 +418,12 @@ public:
             sf::CircleShape c(2);
             c.setOrigin(1, 1);
             c.setFillColor(sf::Color::Green);
-            c.setPosition(lsTadzik.points[i].first);
+            c.setPosition(lsTadzik.points[i].point);
             rDebug.draw(c);
         }
         for (int i=0; i<vecLights.size(); i++)
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-        rTexture.draw(lsTadzik.shadow, sf::BlendNone);
+            rTexture.draw(vecLights[i].shadow, sf::BlendAdd);
+        rTexture.draw(lsTadzik.shadow, sf::BlendAdd);
         rTexture.display();
         window->draw(sf::Sprite(rTexture.getTexture()));
         sf::Vector2f enemy = sf::Vector2f(Utils::randInt(10, 1270), Utils::randInt(10, 710));

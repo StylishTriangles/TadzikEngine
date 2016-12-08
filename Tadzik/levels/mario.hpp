@@ -76,7 +76,7 @@ private:
 
 class BreakableBlock: public Tile {
 public:
-    BreakableWall() {
+    BreakableBlock() {
         textures.clear();
     }
     void loadTextures(std::vector <sf::Texture>& t) {

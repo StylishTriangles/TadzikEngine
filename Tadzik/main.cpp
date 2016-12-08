@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
+#include <ctime>
 
 #include "SceneManager.hpp"
 #include "levels/trex.hpp"
@@ -13,7 +14,7 @@
 #include <cstdlib>
 
 int main(){
-    srand(0);
+    srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
