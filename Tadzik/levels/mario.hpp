@@ -25,212 +25,212 @@ public:
     {}
 
     enum animationType {
-    STAND, RUN, JUMP, FALL
-};
+        STAND, RUN, JUMP, FALL
+    };
 
-struct positions {
-    double left;
-    double right;
-    double top;
-    double bottom;
-};
+    struct positions {
+        double left;
+        double right;
+        double top;
+        double bottom;
+    };
 
-class Effect: public AnimatedSprite {
-public:
-    void fromSprite(sf::Sprite& s) {
-        sprite.setTexture(*s.getTexture());
-        sprite.setScale(s.getScale());
-    }
-    void updateEffect(float delta) {
-        update(delta);
-        move(speedX, speedY);
-        speedX+=accX;
-        speedY+=accY;
-    }
-    Effect(AnimatedSprite &s, double sX, double sY, double aX, double aY) {
-        speedX = sX;
-        speedY = sY;
-        accX = aX;
-        accY = aY;
-        setAnimation(s.currentAnimation);
-        sprite.setScale(s.sprite.getScale());
-        sprite.setOrigin(s.sprite.getOrigin());
-        sprite.setPosition(s.sprite.getPosition());
-    }
-protected:
-    double speedX;
-    double speedY;
-    double accX;
-    double accY;
-};
-
-class Tile: public sf::Sprite {
-public:
-    Tile() {};
-    Tile(MARIO* parent): p(parent) {};
-    virtual void onHitAction(int i) {};
-    MARIO* p;
-private:
-
-};
-
-class BreakableBlock: public Tile {
-public:
-    BreakableBlock() {
-        textures.clear();
-    }
-    void loadTextures(std::vector <sf::Texture>& t) {
-        textures.clear();
-        hits = t.size();
-        for (int i=0; i<t.size(); i++) {
-            textures.push_back(&t[i]);
+    class Effect: public AnimatedSprite {
+    public:
+        void fromSprite(sf::Sprite& s) {
+            sprite.setTexture(*s.getTexture());
+            sprite.setScale(s.getScale());
         }
-    }
-    void addTexture(sf::Texture* texture) {
-        textures.push_back(texture);
-        hits++;
-    }
-    void changeTexture(int i) {
-        setTexture(*textures[i]);
-    }
-    bool hit() {
-        totalHits++;
-        if (hits<=totalHits) return 1;
-        setTexture(*textures[totalHits]);
-        return 0;
-    }
-    /*
-    void onHitAction(int i) override{
-        std::cout << totalHits;
-        totalHits++;
-        setTexture(*textures[totalHits]);
-        p->breakable.erase(p->breakable.begin()+i);
-    }
-    */
-    int left() { return getGlobalBounds().left;}
-    int right() { return getGlobalBounds().left+getGlobalBounds().width;}
-    int top() { return getGlobalBounds().top;}
-    int bottom() { return getGlobalBounds().top+getGlobalBounds().height;}
-    sf::Vector2f center() { return {getGlobalBounds().left+getGlobalBounds().width/2,
-                                    getGlobalBounds().top+getGlobalBounds().height/2};}
-private:
-    std::vector <sf::Texture*> textures;
-    int hits = 0;
-    int totalHits = 0;
-};
-
-class QuestionTile: public Tile {
-public:
-    sf::Texture* active;
-    sf::Texture* notActive;
-    positions pos;
-    void updatePrev() {
-        pos.top = getGlobalBounds().top;
-        pos.bottom = getGlobalBounds().top+getGlobalBounds().height;
-        pos.left = getGlobalBounds().left;
-        pos.right = getGlobalBounds().left+getGlobalBounds().width;
-    }
-    bool hit(int Level) {
-        if (getTexture()==active) {
-            setTexture(*notActive);
-            return 1;
+        void updateEffect(float delta) {
+            update(delta);
+            move(speedX, speedY);
+            speedX+=accX;
+            speedY+=accY;
         }
-        return 0;
-    }
-    void loadTextures(sf::Texture* Active, sf::Texture* NotActive) {
-        active = Active;
-        notActive = NotActive;
-        setTexture(*active);
-    }
-    sf::Vector2f center() { return {getGlobalBounds().left+getGlobalBounds().width/2,
-                                    getGlobalBounds().top+getGlobalBounds().height/2};}
-
-};
-
-class MovingEntity: public AnimatedSprite {
-public:
-    void loadAnimations(std::vector <Animation*> a) {
-        animations = a;
-        sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height);
-    }
-    double speedX = 0.01, speedY = 0;
-    void changeAnimation(animationType t)           {setAnimation(animations[t]); current = t;}
-    void addAnimation(Animation* a)                 {animations.push_back(a);}
-    void updatePrev() {
-        pos.top = sprite.getGlobalBounds().top;
-        pos.bottom = sprite.getGlobalBounds().top+sprite.getGlobalBounds().height;
-        pos.left = sprite.getGlobalBounds().left;
-        pos.right = sprite.getGlobalBounds().left+sprite.getGlobalBounds().width;
-        prevX = sprite.getPosition().x;
-        prevY = sprite.getPosition().y;
-        prevSpeedX = speedX;
-        prevSpeedY = speedY;
-
-    }
-    void flipSprite() {
-        sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(speedX), sprite.getScale().y);
-    }
-    void jump() {
-        speedY=-13;
-        isStanding = false;
-        isJumping = true;
-        changeAnimation(JUMP);
-    }
-    void updateEntity() {
-        speedY+=0.5;
-        sprite.move(0, speedY);
-        //flip
-        if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX) && Utils::sgn(speedX)!=0)
-            flipSprite();
-
-        if (isJumping && speedY>0) {
-            isJumping = false;
-            changeAnimation(FALL);
+        Effect(AnimatedSprite &s, double sX, double sY, double aX, double aY) {
+            speedX = sX;
+            speedY = sY;
+            accX = aX;
+            accY = aY;
+            setAnimation(s.currentAnimation);
+            sprite.setScale(s.sprite.getScale());
+            sprite.setOrigin(s.sprite.getOrigin());
+            sprite.setPosition(s.sprite.getPosition());
         }
-        speedX*=0.9;
+    protected:
+        double speedX;
+        double speedY;
+        double accX;
+        double accY;
+    };
 
+    class Tile: public sf::Sprite {
+    public:
+        Tile() {};
+        Tile(MARIO* parent): p(parent) {};
+        virtual void onHitAction(int i) {};
+        MARIO* p;
+    private:
 
-    }
-    void updateAnimations() {
-        if (abs(speedX)<0.1 && isStanding && current!=STAND) {
-            changeAnimation(STAND);
+    };
+
+    class BreakableBlock: public Tile {
+    public:
+        BreakableBlock() {
+            textures.clear();
         }
-        if (abs(speedX)>0.1 && isStanding && current!=RUN) {
-            changeAnimation(RUN);
+        void loadTextures(std::vector <sf::Texture>& t) {
+            textures.clear();
+            hits = t.size();
+            for (int i=0; i<t.size(); i++) {
+                textures.push_back(&t[i]);
+            }
         }
-    }
-    double prevX, prevY;
-    double prevSpeedX, prevSpeedY;
-    positions pos;
-    bool isStanding = 0;
-    bool isJumping = 0;
-    animationType current = STAND;
-private:
-    std::vector <Animation*> animations;
+        void addTexture(sf::Texture* texture) {
+            textures.push_back(texture);
+            hits++;
+        }
+        void changeTexture(int i) {
+            setTexture(*textures[i]);
+        }
+        bool hit() {
+            totalHits++;
+            if (hits<=totalHits) return 1;
+            setTexture(*textures[totalHits]);
+            return 0;
+        }
+        /*
+        void onHitAction(int i) override{
+            std::cout << totalHits;
+            totalHits++;
+            setTexture(*textures[totalHits]);
+            p->breakable.erase(p->breakable.begin()+i);
+        }
+        */
+        int left() { return getGlobalBounds().left;}
+        int right() { return getGlobalBounds().left+getGlobalBounds().width;}
+        int top() { return getGlobalBounds().top;}
+        int bottom() { return getGlobalBounds().top+getGlobalBounds().height;}
+        sf::Vector2f center() { return {getGlobalBounds().left+getGlobalBounds().width/2,
+                                        getGlobalBounds().top+getGlobalBounds().height/2};}
+    private:
+        std::vector <sf::Texture*> textures;
+        int hits = 0;
+        int totalHits = 0;
+    };
 
-};
+    class QuestionTile: public Tile {
+    public:
+        sf::Texture* active;
+        sf::Texture* notActive;
+        positions pos;
+        void updatePrev() {
+            pos.top = getGlobalBounds().top;
+            pos.bottom = getGlobalBounds().top+getGlobalBounds().height;
+            pos.left = getGlobalBounds().left;
+            pos.right = getGlobalBounds().left+getGlobalBounds().width;
+        }
+        bool hit(int Level) {
+            if (getTexture()==active) {
+                setTexture(*notActive);
+                return 1;
+            }
+            return 0;
+        }
+        void loadTextures(sf::Texture* Active, sf::Texture* NotActive) {
+            active = Active;
+            notActive = NotActive;
+            setTexture(*active);
+        }
+        sf::Vector2f center() { return {getGlobalBounds().left+getGlobalBounds().width/2,
+                                        getGlobalBounds().top+getGlobalBounds().height/2};}
 
-class Bullet: public sf::Sprite {
-public:
-    Bullet(sf::Texture* tex, sf::Vector2f pos, double velocity, double angle, double acY=0.5) {
-        setTexture(*tex);
-        setPosition(pos);
-        speedX = cos(angle)*velocity;
-        speedY = sin(angle)*velocity;
-        accY=acY;
-        setRotation(atan2(speedY, speedX)*180.0/M_PI);
-    }
-    void update() {
-        move(speedX, speedY);
-        speedY+=accY;
-        setRotation(atan2(speedY, speedX)*180.0/M_PI);
-    }
-private:
-    double speedX;
-    double speedY;
-    double accX;
-    double accY;
-};
+    };
+
+    class MovingEntity: public AnimatedSprite {
+    public:
+        void loadAnimations(std::vector <Animation*> a) {
+            animations = a;
+            sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height);
+        }
+        double speedX = 0.01, speedY = 0;
+        void changeAnimation(animationType t)           {setAnimation(animations[t]); current = t;}
+        void addAnimation(Animation* a)                 {animations.push_back(a);}
+        void updatePrev() {
+            pos.top = sprite.getGlobalBounds().top;
+            pos.bottom = sprite.getGlobalBounds().top+sprite.getGlobalBounds().height;
+            pos.left = sprite.getGlobalBounds().left;
+            pos.right = sprite.getGlobalBounds().left+sprite.getGlobalBounds().width;
+            prevX = sprite.getPosition().x;
+            prevY = sprite.getPosition().y;
+            prevSpeedX = speedX;
+            prevSpeedY = speedY;
+
+        }
+        void flipSprite() {
+            sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(speedX), sprite.getScale().y);
+        }
+        void jump() {
+            speedY=-13;
+            isStanding = false;
+            isJumping = true;
+            changeAnimation(JUMP);
+        }
+        void updateEntity() {
+            speedY+=0.5;
+            sprite.move(0, speedY);
+            //flip
+            if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX) && Utils::sgn(speedX)!=0)
+                flipSprite();
+
+            if (isJumping && speedY>0) {
+                isJumping = false;
+                changeAnimation(FALL);
+            }
+            speedX*=0.9;
+
+
+        }
+        void updateAnimations() {
+            if (abs(speedX)<0.1 && isStanding && current!=STAND) {
+                changeAnimation(STAND);
+            }
+            if (abs(speedX)>0.1 && isStanding && current!=RUN) {
+                changeAnimation(RUN);
+            }
+        }
+        double prevX, prevY;
+        double prevSpeedX, prevSpeedY;
+        positions pos;
+        bool isStanding = 0;
+        bool isJumping = 0;
+        animationType current = STAND;
+    private:
+        std::vector <Animation*> animations;
+
+    };
+
+    class Bullet: public sf::Sprite {
+    public:
+        Bullet(sf::Texture* tex, sf::Vector2f pos, double velocity, double angle, double acY=0.5) {
+            setTexture(*tex);
+            setPosition(pos);
+            speedX = cos(angle)*velocity;
+            speedY = sin(angle)*velocity;
+            accY=acY;
+            setRotation(atan2(speedY, speedX)*180.0/M_PI);
+        }
+        void update() {
+            move(speedX, speedY);
+            speedY+=accY;
+            setRotation(atan2(speedY, speedX)*180.0/M_PI);
+        }
+    private:
+        double speedX;
+        double speedY;
+        double accX;
+        double accY;
+    };
 
 
     virtual void onSceneLoadToMemory() {
