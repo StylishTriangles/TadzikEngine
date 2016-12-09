@@ -44,8 +44,8 @@ struct StepPose{
 
 struct DanceStep{
     DanceStep(){}
-    DanceStep(AnimatedSprite* sprite, const std::initializer_list<int>& tempoList, const std::initializer_list<int>& keyList)
-    :animation(sprite)
+    DanceStep(Animation* anim, const std::initializer_list<int>& tempoList, const std::initializer_list<int>& keyList)
+    :animation(anim)
     {
         std::vector<int> vTempo, vKey;
         for(int tmp: tempoList)vTempo.push_back(tmp);
@@ -55,7 +55,7 @@ struct DanceStep{
             vecPoses.push_back(StepPose(vTempo[i], vKey[i]));
         }
     }
-    AnimatedSprite* animation;
+    Animation* animation;
     std::vector<StepPose> vecPoses;
 };
 
@@ -66,7 +66,6 @@ public:
     {}
 
     virtual void onSceneLoadToMemory(){
-        srand(time(NULL));
         texArrowLeft.loadFromFile("files/textures/isaydisco/arrow_left.png");
         texArrowUp.loadFromFile("files/textures/isaydisco/arrow_up.png");
         texArrowRight.loadFromFile("files/textures/isaydisco/arrow_right.png");
@@ -87,20 +86,29 @@ public:
         circlePointer.setFillColor(sf::Color::Red);
 
         vecSteps.resize(2);
-        vecSteps[0] = DanceStep(nullptr, {3, 6}, {1, 2});
-        vecSteps[1] = DanceStep(nullptr, {1, 2, 5, 8}, {3, 2, 4, 4});
-        //actStep = &vecSteps[0];
-        setDanceStep(&vecSteps[0]);
+        vecSteps[0] = DanceStep(&animDance1, {3, 6}, {1, 2});
+        vecSteps[1] = DanceStep(&animDance1, {1, 2, 5, 8}, {3, 2, 4, 4});
 
         vecTracks.resize(2);
         vecTracks[0] = Track("Da_Funk", "Daft Punk", 112);
         vecTracks[1] = Track("nieeee", "Gall Anonim", 42);
 
-        loadNewTrack();
+        vecTextures.resize(17);
+        for(int i = 0; i < vecTextures.size(); i++){
+            vecTextures[i].loadFromFile("files/textures/isaydisco/"+Utils::stringify(i)+".png");
+            animDance1.addFrame(AnimationFrame(&vecTextures[i], 200));
+        }
     }
 
     virtual void onSceneActivate(){
         window->setTitle("Tadzik ~ISAydIScOyouSAYparTyDisOdisCOPaRtYparTy");
+
+        actSprite.setAnimation(&animDance1);
+        actSprite.sprite.setScale(4.f, 4.f);
+        actSprite.sprite.setPosition(window->getSize().x/2-actSprite.sprite.getGlobalBounds().width/2, window->getSize().y/2);
+
+        setDanceStep(&vecSteps[0]);
+        loadNewTrack();
     }
 
     void deliverEvent(sf::Event& event){
@@ -118,6 +126,7 @@ public:
 
     virtual void draw(double deltaTime){
         tmpTime += deltaTime;
+        actSprite.update(deltaTime);
         double percent = (tmpTime/1000.0)/(60.0/bpm);
         if(tmpTime/1000.0 > 60.0/bpm){
             tmpTime=0.0;
@@ -159,10 +168,12 @@ public:
             window->draw(txt.text);
         }
         window->draw(circlePointer);
+        window->draw(actSprite.sprite);
     }
 
     void setDanceStep(DanceStep* d){
         actStep = d;
+        actSprite.setAnimation(d->animation);
         vecArrows.clear();
         for(auto pose : actStep->vecPoses){
             sf::Sprite spTmp(texArrowLeft);
@@ -243,9 +254,13 @@ protected:
     std::vector<sf::Sprite> vecArrows;
     std::vector<TextCraft> vecText;
     std::vector<Track> vecTracks;
+    std::vector<sf::Texture> vecTextures;
     Track* actTrack;
 
     sf::Music actMusic;
+
+    Animation animDance1;
+    AnimatedSprite actSprite;
 
 };
 
