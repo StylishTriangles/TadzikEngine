@@ -78,7 +78,7 @@ public:
     void buyAmountChanged (int amount) {
         costShown=0;
         double tmpCost = cost;
-        for (int i=0; i<amount; i++) {
+        for (unsigned int i=0; i<amount; i++) {
             costShown += tmpCost;
             tmpCost*=multiplier;
         }
@@ -183,7 +183,7 @@ public:
         vec.push_back(Mines);
         vec.push_back(Factory);
 
-        for (int i=0; i<vec.size(); i++) {
+        for (unsigned int i=0; i<vec.size(); i++) {
             vec[i].background.setScale(((double)window->getSize().x*2/3)/(double)(vec[i].background.getTextureRect().width) *0.99, 1);
             vec[i].setPosition(window->getSize().x/3,
                                window->getSize().y/8*(i+2)-vec[i].background.getTextureRect().height/2);
@@ -232,7 +232,7 @@ public:
             }
         }
         if (event.type == sf::Event::MouseButtonReleased) {
-            for(int i=0; i<vec.size(); i++) {
+            for(unsigned int i=0; i<vec.size(); i++) {
                 wienerPerSecond += vec[i].getIncome(1);
                 vec[i].incomePerSecond.setString(Utils::stringify(vec[i].getIncome(1))+" Wieners");
             }
@@ -254,7 +254,7 @@ public:
     }
 
     virtual void draw(double deltaTime) {
-        for (int i=0; i<clickAnimation.size(); i++) {
+        for (unsigned int i=0; i<clickAnimation.size(); i++) {
             clickAnimation[i].move(0, -1);
             clickAnimation[i].setColor(sf::Color( 255, 255, 255, clickAnimation[i].getColor().a-5));
             if(clickAnimation[i].getColor().a==0) clickAnimation.erase(clickAnimation.begin()+i);
@@ -297,7 +297,7 @@ public:
             window->draw(a);
         }
 
-        for(int i=0; i<vec.size(); i++) {
+        for(unsigned int i=0; i<vec.size(); i++) {
             vec[i].draw(window);
             vec[i].buyAmountChanged(mWindow.amount); //bez tego sie nie zmienia i chuj wie dlaczego
             if (vec[i].costShown< wienerAmount) vec[i].buyButton.setColor(sf::Color::White);

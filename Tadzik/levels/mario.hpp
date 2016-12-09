@@ -19,7 +19,6 @@ class MARIO;
 
 class MARIO: public Scene{
 public:
-    friend class Tile;
     MARIO(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
@@ -149,109 +148,151 @@ public:
 
     class MovingEntity: public AnimatedSprite {
     public:
-        void loadAnimations(std::vector <Animation*> a) {
-            animations = a;
-            sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height);
-        }
-        double speedX = 0.01, speedY = 0;
-        void changeAnimation(animationType t)           {setAnimation(animations[t]); current = t;}
-        void addAnimation(Animation* a)                 {animations.push_back(a);}
         void updatePrev() {
             pos.top = sprite.getGlobalBounds().top;
             pos.bottom = sprite.getGlobalBounds().top+sprite.getGlobalBounds().height;
             pos.left = sprite.getGlobalBounds().left;
             pos.right = sprite.getGlobalBounds().left+sprite.getGlobalBounds().width;
-            prevX = sprite.getPosition().x;
-            prevY = sprite.getPosition().y;
-            prevSpeedX = speedX;
-            prevSpeedY = speedY;
+            prevPosition = sprite.getPosition();
+            prevVelocity = velocity;
 
         }
         void flipSprite() {
-            sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(speedX), sprite.getScale().y);
+            sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(velocity.x), sprite.getScale().y);
+        }
+        virtual void updateEntity() {
+            velocity.y+=0.5;
+            sprite.move(0, velocity.y);
+            //flip
+            if (Utils::sgn(velocity.x)!=Utils::sgn(prevVelocity.x) && Utils::sgn(velocity.x)!=0)
+                flipSprite();
+            velocity.x*=0.9;
+        }
+        virtual void updateAnimations() {
+
+        }
+        virtual void onHit() {
+
+        }
+        virtual void onCollision() {
+
+        }
+        positions pos;
+        animationType current = STAND;
+        sf::Vector2f velocity = sf::Vector2f(0.01, 0);
+        sf::Vector2f prevVelocity;
+        sf::Vector2f prevPosition;
+        bool isStanding = 0;
+        bool isJumping = 0;
+        bool shouldDestroy = false;
+    };
+
+    class Enemy: public MovingEntity {
+    public:
+
+    };
+
+    class Snek: public Enemy {
+    public:
+        void onHit() {
+            shouldDestroy = true;
+        }
+    };
+
+    class Armadillo: public Enemy {
+    public:
+        void onHit() {
+            level--;
+            if (level == 0) {
+                setAnimation(animHide);
+            }
+            if (level < 0) {
+                shouldDestroy = true;
+            }
+        }
+        int level = 1;
+        Animation* animWalk;
+        Animation* animHide;
+    };
+
+    class Player: public MovingEntity {
+    public:
+        Player() {
+
         }
         void jump() {
-            speedY=-13;
+            velocity.y=-13;
             isStanding = false;
             isJumping = true;
             changeAnimation(JUMP);
         }
-        void updateEntity() {
-            speedY+=0.5;
-            sprite.move(0, speedY);
-            //flip
-            if (Utils::sgn(speedX)!=Utils::sgn(prevSpeedX) && Utils::sgn(speedX)!=0)
-                flipSprite();
-
-            if (isJumping && speedY>0) {
-                isJumping = false;
-                changeAnimation(FALL);
-            }
-            speedX*=0.9;
-
-
-        }
         void updateAnimations() {
-            if (abs(speedX)<0.1 && isStanding && current!=STAND) {
+            if (abs(velocity.x)<0.1 && isStanding && current!=STAND) {
                 changeAnimation(STAND);
             }
-            if (abs(speedX)>0.1 && isStanding && current!=RUN) {
+            if (abs(velocity.x)>0.1 && isStanding && current!=RUN) {
                 changeAnimation(RUN);
             }
         }
-        double prevX, prevY;
-        double prevSpeedX, prevSpeedY;
-        positions pos;
-        bool isStanding = 0;
-        bool isJumping = 0;
-        animationType current = STAND;
+        void updateEntity() {
+            velocity.y+=0.5;
+            sprite.move(0, velocity.y);
+            //flip
+            if (Utils::sgn(velocity.x)!=Utils::sgn(prevVelocity.x) && Utils::sgn(velocity.x)!=0)
+                flipSprite();
+
+            if (isJumping && velocity.y>0) {
+                isJumping = false;
+                changeAnimation(FALL);
+            }
+            velocity.x*=0.9;
+            if (sprite.getGlobalBounds().left<0) {
+                setPosition(sprite.getGlobalBounds().width/2, sprite.getPosition().y);
+            }
+        }
+        void loadAnimations(std::vector <Animation*> a) {
+            animations = a;
+            sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height);
+        }
+        void changeAnimation(animationType t)           {setAnimation(animations[t]); current = t;}
+        void addAnimation(Animation* a)                 {animations.push_back(a);}
+        int powerLevel = 0;
+        bool isDead = false;
+        sf::Clock invincibility;
     private:
         std::vector <Animation*> animations;
-
     };
 
     class Bullet: public sf::Sprite {
     public:
-        Bullet(sf::Texture* tex, sf::Vector2f pos, double velocity, double angle, double acY=0.5) {
+        Bullet(sf::Texture* tex, sf::Vector2f pos, double v, double angle, double acY=0.5) {
             setTexture(*tex);
             setPosition(pos);
-            speedX = cos(angle)*velocity;
-            speedY = sin(angle)*velocity;
-            accY=acY;
-            setRotation(atan2(speedY, speedX)*180.0/M_PI);
+            velocity.x = cos(angle)*v;
+            velocity.y = sin(angle)*v;
+            acceleration.y=acY;
+            setRotation(atan2(velocity.y, velocity.x)*180.0/M_PI);
         }
         void update() {
-            move(speedX, speedY);
-            speedY+=accY;
-            setRotation(atan2(speedY, speedX)*180.0/M_PI);
+            move(velocity);
+            velocity.y+=acceleration.y;
+            setRotation(atan2(velocity.y, velocity.x)*180.0/M_PI);
         }
     private:
-        double speedX;
-        double speedY;
-        double accX;
-        double accY;
+        sf::Vector2f velocity;
+        sf::Vector2f acceleration;
     };
-
 
     virtual void onSceneLoadToMemory() {
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")) {
             std::cout << "cannot load font\n";
         }
-        textScore.setFont(font);
+
         texBackground.loadFromFile("files/textures/mario/background.png");
-        Background1.setTexture(texBackground);
-        Background1.setScale(double(window->getSize().x)/double(Background1.getTextureRect().width),
-                             double(window->getSize().y)/double(Background1.getTextureRect().height));
-        Background2=Background1;
-        Background2.move(window->getSize().x, 0);
+
 
         texFloorTile.loadFromFile("files/textures/mario/floor1.png"), FloorTile.setTexture(texFloorTile);
 
-        circle.setRadius(1000);
-        circle.setOutlineThickness(1000);
-        circle.setFillColor(sf::Color::Transparent);
-        circle.setOrigin(500, 500);
-        circle.setOutlineColor(sf::Color::Black);
 
         texBreakableTile.resize(3);
         texBreakableTile[0].loadFromFile("files/textures/mario/breakable1.png");
@@ -261,7 +302,7 @@ public:
         BreakableTile.changeTexture(0);
 
         texCoin.loadFromFile("files/textures/mario/coin1.png"), coinRotate.addFrame(AnimationFrame(&texCoin, 500));
-        spCoin.setAnimation(&coinRotate);
+        tmpCoin.setAnimation(&coinRotate);
 
         texPowerupTileActive.loadFromFile("files/textures/mario/powerupTileActive.png");
         texPowerupTileInactive.loadFromFile("files/textures/mario/powerupTileInactive.png");
@@ -273,20 +314,13 @@ public:
         texBullet1.loadFromFile("files/textures/mario/bullet1.png");
 
 
-        texEnemy1Run.resize(2);
-        texEnemy1Run[0].loadFromFile("files/textures/mario/enemy1Run2.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[0], 500));
-        texEnemy1Run[1].loadFromFile("files/textures/mario/enemy1Run1.png"), enemy1Run.addFrame(AnimationFrame(&texEnemy1Run[1], 500));
-        texEnemy1Stand.loadFromFile("files/textures/mario/enemy1Stand.png"), enemy1Stand.addFrame(AnimationFrame(&texEnemy1Stand, 500));
-        spEnemy1.addAnimation(&enemy1Stand);
-        spEnemy1.addAnimation(&enemy1Run);
+        texSnekWalk.resize(2);
+        texSnekWalk[0].loadFromFile("files/textures/mario/enemy1Run2.png"), snekWalk.addFrame(AnimationFrame(&texSnekWalk[0], 500));
+        texSnekWalk[1].loadFromFile("files/textures/mario/enemy1Run1.png"), snekWalk.addFrame(AnimationFrame(&texSnekWalk[1], 500));
+        tmpSnek.setAnimation(&snekWalk);
 
-        spEnemy1.setAnimation(&enemy1Run);
-        spEnemy1.sprite.setOrigin(spEnemy1.sprite.getTextureRect().width/2, spEnemy1.sprite.getTextureRect().height);
-        spEnemy1.sprite.setScale(3, 3);
-
-
-        mapa.loadFromFile("files/maps/mario/map1.png");
-        loadMap();
+        tmpSnek.sprite.setOrigin(tmpSnek.sprite.getTextureRect().width/2, tmpSnek.sprite.getTextureRect().height);
+        tmpSnek.sprite.setScale(3, 3);
 
         texPlayerLVL1Run.resize(4);
         texPlayerLVL1Run[0].loadFromFile("files/textures/mario/playerSmallStand.png"), TadzikLVL1Run.addFrame(AnimationFrame(&texPlayerLVL1Run[0], 500));
@@ -322,9 +356,23 @@ public:
         spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
         spTadzik.sprite.setScale(2, 2);
 
+        mapa.loadFromFile("files/maps/mario/map1.png");
+        loadMap();
     }
 
     virtual void onSceneActivate() {
+        textScore.setFont(font);
+        Background1.setTexture(texBackground);
+        Background1.setScale(double(window->getSize().x)/double(Background1.getTextureRect().width),
+                             double(window->getSize().y)/double(Background1.getTextureRect().height));
+        Background2=Background1;
+        Background2.move(window->getSize().x, 0);
+        circle.setRadius(1000);
+        circle.setOutlineThickness(1000);
+        circle.setFillColor(sf::Color::Transparent);
+        circle.setOrigin(500, 500);
+        circle.setOutlineColor(sf::Color::Black);
+
     }
 
     void deliverEvent(sf::Event& event){
@@ -346,11 +394,11 @@ public:
                                ((double)window->getSize().y/(double)tilesPerY)/BreakableTile.getTextureRect().height);
         PowerupTile.setScale(((double)window->getSize().y/(double)tilesPerY)/PowerupTile.getTextureRect().width,
                              ((double)window->getSize().y/(double)tilesPerY)/PowerupTile.getTextureRect().height);
-        spCoin.sprite.setScale(((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getTextureRect().width,
-                               ((double)window->getSize().y/(double)tilesPerY)/spCoin.sprite.getTextureRect().height);
+        tmpCoin.sprite.setScale(((double)window->getSize().y/(double)tilesPerY)/tmpCoin.sprite.getTextureRect().width,
+                                ((double)window->getSize().y/(double)tilesPerY)/tmpCoin.sprite.getTextureRect().height);
         int TileSize = FloorTile.getGlobalBounds().width;
-        for (int i=0; i<mapa.getSize().x; i++) {
-            for (int j=0; j<mapa.getSize().y; j++) {
+        for (unsigned int i=0; i<mapa.getSize().x; i++) {
+            for (unsigned int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
                     floor.push_back(FloorTile);
@@ -372,16 +420,16 @@ public:
                     powerupBlocks.push_back(PowerupTile);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(255, 255, 0)) {
-                    spCoin.setPosition(i*TileSize, j*TileSize);
-                    coins.push_back(spCoin);
+                    tmpCoin.setPosition(i*TileSize, j*TileSize);
+                    vecCoins.push_back(tmpCoin);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(255, 0, 0)) {
-                    spEnemy1.setPosition(i*TileSize, j*TileSize);
-                    enemies1.push_back(spEnemy1);
+                    tmpSnek.setPosition(i*TileSize, j*TileSize);
+                    vecSnekes.push_back(tmpSnek);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 255, 255)) {
                     spritePowerup.setPosition(i*TileSize, j*TileSize);
-                    powerups.push_back(spritePowerup);
+                    vecPowerups.push_back(spritePowerup);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 0, 255)) {
                     spTadzik.setPosition(i*TileSize, j*TileSize);
@@ -391,18 +439,18 @@ public:
     }
 
     void gameOver() {
-        isDead = false;
+        spTadzik.isDead = false;
         sf::Text t;
         t.setString("YOU SUCK");
         t.setPosition(100, 100);
         window->draw(t);
         floor.clear();
-        enemies1.clear();
+        vecSnekes.clear();
         breakable.clear();
         hitboxlessBack.clear();
         hitboxlessFront.clear();
         powerupBlocks.clear();
-        coins.clear();
+        vecCoins.clear();
         loadMap();
         circle.setRadius(1000);
     }
@@ -417,7 +465,7 @@ public:
         bool check = false;
         if (isActive(s, 2) && Collision::BoundingBoxTest(entity.sprite, s)) {
             if (s.getGlobalBounds().top+s.getGlobalBounds().height<entity.pos.top) {
-                entity.speedY = 0;
+                entity.velocity.y = 0;
                 entity.sprite.setPosition(entity.sprite.getPosition().x,
                                           s.getGlobalBounds().top+s.getGlobalBounds().height+entity.sprite.getGlobalBounds().height);
                 //entity.pos.top = entity.sprite.getGlobalBounds().top;
@@ -427,15 +475,15 @@ public:
             if (s.getGlobalBounds().top>=entity.pos.bottom) {
                 entity.isStanding = true;
                 entity.sprite.setPosition(entity.sprite.getPosition().x, s.getGlobalBounds().top);
-                entity.speedY = 0;
+                entity.velocity.y = 0;
             }
             else if (s.getGlobalBounds().left>entity.pos.right-1) {
-                entity.sprite.setPosition(entity.prevX, entity.sprite.getPosition().y);
-                entity.speedX = 0;
+                entity.sprite.setPosition(entity.prevPosition.x, entity.sprite.getPosition().y);
+                entity.velocity.x = 0;
             }
             else if (s.getGlobalBounds().left+s.getGlobalBounds().width<entity.pos.left+1) {
-                entity.sprite.setPosition(entity.prevX, entity.sprite.getPosition().y);
-                entity.speedX = 0;
+                entity.sprite.setPosition(entity.prevPosition.x, entity.sprite.getPosition().y);
+                entity.velocity.x = 0;
             }
         }
         return check;
@@ -444,12 +492,12 @@ public:
     virtual void draw(double deltaTime) {
         //przepisywanie z poprzedniej klatki
         spTadzik.updatePrev();
-        if (!isDead) spTadzik.update(abs(spTadzik.speedX)*deltaTime);
+        if (!spTadzik.isDead) spTadzik.update(abs(spTadzik.velocity.x)*deltaTime);
 
-        for (int i=0; i<enemies1.size(); i++) {
-            if (isActive(enemies1[i].sprite, 1.1)) {
-                enemies1[i].updatePrev();
-                enemies1[i].update(abs(enemies1[i].speedX)*deltaTime);
+        for (unsigned int i=0; i<vecSnekes.size(); i++) {
+            if (isActive(vecSnekes[i].sprite, 1.1)) {
+                vecSnekes[i].updatePrev();
+                vecSnekes[i].update(abs(vecSnekes[i].velocity.x)*deltaTime);
             }
         }
 
@@ -460,7 +508,7 @@ public:
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && speedX<maxSpeed) {
             speedX+=1;
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && spTadzik.isStanding && !isDead) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && spTadzik.isStanding && !spTadzik.isDead) {
             spTadzik.jump();
         }
 
@@ -497,14 +545,14 @@ public:
             for (int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
             for (int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
             for (int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
-            for (int i=0; i<coins.size(); i++)              { coins[i].sprite.move(-speedX, 0);}
+            for (int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
             for (int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<powerups.size(); i++)           { powerups[i].sprite.move(-speedX, 0);}
+            for (int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
             for (int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
-            for (int i=0; i<enemies1.size(); i++)           { enemies1[i].move(-speedX, 0), enemies1[i].updatePrev();}
+            for (int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
             spTadzik.pos.left-=speedX;
             spTadzik.pos.right-=speedX;
-            spTadzik.prevX-=speedX;
+            spTadzik.prevPosition.x-=speedX;
             Background1.move(-speedX*parallax, 0);
             Background2.move(-speedX*parallax, 0);
         }
@@ -512,10 +560,10 @@ public:
             spTadzik.move(speedX, 0);
         }
         spTadzik.updateEntity();
-        for (int i=0; i<enemies1.size(); i++) {
-            if (isActive(enemies1[i].sprite, 1.1)) {
-                enemies1[i].move(enemies1[i].speedX, 0);
-                enemies1[i].updateEntity();
+        for (unsigned int i=0; i<vecSnekes.size(); i++) {
+            if (isActive(vecSnekes[i].sprite, 1.1)) {
+                vecSnekes[i].move(vecSnekes[i].velocity.x, 0);
+                vecSnekes[i].updateEntity();
             }
         }
 
@@ -539,7 +587,7 @@ public:
                 else if (abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
                     closestQuestionBlock = i;
             }
-        if (powerLevel == 0) closestBreakable = -1;
+        if (spTadzik.powerLevel == 0) closestBreakable = -1;
         }
 
         if (closestBreakable != -1 && closestQuestionBlock != -1) {
@@ -551,11 +599,11 @@ public:
             }
         }
         if (powerupBlocks.size()>0 && closestQuestionBlock!=-1) {
-            if (powerupBlocks[closestQuestionBlock].hit(powerLevel) && powerLevel==0) {
+            if (powerupBlocks[closestQuestionBlock].hit(spTadzik.powerLevel) && spTadzik.powerLevel==0) {
                 spritePowerup.setAnimation(&powerupAnim);
                 spritePowerup.sprite.setPosition(powerupBlocks[closestQuestionBlock].getPosition().x,
                                              powerupBlocks[closestQuestionBlock].getPosition().y-30);
-                powerups.push_back(spritePowerup);
+                vecPowerups.push_back(spritePowerup);
             }
         }
         if (closestBreakable!=-1)
@@ -563,45 +611,45 @@ public:
                 breakable.erase(breakable.begin()+closestBreakable);
 
 
-        for (int i=0; i<enemies1.size(); i++) {
-            if (isActive(enemies1[i].sprite, 1.2))
+        for (unsigned int i=0; i<vecSnekes.size(); i++) {
+            if (isActive(vecSnekes[i].sprite, 1.2))
             {
                 for (auto a:floor)
-                    manageCollision(enemies1[i], a);
+                    manageCollision(vecSnekes[i], a);
                 for (auto a:breakable)
-                    manageCollision(enemies1[i], a);
+                    manageCollision(vecSnekes[i], a);
                 for (auto a:powerupBlocks)
-                    manageCollision(enemies1[i], a);
+                    manageCollision(vecSnekes[i], a);
             }
         }
 
         //enemies AI
-        for (int i=enemies1.size()-1; i>=0; i--) {
-            if (enemies1[i].speedX==0) {
-                enemies1[i].sprite.setScale(-enemies1[i].sprite.getScale().x, enemies1[i].sprite.getScale().y);
+        for (int i=vecSnekes.size()-1; i>=0; i--) {
+            if (vecSnekes[i].velocity.x==0) {
+                vecSnekes[i].sprite.setScale(-vecSnekes[i].sprite.getScale().x, vecSnekes[i].sprite.getScale().y);
             }
-            enemies1[i].speedX=1*Utils::sgn(enemies1[i].sprite.getScale().x);
-            if (enemies1[i].sprite.getGlobalBounds().top > window->getSize().y+10) {
-                enemies1.erase(enemies1.begin()+i);
+            vecSnekes[i].velocity.x=1*Utils::sgn(vecSnekes[i].sprite.getScale().x);
+            if (vecSnekes[i].sprite.getGlobalBounds().top > window->getSize().y+10) {
+                vecSnekes.erase(vecSnekes.begin()+i);
             }
-            if (Utils::randInt(0, 100)<1) bullets.push_back(Bullet(&texBullet1, enemies1[i].sprite.getPosition(), 25, Utils::randFloat(0, 2*3.1415)));
+            if (Utils::randInt(0, 100)<1) bullets.push_back(Bullet(&texBullet1, vecSnekes[i].sprite.getPosition(), 25, Utils::randFloat(0, 2*3.1415)));
         }
 
         //ogarnianie monet i powerupow
-        if (coins.size()>0)
-            for (int i=coins.size()-1; i>=0; --i)
-                if (Collision::PixelPerfectTest(coins[i].sprite, spTadzik.sprite)) {
+        if (vecCoins.size()>0)
+            for (int i=vecCoins.size()-1; i>=0; --i)
+                if (Collision::PixelPerfectTest(vecCoins[i].sprite, spTadzik.sprite)) {
                     score++;
-                    coins.erase(coins.begin()+i);
+                    vecCoins.erase(vecCoins.begin()+i);
                 }
-        if (powerups.size()>0)
-            for (int i=powerups.size()-1; i>=0; --i)
-                if (Collision::PixelPerfectTest(powerups[i].sprite, spTadzik.sprite)) {
-                    powerLevel=1;
+        if (vecPowerups.size()>0)
+            for (int i=vecPowerups.size()-1; i>=0; --i)
+                if (Collision::PixelPerfectTest(vecPowerups[i].sprite, spTadzik.sprite)) {
+                    spTadzik.powerLevel=1;
                     spTadzik.loadAnimations(animTadzikLVL2);
                     spTadzik.changeAnimation(spTadzik.current);
                     spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
-                    powerups.erase(powerups.begin()+i);
+                    vecPowerups.erase(vecPowerups.begin()+i);
                 }
 
         //gameover
@@ -609,27 +657,28 @@ public:
             floor.clear();
             gameOver();
         }
-        for (int i=enemies1.size()-1; i>=0; i--)
-            if (isActive(enemies1[i].sprite))
-                if (Collision::BoundingBoxTest(spTadzik.sprite, enemies1[i].sprite)) {
-                    if (enemies1[i].sprite.getGlobalBounds().top >= spTadzik.pos.bottom) {
+        for (int i=vecSnekes.size()-1; i>=0; i--)
+            if (isActive(vecSnekes[i].sprite))
+                if (Collision::BoundingBoxTest(spTadzik.sprite, vecSnekes[i].sprite)) {
+                    if (vecSnekes[i].sprite.getGlobalBounds().top >= spTadzik.pos.bottom) {
                         spTadzik.jump();
-                        effects.push_back(Effect(enemies1[i], Utils::randFloat(-5, 5), -5.0, 0.0, 0.5));
-                        enemies1.erase(enemies1.begin()+i);
+                        effects.push_back(Effect(vecSnekes[i], Utils::randFloat(-5, 5), -5.0, 0.0, 0.5));
+                        vecSnekes[i].onHit();
+                        if (vecSnekes[i].shouldDestroy) vecSnekes.erase(vecSnekes.begin()+i);
                     }
                     else {
-                        if (Collision::PixelPerfectTest(spTadzik.sprite, enemies1[i].sprite) && invincibility.getElapsedTime().asMilliseconds()>500) {
-                            if (powerLevel==0) {
-                                isDead = 1;
+                        if (Collision::PixelPerfectTest(spTadzik.sprite, vecSnekes[i].sprite) && spTadzik.invincibility.getElapsedTime().asMilliseconds()>500) {
+                            if (spTadzik.powerLevel==0) {
+                                spTadzik.isDead = 1;
                             }
                             else {
-                                powerLevel--;
+                                spTadzik.powerLevel--;
                                 speedX = -3*speedX;
                                 speedY = - abs(speedY);
                                 spTadzik.loadAnimations(animTadzikLVL1);
                                 spTadzik.changeAnimation(spTadzik.current);
                                 spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
-                                invincibility.restart();
+                                spTadzik.invincibility.restart();
                             }
                         }
                     }
@@ -642,17 +691,14 @@ public:
         if (Background2.getGlobalBounds().left > window->getSize().x) Background2.move(-2*(int)window->getSize().x, 0);
 
         textScore.setString(Utils::stringify(score));
-        if (isDead) {
-            spTadzik.setPosition(spTadzik.prevX, spTadzik.prevY);
+        if (spTadzik.isDead) {
+            spTadzik.setPosition(spTadzik.prevPosition);
             circle.setOrigin(circle.getRadius(), circle.getRadius()+20);
             circle.setPosition(spTadzik.sprite.getPosition());
             if (circle.getRadius()>50) circle.setRadius(circle.getRadius()-10);
             else {
                 gameOver();
             }
-        }
-        if (spTadzik.sprite.getGlobalBounds().left<0) {
-            spTadzik.setPosition(spTadzik.sprite.getGlobalBounds().width/2, spTadzik.sprite.getPosition().y);
         }
         spTadzik.updateAnimations();
 
@@ -665,15 +711,15 @@ public:
         }
         for (auto a:floor) { window->draw(a);}
         for (auto a:breakable) { if (isActive(a)) window->draw(a);}
-        for (auto a:coins) { window->draw(a.sprite);}
+        for (auto a:vecCoins) { window->draw(a.sprite);}
         for (auto a:bullets) { window->draw(a);}
-        for (auto a:powerups) { window->draw(a.sprite);}
-        for (auto a:enemies1) { window->draw(a.sprite);}
+        for (auto a:vecPowerups) { window->draw(a.sprite);}
+        for (auto a:vecSnekes) { window->draw(a.sprite);}
         for (auto a:effects) { window->draw(a.sprite);}
         for (auto a:powerupBlocks) { window->draw(a);}
         window->draw(spTadzik.sprite);
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
-        if (isDead) window->draw(circle);
+        if (spTadzik.isDead) window->draw(circle);
         window->draw(textScore);
 
     }
@@ -687,8 +733,7 @@ protected:
     sf::Texture texBullet1;
     sf::Texture texPowerup;
 
-    std::vector <sf::Texture> texEnemy1Run;
-    sf::Texture texEnemy1Stand;
+    std::vector <sf::Texture> texSnekWalk;
 
     std::vector <sf::Texture> texBreakableTile;
 
@@ -705,12 +750,15 @@ protected:
 
     sf::Image mapa;
 
-    MovingEntity spTadzik, spEnemy1;
-    AnimatedSprite spCoin;
+    Player spTadzik;
+    Snek tmpSnek;
+    Armadillo tmpArmadillo;
+    AnimatedSprite tmpCoin;
     Animation TadzikLVL2Run, TadzikLVL2Stand, TadzikLVL2Jump, TadzikLVL2Fall;
     Animation TadzikLVL1Run, TadzikLVL1Stand, TadzikLVL1Jump, TadzikLVL1Fall;
-    Animation enemy1Stand, enemy1Run;
+    Animation snekWalk;
     Animation coinRotate, powerupAnim;
+    Animation armadilloWalk, armadilloHide;
 
     sf::Sprite Background1;
     sf::Sprite Background2;
@@ -722,9 +770,10 @@ protected:
     std::vector <sf::Sprite> hitboxlessFront;
     std::vector <sf::Sprite> hitboxlessBack;
     std::vector <QuestionTile> powerupBlocks;
-    std::vector <MovingEntity> powerups;
-    std::vector <AnimatedSprite> coins;
-    std::vector <MovingEntity> enemies1;
+    std::vector <MovingEntity> vecPowerups;
+    std::vector <AnimatedSprite> vecCoins;
+    std::vector <Snek> vecSnekes;
+    std::vector <Armadillo> vecArmadillo;
 
     std::vector <Animation*> animTadzikLVL1;
     std::vector <Animation*> animTadzikLVL2;
@@ -737,8 +786,8 @@ protected:
 
     std::vector <Bullet> bullets;
 
-    double& speedX = spTadzik.speedX;
-    double& speedY = spTadzik.speedY;
+    float& speedX = spTadzik.velocity.x;
+    float& speedY = spTadzik.velocity.x;
     double maxSpeed = 10;
     double gravity = 0.5;
     double standingHeight = 0;
@@ -750,13 +799,10 @@ protected:
     int closestBreakable = -1;
     int closestQuestionBlock = -1;
     int score = 0;
-    int powerLevel = 0;
 
-    bool isDead = 0;
 
     sf::Text textScore;
     sf::Font font;
-    sf::Clock invincibility;
 
     sf::CircleShape circle;
 };

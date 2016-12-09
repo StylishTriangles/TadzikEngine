@@ -247,8 +247,8 @@ public:
             MIN.y = sp.y+sd.y*T2;
         }
 
-        for (int i=0; i<vecWalls.size(); i++) {
-            for (int j=0; j<vecWalls[i].points.size(); j++) {
+        for (unsigned int i=0; i<vecWalls.size(); i++) {
+            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
                 sp = vecWalls[i].points[j];
                 v2 = vecWalls[i].points[(j+1)%vecWalls[i].points.size()];
                 sd ={v2.x-sp.x, v2.y-sp.y};
@@ -304,8 +304,8 @@ public:
     void loadMap() {
         bool t[mapa.getSize().x][mapa.getSize().y];
         sf::Color objectColor = sf::Color(255, 255, 255);
-        for (int i=0; i<mapa.getSize().x; i++) {
-            for (int j=0; j<mapa.getSize().y; j++) {
+        for (unsigned int i=0; i<mapa.getSize().x; i++) {
+            for (unsigned int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==objectColor && t[i][j]==0) {
                     Object tmpWall;
                     sf::Vector2i pocz = {i, j};
@@ -382,7 +382,7 @@ public:
     }
 
     void handleCollision(MovingEntity& s1, std::vector <sf::Sprite>& walls) {
-        for (int i=0; i<walls.size(); ++i) {
+        for (unsigned int i=0; i<walls.size(); ++i) {
             sf::FloatRect intersection;
             if (Collision::PixelPerfectTest(walls[i], s1) && s1.getGlobalBounds().intersects(walls[i].getGlobalBounds(), intersection)) {
                 sf::Vector2f direction = walls[i].getPosition() - s1.getPosition();
@@ -493,28 +493,28 @@ public:
             c.setPosition(spTadzik.ls.points[i].point);
             rDebug.draw(c);
         }
-        for (int i=0; i<vecLights.size(); i++)
+        for (unsigned int i=0; i<vecLights.size(); i++)
             rTexture.draw(vecLights[i].shadow, sf::BlendAdd);
         rTexture.draw(spTadzik.ls.shadow, sf::BlendAdd);
         rTexture.display();
         window->draw(sf::Sprite(rTexture.getTexture()));
-        sf::Vector2f enemy = sf::Vector2f(Utils::randInt(10, 1270), Utils::randInt(10, 710));
-        //if (sf::Sprite(rTexture.getTexture()))
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
                 drawLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]);
             }
         }
-        for (int i=vecBullets.size()-1; i>=0; i--) {
-            vecBullets[i].update();
-            window->draw(vecBullets[i]);
-            for (unsigned int j=0; j<vecSprites.size(); j++) {
-                if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j]))
-                    if (vecBullets.size()!=0) vecBullets.erase(vecBullets.begin()+i);
+        if (vecBullets.size()>0) {
+            for (int i=vecBullets.size()-1; i>=0; i--) {
+                vecBullets[i].update();
+                window->draw(vecBullets[i]);
+                for (unsigned int j=0; j<vecSprites.size(); j++) {
+                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j]))
+                        if (vecBullets.size()!=0) vecBullets.erase(vecBullets.begin()+i);
+                }
             }
         }
         rDebug.display();
-        window->draw(sf::Sprite(rDebug.getTexture()));
+        //window->draw(sf::Sprite(rDebug.getTexture()));
         rDebug.clear(sf::Color(0, 0, 0, 0));
         for (unsigned int i = 0; i<vecLights.size(); i++) window->draw(vecLights[i].sprite);
         window->draw(spTadzik);
