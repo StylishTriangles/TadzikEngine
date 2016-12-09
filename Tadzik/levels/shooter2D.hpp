@@ -43,7 +43,7 @@ public:
         :point(v), angle(a)
         {}
 
-        bool operator<(CrossingPoint& p){
+        bool operator<(const CrossingPoint& p) const {
             return angle < p.angle;
         }
 
