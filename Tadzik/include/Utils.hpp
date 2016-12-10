@@ -4,6 +4,8 @@
 #include <SFML/Graphics.hpp>
 #include <sstream>
 
+const double M_PI = 3.1415926535897;
+
 namespace Utils{
 
 sf::FloatRect getBiggerBoundingBox(sf::Sprite& sp);

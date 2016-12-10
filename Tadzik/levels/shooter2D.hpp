@@ -44,7 +44,7 @@ public:
         {}
 
         bool operator<(const CrossingPoint& p) const {
-            return angle < p.angle;
+            return angle > p.angle;
         }
 
         sf::Vector2f point;
@@ -127,6 +127,7 @@ public:
         double health = 100;
         sf::Clock sinceHit;
         sf::Time invincibilityTime = sf::seconds(1);
+        double maxSpeed = 5;
 
     };
 
@@ -147,12 +148,7 @@ public:
     };
 
     void updateShadow(lightSource& ls) {
-        //if (ls.velocity==sf::Vector2f(0, 0)) return;
         ls.points.clear();
-        ls.points.push_back(getIntersection(ls, sf::Vector2f(0, 0)));
-        ls.points.push_back(getIntersection(ls, sf::Vector2f(window->getSize().x, 0)));
-        ls.points.push_back(getIntersection(ls, sf::Vector2f(window->getSize().x, window->getSize().y)));
-        ls.points.push_back(getIntersection(ls, sf::Vector2f(0, window->getSize().y)));
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++){
                 ls.points.push_back(getIntersection(ls, vecWalls[i].points[j]));
@@ -189,8 +185,8 @@ public:
         double a = atan2(p.y-center.y, p.x-center.x);
         double l = sqrt((p.y-center.y)*(p.y-center.y)+(p.x-center.x)*(p.x-center.x));
         sf::Vector2f r;
-        r.x = p.x+5*d*sin(a);
-        r.y = p.y-5*d*cos(a);
+        r.x = p.x+d*sin(a);
+        r.y = p.y-d*cos(a);
         return r;
     }
 
@@ -199,53 +195,10 @@ public:
         sf::Vector2f sp;
         sf::Vector2f sd;
         sf::Vector2f v2;
-        double T1Min=10;
+        double rMag;
+        double sMag;
+        double T1Min=1000;
         double T1, T2;
-        sf::Vector2f MIN = p2;
-
-        sp = {0, 0};
-        v2 = {window->getSize().x, 0};
-        sd = {v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>=0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {window->getSize().x, 0};
-        v2 = {window->getSize().x, window->getSize().y};
-        sd ={v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>=0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {window->getSize().x, window->getSize().y};
-        v2 = {0, window->getSize().y};
-        sd ={v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>=0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
-
-        sp = {0, window->getSize().y};
-        v2 = {0, 0};
-        sd = {v2.x-sp.x, v2.y-sp.y};
-        T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
-        T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-        if (T1<T1Min && T1>0 && T2>=0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
-            T1Min=T1;
-            MIN.x = sp.x+sd.x*T2;
-            MIN.y = sp.y+sd.y*T2;
-        }
 
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -254,14 +207,15 @@ public:
                 sd ={v2.x-sp.x, v2.y-sp.y};
                 T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
                 T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-                if (T1<T1Min && T1>0 && T2>=0 && T2<1 && atan(rd.y/rd.x)!=atan(sd.y/sd.x)) {
+                rMag = sqrt(rd.x*rd.x+rd.y*rd.y);
+                sMag = sqrt(sd.x*sd.x+sd.y*sd.y);
+                if (T1<T1Min && T1>0 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
                     T1Min=T1;
-                    MIN.x = sp.x+sd.x*T2;
-                    MIN.y = sp.y+sd.y*T2;
                 }
             }
         }
-        return CrossingPoint(MIN, atan2(MIN.y-rp.y, MIN.x-rp.x));
+        sf::Vector2f MIN = sf::Vector2f(rp.x+rd.x*T1Min, rp.y+rd.y*T1Min);
+        return CrossingPoint(MIN, atan2(rd.y, rd.x));
     }
 
     virtual void onSceneLoadToMemory() {
@@ -295,6 +249,14 @@ public:
         rDebug.create(window->getSize().x, window->getSize().y);
 
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
+
+        Object tmpObject;
+        tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, window->getSize().y-tileSize));
+        tmpObject.points.push_back(sf::Vector2f(tileSize, window->getSize().y-tileSize));
+
+        vecWalls.push_back(tmpObject);
     }
 
     virtual void onSceneActivate() {
@@ -433,23 +395,23 @@ public:
 
     virtual void draw(double deltaTime) {
         //input z klawiatury
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
             spTadzik.velocity.x -= acceleration;
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed) {
             spTadzik.velocity.y -= acceleration;
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed) {
             spTadzik.velocity.y += acceleration;
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed) {
             spTadzik.velocity.x += acceleration;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) spTadzik.health-=10;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
             vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1));
         }
-
+        /*
         if (spTadzik.sinceHit.getElapsedTime() > spTadzik.invincibilityTime) {
             for (unsigned i=0; i<vecEnemies.size(); i++) {
                 vecEnemies[i].update();
@@ -460,11 +422,11 @@ public:
                 }
             }
         }
-
-        spHealthBar.setScale(spTadzik.health/100, 1);
+        */
+        //spHealthBar.setScale(spTadzik.health/100, 1);
         if (spTadzik.health<0) gameOver();
 
-        std::cout << spTadzik.health << std::endl;
+        //std::cout << spTadzik.health << std::endl;
         spTadzik.update();
         //spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         handleCollision(spTadzik, vecSprites);
@@ -503,6 +465,7 @@ public:
                 drawLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]);
             }
         }
+        /*
         if (vecBullets.size()>0) {
             for (int i=vecBullets.size()-1; i>=0; i--) {
                 vecBullets[i].update();
@@ -513,11 +476,15 @@ public:
                 }
             }
         }
+        */
         rDebug.display();
-        //window->draw(sf::Sprite(rDebug.getTexture()));
+        window->draw(sf::Sprite(rDebug.getTexture()));
         rDebug.clear(sf::Color(0, 0, 0, 0));
         for (unsigned int i = 0; i<vecLights.size(); i++) window->draw(vecLights[i].sprite);
         window->draw(spTadzik);
+
+        //std::cout << vecWalls[5].points.size();
+        //std::cout << vecLights.size();
     }
 
 protected:
@@ -552,11 +519,8 @@ protected:
     std::vector <Bullet> vecBullets;
 
     std::vector <sf::Sprite> vecSprites;
-    double speedX = 0, speedY = 0;
-    double maxSpeed = 5;
     double acceleration = 2;
     int tileSize = 20;
-    double angle = M_PI/6;
 };
 
 #endif //SHOOTER2D
