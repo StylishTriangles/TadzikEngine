@@ -99,6 +99,19 @@ public:
         sf::Color color;
     };
 
+    class Weapon {
+    public:
+        Weapon(MovingEntity* p): parent(p) {};
+        void shoot() {
+
+        }
+        MovingEntity* parent;
+        double reloadTime = 1;
+        unsigned int magSize = 30;
+        unsigned int maxAmmo = 90;
+        sf::Sprite sprite;
+    };
+
     class Bullet: public sf::Sprite {
     public:
         Bullet() {
@@ -152,7 +165,7 @@ public:
         double angle;
         double speed;
         Bullet playerBullet;
-
+        std::vector <Weapon> weapons;
     };
 
     class Enemy: public MovingEntity {
@@ -170,7 +183,7 @@ public:
         void update() {
             //speed = sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
             //if (speed>maxSpeed) speed = maxSpeed;
-            angle = atan2(target->getPosition().y-getPosition().y, target->getPosition().x-getPosition().x);
+            angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
             //sf::Vector2f m = sf::Vector2f(speed*cos(angle), speed*sin(angle));
@@ -188,15 +201,85 @@ public:
         void trackEntity (MovingEntity* ME) {
             target = ME;
         }
+        void getDestination() {
+
+        }
         double health = 100;
         double maxSpeed = 5;
         double damage = 10;
         double speed = 1;
         double angle;
         MovingEntity* target;
+        sf::Vector2f destination;
         sf::RectangleShape healthBar;
     };
 
+    void getEnemyDestination(Enemy &e) {
+        sf::Vector2f rd = e.target->hitbox.getPosition()-e.getPosition();
+        sf::Vector2f sp;
+        sf::Vector2f sd;
+        sf::Vector2f p2;
+        sf::Vector2f rp = e.getPosition();
+        int furthestObject = -1;
+        double rMag;
+        double sMag;
+        double T1Max=0;
+        double T1, T2;
+
+        for (unsigned int i=0; i<vecWalls.size()-1; i++) {
+            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
+                sp = vecWalls[i].points[j];
+                p2 = vecWalls[i].points[(j+1)%vecWalls[i].points.size()];
+                sd ={p2.x-sp.x, p2.y-sp.y};
+                T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
+                T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
+                rMag = sqrt(rd.x*rd.x+rd.y*rd.y);
+                sMag = sqrt(sd.x*sd.x+sd.y*sd.y);
+                if (T1>T1Max && T1>0 && T1<1 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
+                    T1Max=T1;
+                    furthestObject = i;
+                    //std::cout << i << "     " << T1 << std::endl;
+                }
+            }
+        }
+        std::cout << furthestObject << std::endl;
+        if (furthestObject == -1) {
+            e.destination = e.target->hitbox.getPosition();
+            return;
+        }
+        else {
+            double maxAngle = 0;
+            double minAngle = 20;
+            int pLeft = 0;
+            int pRight = 0;
+            for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
+                double tmpAngle = atan2(vecWalls[furthestObject].points[i].y-e.getPosition().y, vecWalls[furthestObject].points[i].x-e.getPosition().x)+M_PI;
+                if (tmpAngle>maxAngle) {
+                    pLeft = i;
+                    maxAngle = tmpAngle;
+                }
+                if (tmpAngle<minAngle) {
+                    pRight = i;
+                    minAngle = tmpAngle;
+                }
+            }
+            std::cout << pLeft << " " << pRight << std::endl;
+            //if (maxAngle-atan2(e.target->hitbox.getPosition().y-e.getPosition().y, e.target->hitbox.getPosition().x-e.getPosition().x)-M_PI <
+            //    atan2(e.target->hitbox.getPosition().y-e.getPosition().y, e.target->hitbox.getPosition().x-e.getPosition().x)+M_PI-minAngle) {
+            //      e.destination = vecWalls[furthestObject].points[pLeft];
+            //}
+            //else e.destination = vecWalls[furthestObject].points[pRight];
+            if ((e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)+
+                (e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y) <
+                (e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)+
+                (e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y))
+            {
+                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.target->hitbox.getPosition(), 200000);
+            }
+            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.target->hitbox.getPosition(), -200000);
+        }
+
+    }
     void updateShadow(lightSource& ls) {
         ls.points.clear();
         for (unsigned int i=0; i<vecWalls.size(); i++) {
@@ -401,7 +484,7 @@ public:
                 sf::Vector2f offset;
                 // X collision
                 if (abs(direction.x) > abs(direction.y))
-                offset.x = ((direction.x<0)?-1:1)*intersection.width;
+                    offset.x = ((direction.x<0)?-1:1)*intersection.width;
                 // Y collision
                 if (abs(direction.x) < abs(direction.y))
                     offset.y = ((direction.y<0)?-1:1)*intersection.height;
@@ -449,6 +532,12 @@ public:
     }
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
+            getEnemyDestination(vecEnemies[i]);
+            sf::VertexArray a (sf::LinesStrip, 3);
+            a[0]=vecEnemies[i].getPosition();
+            a[1]=vecEnemies[i].destination;
+            a[2]=vecEnemies[i].target->hitbox.getPosition();
+            rDebug.draw(a);
             handleCollision(vecEnemies[i], vecSprites);
             for (int j=vecBullets.size()-1; j>=0; j--) {
                 if (Collision::BoundingBoxTest(vecEnemies[i], vecBullets[j]) && vecBullets[j].friendly) {
@@ -464,7 +553,7 @@ public:
                 handleEntityCollision(vecEnemies[i], vecEnemies[j], 0.02);
             }
         }
-        if (vecEnemies.size()<4) {
+        if (vecEnemies.size()<1) {
             //sf::Image img = sf::Sprite(rTexture.getTexture());
             //do {
             //    tmpEnemy.setPosition(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)));
