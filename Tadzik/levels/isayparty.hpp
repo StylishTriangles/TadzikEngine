@@ -75,22 +75,12 @@ public:
             std::cout << "cannot load font\n";
         }
 
-        double dist = window->getSize().x/(double)(tempo+1.0);
-        for(int i = 0; i < tempo; i++){
-            sf::CircleShape shp(10);
-            shp.setFillColor(sf::Color::Blue);
-            shp.setPosition(dist+i*dist, 50);
-            vCircles.push_back(shp);
-        }
-        circlePointer = sf::CircleShape(10);
-        circlePointer.setFillColor(sf::Color::Red);
-
         vecSteps.resize(2);
         vecSteps[0] = DanceStep(&animDance1, {3, 6}, {1, 2});
         vecSteps[1] = DanceStep(&animDance1, {1, 2, 5, 8}, {3, 2, 4, 4});
 
         vecTracks.resize(2);
-        vecTracks[0] = Track("Da_Funk", "Daft Punk", 112);
+        vecTracks[0] = Track("Da_Funk", "Daft Punk", 512);
         vecTracks[1] = Track("nieeee", "Gall Anonim", 42);
 
         vecTextures.resize(17);
@@ -127,7 +117,6 @@ public:
     virtual void draw(double deltaTime){
         tmpTime += deltaTime;
         actSprite.update(deltaTime);
-        double percent = (tmpTime/1000.0)/(60.0/bpm);
         if(tmpTime/1000.0 > 60.0/bpm){
             tmpTime=0.0;
             //setDanceStep(&vecSteps[rand()%vecSteps.size()]);
@@ -145,29 +134,9 @@ public:
         }
 
         window->clear(sf::Color::Black);
-        for(int i = 0; i < vCircles.size(); i++){
-            bool isStepPose=false;
-            for(int j = 0; j < actStep->vecPoses.size(); j++){
-                if(actStep->vecPoses[j].tempoPosition-1 == i){
-                    isStepPose=true;
-                }
-            }
-            if(isStepPose)
-                vCircles[i].setFillColor(sf::Color::Green);
-            else
-                vCircles[i].setFillColor(sf::Color(128, 128, 128));
-
-            for(int i = 0; i < vecArrows.size(); i++){
-                window->draw(vecArrows[i]);
-            }
-
-            window->draw(vCircles[i]);
-        }
-        circlePointer.setPosition(window->getSize().x*percent, 50);
         for(auto txt: vecText){
             window->draw(txt.text);
         }
-        window->draw(circlePointer);
         window->draw(actSprite.sprite);
     }
 
@@ -192,32 +161,7 @@ public:
     }
 
     void keyPressed(int k){
-        double closest = 1000000000;
-        double dist = window->getSize().x/(double)(tempo+1.0);
-        double percent = (tmpTime/1000.0)/(60.0/bpm);
-        for(auto pose: actStep->vecPoses){
-            if(pose.key == k){
-                closest = std::min(fabs(dist*pose.tempoPosition - window->getSize().x*percent), closest);
-            }
-        }
-        closest = closest / window->getSize().x;
 
-        if(closest <= 0.01){
-            displayText("REKT!!!", 0);
-        }
-        else if(closest <= 0.05){
-            displayText("Fantastic!", 1);
-        }
-        else if(closest <= 0.1){
-            displayText("Not bad", 2);
-        }
-        else if(closest <= 0.3){
-            displayText("Poor af", 3);
-        }
-        else{
-            displayText("Go home, you are drunk!", 4);
-        }
-        //std::cout << closest << "\n";*/
     }
 
     void displayText(std::string str, int type){
@@ -243,9 +187,7 @@ protected:
     int score=0;
     double bpm=20;          //uderzenia na minute
     double tmpTime=0.0;     //w sekundach
-    std::vector<sf::CircleShape> vCircles;
     sf::Font font;
-    sf::CircleShape circlePointer;
 
     std::vector<DanceStep> vecSteps;
     DanceStep* actStep = nullptr;
