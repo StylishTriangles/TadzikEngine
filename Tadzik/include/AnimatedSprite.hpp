@@ -38,6 +38,7 @@ public:
             std::cout << "dafuq? AnimatedSprite::setAnimation()\n";
         }
         sprite.setTexture(*currentAnimation->vecFrames[0].texture, true);
+        countReplays=0;
     }
 
     void update(float delta){
@@ -46,6 +47,8 @@ public:
             actFrame=(actFrame+1)%currentAnimation->vecFrames.size();
             sprite.setTexture(*currentAnimation->vecFrames[actFrame].texture);
             currTime=0;
+            if(actFrame==0)
+                countReplays++;
         }
     }
 
@@ -55,12 +58,26 @@ public:
     Animation* getAnimation() {
         return currentAnimation;
     }
+
+    int getFrame(){
+        return actFrame;
+    }
+
+    int framesSize(){
+        return currentAnimation->vecFrames.size();
+    }
+
+    int getReplays(){
+        return countReplays;
+    }
+
     sf::Sprite sprite;
     Animation* currentAnimation;
 
 protected:
     float currTime=0;
     int actFrame=0;
+    int countReplays=0;
 };
 
 
