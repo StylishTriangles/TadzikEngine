@@ -173,7 +173,7 @@ public:
         Enemy(sf::Vector2f p, sf::Texture* t, MovingEntity* ME) {
             setPosition(p);
             setTexture(*t);
-            setOrigin(getGlobalBounds().width/2, getGlobalBounds().height/2);
+            setOrigin(getTextureRect().width/2, getTextureRect().height/2);
             hitbox.setRadius(getGlobalBounds().width/2);
             hitbox.setOrigin(getGlobalBounds().width/2, getGlobalBounds().height/2);
             target = ME;
@@ -223,7 +223,7 @@ public:
         int furthestObject = -1;
         double rMag;
         double sMag;
-        double T1Max=0;
+        double T1Min=999999;
         double T1, T2;
 
         for (unsigned int i=0; i<vecWalls.size()-1; i++) {
@@ -235,8 +235,8 @@ public:
                 T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
                 rMag = sqrt(rd.x*rd.x+rd.y*rd.y);
                 sMag = sqrt(sd.x*sd.x+sd.y*sd.y);
-                if (T1>T1Max && T1>0 && T1<1 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
-                    T1Max=T1;
+                if (T1<T1Min && T1>0 && T1<1 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
+                    T1Min=T1;
                     furthestObject = i;
                     //std::cout << i << "     " << T1 << std::endl;
                 }
@@ -248,19 +248,28 @@ public:
             return;
         }
         else {
+            double rayAngle = 0.5*(atan2(vecWalls[furthestObject].points[0].y-e.getPosition().y, vecWalls[furthestObject].points[0].x-e.getPosition().x) +
+                                   atan2(vecWalls[furthestObject].points[1].y-e.getPosition().y, vecWalls[furthestObject].points[1].x-e.getPosition().x));
             double maxAngle = 0;
             double minAngle = 20;
-            int pLeft = 0;
-            int pRight = 0;
+            double tmpMaxAngle;
+            double tmpMinAngle;
+            int pLeft = -1;
+            int pRight = -1;
             for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
-                double tmpAngle = atan2(vecWalls[furthestObject].points[i].y-e.getPosition().y, vecWalls[furthestObject].points[i].x-e.getPosition().x)+M_PI;
-                if (tmpAngle>maxAngle) {
-                    pLeft = i;
-                    maxAngle = tmpAngle;
-                }
-                if (tmpAngle<minAngle) {
+                double tmpAngle = atan2(vecWalls[furthestObject].points[i].y-e.getPosition().y, vecWalls[furthestObject].points[i].x-e.getPosition().x);
+                tmpMaxAngle = tmpAngle - rayAngle; tmpMinAngle = tmpAngle-rayAngle;
+                if (tmpMaxAngle<-M_PI) tmpMaxAngle +=M_PI;
+                if (tmpMaxAngle>=M_PI) tmpMaxAngle -=M_PI;
+                if (tmpMinAngle<-M_PI) tmpMaxAngle +=M_PI;
+                if (tmpMinAngle>=M_PI) tmpMaxAngle -=M_PI;
+                if (tmpMaxAngle>maxAngle) {
                     pRight = i;
-                    minAngle = tmpAngle;
+                    maxAngle = tmpMaxAngle;
+                }
+                if (tmpMinAngle<minAngle) {
+                    pLeft = i;
+                    minAngle = tmpMinAngle;
                 }
             }
             std::cout << pLeft << " " << pRight << std::endl;
@@ -274,10 +283,17 @@ public:
                 (e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)+
                 (e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y))
             {
-                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.target->hitbox.getPosition(), 200000);
+                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.target->hitbox.getPosition(), -20);
             }
-            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.target->hitbox.getPosition(), -200000);
+            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.target->hitbox.getPosition(), 20);
         }
+
+    }
+
+    void AStar (Enemy& e){
+        sf::Vector2i p1 = sf::Vector2i(e.getPosition().x / tileSize, e.getPosition().y / tileSize);
+        sf::Vector2i p2 = sf::Vector2i(e.target->hitbox.getPosition().x / tileSize, e.target->hitbox.getPosition().y / tileSize);
+        std::vector <sf::Vector2f> path;
 
     }
     void updateShadow(lightSource& ls) {
@@ -285,8 +301,8 @@ public:
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++){
                 ls.points.push_back(getIntersection(ls, vecWalls[i].points[j]));
-                ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, 1)));
-                ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, -1)));
+                ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, 0.0001)));
+                ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, -0.0001)));
                 //ls.points.push_back(getIntersection(ls, sf::Vector2f(vecWalls[i].points[j].x-0.01, vecWalls[i].points[j].y)));
                 //ls.points.push_back(getIntersection(ls, sf::Vector2f(vecWalls[i].points[j].x+0.01, vecWalls[i].points[j].y)));
                 sf::CircleShape c(2);
@@ -318,8 +334,8 @@ public:
         double a = atan2(p.y-center.y, p.x-center.x);
         double l = sqrt((p.y-center.y)*(p.y-center.y)+(p.x-center.x)*(p.x-center.x));
         sf::Vector2f r;
-        r.x = p.x+0.0001*d*sin(a);
-        r.y = p.y-0.0001*d*cos(a);
+        r.x = p.x+d*sin(a);
+        r.y = p.y-d*cos(a);
         return r;
     }
 
@@ -530,13 +546,14 @@ public:
         tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
         vecBullets.push_back(tmpBullet);
     }
+
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
             getEnemyDestination(vecEnemies[i]);
             sf::VertexArray a (sf::LinesStrip, 3);
-            a[0]=vecEnemies[i].getPosition();
-            a[1]=vecEnemies[i].destination;
-            a[2]=vecEnemies[i].target->hitbox.getPosition();
+            a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
+            a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
+            a[2]=sf::Vertex(vecEnemies[i].target->hitbox.getPosition(), sf::Color::Red);
             rDebug.draw(a);
             handleCollision(vecEnemies[i], vecSprites);
             for (int j=vecBullets.size()-1; j>=0; j--) {
@@ -596,7 +613,7 @@ public:
         if (spTadzik.health<0) gameOver();
 
         spTadzik.update();
-        //spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+        spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         handleCollision(spTadzik, vecSprites);
 
         spTadzik.velocity.x*=0.8;
