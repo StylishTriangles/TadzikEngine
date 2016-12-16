@@ -51,6 +51,15 @@ public:
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))) {
             spTadeusz.move(-5, 0);
         }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))) {
+            spTadeusz.move(0, -5);
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))) {
+            spTadeusz.move(0, 5);
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))) {
+            spTadeusz.move(5, 0);
+        }
         window->clear(sf::Color());
         window->draw(spTadeusz);
     }

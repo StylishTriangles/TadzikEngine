@@ -11,144 +11,143 @@
 #include <cstdlib>
 #include <sstream>
 
-class menuWindow {
-public:
-    sf::Sprite background;
-    sf::Sprite buyButton;
-
-    int amount = 1;
-
-    void switchBuyButton() {
-        if (selected == 2) {
-            selected = 0, amount = 1;
-        } else selected++, amount*=10;
-        buyButton.setTexture(howMany[selected]);
-
-    }
-    void setPosition (int x, int y) {
-        background.setPosition(x, y);
-        buyButton.setPosition(x+0.99*background.getTextureRect().width*background.getScale().x-
-                              buyButton.getTextureRect().width*buyButton.getScale().x, y+10);
-    }
-    void draw(sf::RenderWindow *window) {
-        window->draw(background);
-        window->draw(buyButton);
-    }
-    void load (std::string bg, std::string B1, std::string B2, std::string B3) {
-        texBackground.loadFromFile(bg);
-        buyOne.loadFromFile(B1);
-        buyTen.loadFromFile(B2);
-        buyHundred.loadFromFile(B3);
-        howMany.push_back(buyOne);
-        howMany.push_back(buyTen);
-        howMany.push_back(buyHundred);
-        buyButton.setTexture(buyOne);
-        background.setTexture(texBackground);
-    }
-protected:
-    sf::Texture texBackground;
-    sf::Texture buyOne;
-    sf::Texture buyTen;
-    sf::Texture buyHundred;
-    int selected = 0;
-    std::vector <sf::Texture> howMany;
-    std::vector <sf::Sprite> upgrades;
-};
-
-class wienerSource {
-public:
-    sf::Sprite background;
-    sf::Sprite buyButton;
-    sf::Text textCost;
-    sf::Text textAmount;
-    sf::Text incomePerSecond;
-    sf::Text producing;
-    sf::Text perSecond;
-
-    std::vector <sf::Sprite> container;
-
-    int amount = 0;
-    double cost = 1;
-    double costShown = 1;
-    double income = 1;
-
-    wienerSource () { };
-    wienerSource (double c, double i) : cost(c), income(i) { };
-
-    void buyAmountChanged (int amount) {
-        costShown=0;
-        double tmpCost = cost;
-        for (unsigned int i=0; i<amount; i++) {
-            costShown += tmpCost;
-            tmpCost*=multiplier;
-        }
-        textCost.setString(Utils::stringify(costShown));
-    }
-    void setValues(double Cost, double Income) {
-        cost = Cost, income = Income, costShown=cost;
-    }
-    void load (std::string textureLoc, std::string texBackgroundLoc, std::string texButtonLoc) {
-        texture.loadFromFile(textureLoc);
-        texBackground.loadFromFile(texBackgroundLoc);
-        background.setTexture(texBackground);
-        texBuyButton.loadFromFile(texButtonLoc);
-        buyButton.setTexture(texBuyButton);
-        producing.setString("Producing");
-        incomePerSecond.setString("0 Wieners");
-        perSecond.setString("per second");
-    }
-    double getIncome(double deltaTime) {
-        return amount*income*deltaTime;
-    }
-    void setPosition(int x, int y) {
-        background.setPosition(x, y);
-        buyButton.setPosition(x+0.99*background.getTextureRect().width*background.getScale().x-
-                              buyButton.getTextureRect().width*buyButton.getScale().x, y+10);
-        textCost.setPosition(x+0.75*(buyButton.getPosition().x-background.getPosition().x), y);
-        textAmount.setPosition(x+0.75*(buyButton.getPosition().x-background.getPosition().x), y+40);
-        producing.setPosition(x, y);
-        incomePerSecond.setPosition(x, y+20);
-        perSecond.setPosition(x, y+40);
-    }
-    void onBuy(int howMany){
-        amount+=howMany;
-        sf::Sprite tmp;
-        tmp.setTexture(texture);
-        for (int i=0; i<howMany; i++) {
-            cost*=multiplier;
-            tmp.setPosition(background.getPosition().x+Utils::randFloat(0.2, 0.65)*(background.getGlobalBounds().width-tmp.getTextureRect().width),
-            background.getPosition().y+Utils::randFloat(0, 0.5)*(background.getGlobalBounds().height-tmp.getTextureRect().height));
-            container.push_back(tmp);
-        }
-        buyAmountChanged(howMany);
-    }
-    void draw(sf::RenderWindow *window) {
-        window->draw(background);
-        window->draw(textCost);
-        window->draw(textAmount);
-        window->draw(incomePerSecond);
-        window->draw(buyButton);
-        window->draw(producing);
-        window->draw(perSecond);
-        for (auto a:container) {
-            window->draw(a);
-        }
-    }
-    void setFont(sf::Font font) {
-
-    }
-protected:
-    sf::Texture texture;
-    sf::Texture texBackground;
-    sf::Texture texBuyButton;
-    double multiplier = 1.1;
-};
-
 class CLICKER: public Scene{
 public:
     CLICKER(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
     :Scene(_name, mgr, w)
     {}
+
+    class menuWindow {
+    public:
+        sf::Sprite background;
+        sf::Sprite buyButton;
+
+        int amount = 1;
+
+        void switchBuyButton() {
+            if (selected == 2) {
+                selected = 0, amount = 1;
+            } else selected++, amount*=10;
+            buyButton.setTexture(howMany[selected]);
+        }
+        void setPosition (int x, int y) {
+            background.setPosition(x, y);
+            buyButton.setPosition(x+0.99*background.getTextureRect().width*background.getScale().x-
+                                  buyButton.getTextureRect().width*buyButton.getScale().x, y+10);
+        }
+        void draw(sf::RenderWindow *window) {
+            window->draw(background);
+            window->draw(buyButton);
+        }
+        void load (std::string bg, std::string B1, std::string B2, std::string B3) {
+            texBackground.loadFromFile(bg);
+            buyOne.loadFromFile(B1);
+            buyTen.loadFromFile(B2);
+            buyHundred.loadFromFile(B3);
+            howMany.push_back(buyOne);
+            howMany.push_back(buyTen);
+            howMany.push_back(buyHundred);
+            buyButton.setTexture(buyOne);
+            background.setTexture(texBackground);
+        }
+    protected:
+        sf::Texture texBackground;
+        sf::Texture buyOne;
+        sf::Texture buyTen;
+        sf::Texture buyHundred;
+        int selected = 0;
+        std::vector <sf::Texture> howMany;
+        std::vector <sf::Sprite> upgrades;
+    };
+
+    class wienerSource {
+    public:
+        sf::Sprite background;
+        sf::Sprite buyButton;
+        sf::Text textCost;
+        sf::Text textAmount;
+        sf::Text incomePerSecond;
+        sf::Text producing;
+        sf::Text perSecond;
+
+        std::vector <sf::Sprite> container;
+
+        int amount = 0;
+        double cost = 1;
+        double costShown = 1;
+        double income = 1;
+
+        wienerSource () { };
+        wienerSource (double c, double i) : cost(c), income(i) { };
+
+        void buyAmountChanged (int amount) {
+            costShown=0;
+            double tmpCost = cost;
+            for (unsigned int i=0; i<amount; i++) {
+                costShown += tmpCost;
+                tmpCost*=multiplier;
+            }
+            textCost.setString(Utils::stringify(costShown));
+        }
+        void setValues(double Cost, double Income) {
+            cost = Cost, income = Income, costShown=cost;
+        }
+        void load (std::string textureLoc, std::string texBackgroundLoc, std::string texButtonLoc) {
+            texture.loadFromFile(textureLoc);
+            texBackground.loadFromFile(texBackgroundLoc);
+            background.setTexture(texBackground);
+            texBuyButton.loadFromFile(texButtonLoc);
+            buyButton.setTexture(texBuyButton);
+            producing.setString("Producing");
+            incomePerSecond.setString("0 Wieners");
+            perSecond.setString("per second");
+        }
+        double getIncome(double deltaTime) {
+            return amount*income*deltaTime;
+        }
+        void setPosition(int x, int y) {
+            background.setPosition(x, y);
+            buyButton.setPosition(x+0.99*background.getTextureRect().width*background.getScale().x-
+                                  buyButton.getTextureRect().width*buyButton.getScale().x, y+10);
+            textCost.setPosition(x+0.75*(buyButton.getPosition().x-background.getPosition().x), y);
+            textAmount.setPosition(x+0.75*(buyButton.getPosition().x-background.getPosition().x), y+40);
+            producing.setPosition(x, y);
+            incomePerSecond.setPosition(x, y+20);
+            perSecond.setPosition(x, y+40);
+        }
+        void onBuy(int howMany){
+            amount+=howMany;
+            sf::Sprite tmp;
+            tmp.setTexture(texture);
+            for (int i=0; i<howMany; i++) {
+                cost*=multiplier;
+                tmp.setPosition(background.getPosition().x+Utils::randFloat(0.2, 0.65)*(background.getGlobalBounds().width-tmp.getTextureRect().width),
+                background.getPosition().y+Utils::randFloat(0, 0.5)*(background.getGlobalBounds().height-tmp.getTextureRect().height));
+                container.push_back(tmp);
+            }
+            buyAmountChanged(howMany);
+        }
+        void draw(sf::RenderWindow *window) {
+            window->draw(background);
+            window->draw(textCost);
+            window->draw(textAmount);
+            window->draw(incomePerSecond);
+            window->draw(buyButton);
+            window->draw(producing);
+            window->draw(perSecond);
+            for (auto a:container) {
+                window->draw(a);
+            }
+        }
+        void setFont(sf::Font font) {
+
+        }
+    protected:
+        sf::Texture texture;
+        sf::Texture texBackground;
+        sf::Texture texBuyButton;
+        double multiplier = 1.1;
+    };
 
     virtual void onSceneLoadToMemory() {
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){

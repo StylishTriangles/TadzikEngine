@@ -181,12 +181,9 @@ public:
             healthBar.setSize(sf::Vector2f(getGlobalBounds().width, 5));
         }
         void update() {
-            //speed = sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
-            //if (speed>maxSpeed) speed = maxSpeed;
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
-            //sf::Vector2f m = sf::Vector2f(speed*cos(angle), speed*sin(angle));
             move(velocity);
             hitbox.setPosition(getPosition());
             velocity.x*=0.8;
@@ -242,7 +239,7 @@ public:
                 }
             }
         }
-        std::cout << furthestObject << std::endl;
+        //std::cout << furthestObject << std::endl;
         if (furthestObject == -1) {
             e.destination = e.target->hitbox.getPosition();
             return;
@@ -303,8 +300,6 @@ public:
                 ls.points.push_back(getIntersection(ls, vecWalls[i].points[j]));
                 ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, 0.0001)));
                 ls.points.push_back(getIntersection(ls, rotatedPoint(vecWalls[i].points[j], ls, -0.0001)));
-                //ls.points.push_back(getIntersection(ls, sf::Vector2f(vecWalls[i].points[j].x-0.01, vecWalls[i].points[j].y)));
-                //ls.points.push_back(getIntersection(ls, sf::Vector2f(vecWalls[i].points[j].x+0.01, vecWalls[i].points[j].y)));
                 sf::CircleShape c(2);
                 c.setOrigin(1, 1);
                 c.setPosition(rotatedPoint(vecWalls[i].points[j], ls, 1));
@@ -315,7 +310,6 @@ public:
         }
         ls.sortPoints();
         ls.shadow.clear();
-        //ls.color.a = alpha;
         ls.shadow.append(sf::Vertex(ls, ls.color));
         for (int i=0; i<ls.points.size(); i++) {
             ls.shadow.append(sf::Vertex(ls.points[i].point, ls.color));
@@ -613,7 +607,7 @@ public:
         if (spTadzik.health<0) gameOver();
 
         spTadzik.update();
-        spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+        if (debug) spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         handleCollision(spTadzik, vecSprites);
 
         spTadzik.velocity.x*=0.8;
@@ -715,7 +709,7 @@ protected:
     double acceleration = 2;
     int tileSize = 20;
 
-    bool debug = true;
+    bool debug = false;
 };
 
 #endif //SHOOTER2D
