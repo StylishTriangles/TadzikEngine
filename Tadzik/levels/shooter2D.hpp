@@ -136,7 +136,7 @@ public:
             velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
             velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
         }
-        double damage = 10;
+        double damage = 100;
         double knockback = -2;
         bool penetrating = false;
         bool bouncy = false;
@@ -235,56 +235,46 @@ public:
                 if (T1<T1Min && T1>0 && T1<1 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
                     T1Min=T1;
                     furthestObject = i;
-                    //std::cout << i << "     " << T1 << std::endl;
                 }
             }
         }
-        //std::cout << furthestObject << std::endl;
+        std::cout << furthestObject << std::endl;
         if (furthestObject == -1) {
             e.destination = e.target->hitbox.getPosition();
             return;
         }
         else {
-            double rayAngle = 0.5*(atan2(vecWalls[furthestObject].points[0].y-e.getPosition().y, vecWalls[furthestObject].points[0].x-e.getPosition().x) +
-                                   atan2(vecWalls[furthestObject].points[1].y-e.getPosition().y, vecWalls[furthestObject].points[1].x-e.getPosition().x));
-            double maxAngle = 0;
+            double rayAngle = getAngle(e.getPosition(), e.target->hitbox.getPosition());
+            double maxAngle = -20;
             double minAngle = 20;
-            double tmpMaxAngle;
-            double tmpMinAngle;
             int pLeft = -1;
             int pRight = -1;
             for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
-                double tmpAngle = atan2(vecWalls[furthestObject].points[i].y-e.getPosition().y, vecWalls[furthestObject].points[i].x-e.getPosition().x);
-                tmpMaxAngle = tmpAngle - rayAngle; tmpMinAngle = tmpAngle-rayAngle;
-                if (tmpMaxAngle<-M_PI) tmpMaxAngle +=M_PI;
-                if (tmpMaxAngle>=M_PI) tmpMaxAngle -=M_PI;
-                if (tmpMinAngle<-M_PI) tmpMaxAngle +=M_PI;
-                if (tmpMinAngle>=M_PI) tmpMaxAngle -=M_PI;
-                if (tmpMaxAngle>maxAngle) {
+                double tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
+                if (tmpAngle<-M_PI) tmpAngle +=2*M_PI;
+                if (tmpAngle>=M_PI) tmpAngle -=2*M_PI;
+                if (tmpAngle>maxAngle) {
                     pRight = i;
-                    maxAngle = tmpMaxAngle;
+                    maxAngle = tmpAngle;
                 }
-                if (tmpMinAngle<minAngle) {
+                if (tmpAngle<minAngle) {
                     pLeft = i;
-                    minAngle = tmpMinAngle;
+                    minAngle = tmpAngle;
                 }
             }
-            std::cout << pLeft << " " << pRight << std::endl;
-            //if (maxAngle-atan2(e.target->hitbox.getPosition().y-e.getPosition().y, e.target->hitbox.getPosition().x-e.getPosition().x)-M_PI <
-            //    atan2(e.target->hitbox.getPosition().y-e.getPosition().y, e.target->hitbox.getPosition().x-e.getPosition().x)+M_PI-minAngle) {
-            //      e.destination = vecWalls[furthestObject].points[pLeft];
-            //}
-            //else e.destination = vecWalls[furthestObject].points[pRight];
-            if ((e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)+
-                (e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y) <
-                (e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)+
-                (e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y))
+            if (getMagnitude(e.target->getPosition(), vecWalls[furthestObject].points[pLeft]) < getMagnitude(e.target->getPosition(), vecWalls[furthestObject].points[pRight]))
             {
-                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.target->hitbox.getPosition(), -20);
+                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.getPosition(), 20);
             }
-            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.target->hitbox.getPosition(), 20);
+            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.getPosition(), -20);
         }
+    }
 
+    double getAngle (sf::Vector2f p1, sf::Vector2f p2) {
+        return atan2(p2.y-p1.y, p2.x-p1.x);
+    }
+    double getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
+        return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
     }
 
     void AStar (Enemy& e){
@@ -709,7 +699,7 @@ protected:
     double acceleration = 2;
     int tileSize = 20;
 
-    bool debug = false;
+    bool debug = true;
 };
 
 #endif //SHOOTER2D

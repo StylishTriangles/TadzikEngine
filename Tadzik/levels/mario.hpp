@@ -1,8 +1,6 @@
 #ifndef MARIO_HPP
 #define MARIO_HPP
 
-#define M_PI 3.14159265359
-
 #include "Scene.hpp"
 #include "AnimatedSprite.hpp"
 #include "Collision.hpp"
