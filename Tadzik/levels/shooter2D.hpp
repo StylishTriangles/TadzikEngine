@@ -211,7 +211,7 @@ public:
         sf::RectangleShape healthBar;
     };
 
-    void getEnemyDestination(Enemy &e) {
+    void getEnemyPath(Enemy &e) {
         sf::Vector2f rd = e.target->hitbox.getPosition()-e.getPosition();
         sf::Vector2f sp;
         sf::Vector2f sd;
@@ -238,7 +238,6 @@ public:
                 }
             }
         }
-        std::cout << furthestObject << std::endl;
         if (furthestObject == -1) {
             e.destination = e.target->hitbox.getPosition();
             return;
@@ -251,6 +250,7 @@ public:
             int pRight = -1;
             for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
                 double tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
+                tmpAngle-=rayAngle;
                 if (tmpAngle<-M_PI) tmpAngle +=2*M_PI;
                 if (tmpAngle>=M_PI) tmpAngle -=2*M_PI;
                 if (tmpAngle>maxAngle) {
@@ -277,12 +277,6 @@ public:
         return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
     }
 
-    void AStar (Enemy& e){
-        sf::Vector2i p1 = sf::Vector2i(e.getPosition().x / tileSize, e.getPosition().y / tileSize);
-        sf::Vector2i p2 = sf::Vector2i(e.target->hitbox.getPosition().x / tileSize, e.target->hitbox.getPosition().y / tileSize);
-        std::vector <sf::Vector2f> path;
-
-    }
     void updateShadow(lightSource& ls) {
         ls.points.clear();
         for (unsigned int i=0; i<vecWalls.size(); i++) {
@@ -533,7 +527,7 @@ public:
 
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
-            getEnemyDestination(vecEnemies[i]);
+            getEnemyPath(vecEnemies[i]);
             sf::VertexArray a (sf::LinesStrip, 3);
             a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
             a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
