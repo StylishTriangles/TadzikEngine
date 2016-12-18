@@ -11,6 +11,7 @@
 #include "levels/levelselect.hpp"
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
+#include "levels/isayparty.hpp"
 
 #include <cstdlib>
 
@@ -30,14 +31,16 @@ int main(){
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
     sceneManager.registerScene<RPG>("RPG", &window);
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
-    sceneManager.setActiveScene("SHOOTER2D");
+    //sceneManager.setActiveScene("SHOOTER2D");
     //sceneManager.setActiveScene("RPG");
+    sceneManager.setActiveScene("ISAYPARTY");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
