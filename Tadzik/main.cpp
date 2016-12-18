@@ -17,26 +17,26 @@
 int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
-    //settings.antialiasingLevel = 8;
+    settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
-    sceneManager.registerScene<TREX>("TREX", &window);
+    //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    sceneManager.registerScene<MARIO>("MARIO", &window);
+    //sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    sceneManager.registerScene<RPG>("RPG", &window);
-    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    //sceneManager.registerScene<RPG>("RPG", &window);
+    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
-    sceneManager.setActiveScene("SHOOTER2D");
+    //sceneManager.setActiveScene("SHOOTER2D");
     //sceneManager.setActiveScene("RPG");
     sf::Clock deltaClock;
     while(window.isOpen()){
