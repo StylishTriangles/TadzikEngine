@@ -125,19 +125,48 @@ public:
             std::cout << "cannot load font\n";
         }
 
-        vecSteps.resize(2);
-        vecSteps[0] = DanceStep(&animDance1, {3, 3}, {HAND_LEFT, HAND_RIGHT});
-        vecSteps[1] = DanceStep(&animDance1, {1, 4, 10, 14}, {LEG_LEFT, LEG_LEFT, LEG_RIGHT, LEG_RIGHT});
-
-        vecTracks.resize(2);
+        vecTracks.resize(1);
         vecTracks[0] = Track("Da_Funk", "Daft Punk", 112);
-        vecTracks[1] = Track("nieeee", "Gall Anonim", 42);
 
         vecTextures.resize(17);
         for(int i = 0; i < vecTextures.size(); i++){
             vecTextures[i].loadFromFile("files/textures/isaydisco/"+Utils::stringify(i)+".png");
-            animDance1.addFrame(AnimationFrame(&vecTextures[i], 112*2));
+            if(i != 16)
+            animDanceAll.addFrame(AnimationFrame(&vecTextures[i], 120*2));
         }
+
+        texIdle.loadFromFile("files/textures/isaydisco/idle.png");
+
+        animHands.addFrame(AnimationFrame(&vecTextures[2], 120*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[8], 120*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[4], 120*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[6], 120*2));
+
+        animHips.addFrame(AnimationFrame(&vecTextures[9], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[10], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[11], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[12], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[9], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[10], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[11], 120*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[12], 120*2));
+
+        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 120*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[8], 120*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 120*2));
+        animWindmill.addFrame(AnimationFrame(&texIdle, 120*4));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 120*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[15], 120*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 120*2));
+
+        vecSteps.resize(4);
+        vecSteps[0] = DanceStep(&animHands, {0,2,4,6}, {HAND_LEFT, HAND_RIGHT, HAND_LEFT, HAND_RIGHT});
+        vecSteps[1] = DanceStep(&animHips,  {0,2,4,6}, {HIPS_LEFT, HIPS_RIGHT, HIPS_LEFT, HIPS_RIGHT});
+        vecSteps[2] = DanceStep(&animWindmill,  {0,2,3,3,4,6}, {HAND_LEFT,HAND_LEFT,LEG_LEFT,LEG_RIGHT,HAND_RIGHT,HAND_RIGHT});
+        //vecSteps[3] = DanceStep(&animDanceAll, {3, 3}, {HAND_LEFT, HAND_RIGHT});
+        vecSteps[3] = DanceStep(&animDanceAll, {0, 4, 6, 8, 13, 15}, {HAND_LEFT,LEG_RIGHT,HAND_RIGHT,HAND_LEFT,LEG_RIGHT,HAND_RIGHT});
+
+
         dbgText.move(100, 0);       //martwe pixele ftw
         dbgText.setFont(font);
 
@@ -163,7 +192,8 @@ public:
     virtual void onSceneActivate(){
         window->setTitle("Tadzik ~ISAydIScOyouSAYparTyDisOdisCOPaRtYparTy");
 
-        actSprite.setAnimation(&animDance1);
+        //actSprite.setAnimation(&animDanceAll);
+        setDanceStep(&vecSteps[rand()%vecSteps.size()]);
         actSprite.sprite.setScale(4.f, 4.f);
         actSprite.sprite.setPosition(window->getSize().x/2-actSprite.sprite.getGlobalBounds().width/2, window->getSize().y/2);
 
@@ -219,6 +249,7 @@ public:
             if(vecKeyTexts[i].timeCtr > vecKeyTexts[i].duration){
                 vecKeyTexts.erase(vecKeyTexts.begin()+i);
                 displayText(vecDiscoReactionsBad[rand()%vecDiscoReactionsBad.size()], 0);
+                score--;
             }
         }
 
@@ -231,6 +262,16 @@ public:
             window->draw(txt.text);
         }
         window->draw(actSprite.sprite);
+
+        sf::RectangleShape rectangle(sf::Vector2f(2*actSprite.sprite.getGlobalBounds().width, 20.0f));
+        rectangle.setPosition(actSprite.sprite.getPosition());
+        rectangle.move(-actSprite.sprite.getGlobalBounds().width/2, -radius-20);
+        rectangle.setFillColor(sf::Color(40.0, 150.0, 40.0));
+        window->draw(rectangle);
+        rectangle.setFillColor(sf::Color::Green);
+        rectangle.setSize(sf::Vector2f((score/100.0)*(2*actSprite.sprite.getGlobalBounds().width), 20.0f));
+        window->draw(rectangle);
+
         for(KeyText ks: vecKeyTexts)
             window->draw(ks);
 
@@ -259,9 +300,11 @@ public:
         if(miniIdx != -1){
             displayText(vecDiscoReactionsGood[rand()%vecDiscoReactionsGood.size()], 0);
             vecKeyTexts.erase(vecKeyTexts.begin()+miniIdx);
+            score++;
         }
         else{
             displayText(vecDiscoReactionsBad[rand()%vecDiscoReactionsBad.size()], 0);
+            score--;
         }
     }
 
@@ -279,12 +322,11 @@ public:
     void loadNewTrack(){
         actTrack = &vecTracks[rand()%vecTracks.size()];
         bpm = actTrack->bpm;
-        //actMusic.openFromFile("files/audio/isaydisco/"+actTrack->name+".ogg");
-        //actMusic.play();
+        actMusic.openFromFile("files/audio/isaydisco/"+actTrack->name+".ogg");
+        actMusic.play();
     }
 
     void addKey(int limb){
-        int radius = 120;
         float radian = ((float)limb/180.0) * 3.1415f;
         sf::Vector2f pos = sf::Vector2f(cos(radian)*radius, -sin(radian)*radius);
         pos += actSprite.sprite.getPosition();
@@ -312,9 +354,10 @@ public:
 
 protected:
     int tempo = 8;
-    int score=0;
+    int score=50;           //score in [0,100]
     double bpm=20;          //uderzenia na minute
     double tmpTime=0.0;     //w sekundach
+    int radius = 120;       //promien klawiszy wokol tadzika
     sf::Font font;
 
     std::vector<DanceStep> vecSteps;
@@ -325,6 +368,7 @@ protected:
     std::vector<TextCraft> vecText;
     std::vector<Track> vecTracks;
     std::vector<sf::Texture> vecTextures;
+    sf::Texture texIdle;
     std::vector<KeyText> vecKeyTexts;
     std::vector<sf::Color> vecDiscoColors;
     std::vector<std::string> vecDiscoReactionsGood;
@@ -334,7 +378,10 @@ protected:
 
     sf::Music actMusic;
     sf::Text dbgText;
-    Animation animDance1;
+    Animation animDanceAll;
+    Animation animHands;
+    Animation animHips;
+    Animation animWindmill;
     AnimatedSprite actSprite;
 
 };
