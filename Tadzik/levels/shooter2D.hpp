@@ -11,12 +11,43 @@
 #include <ctime>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 
 class SHOOTER2D: public Scene{
 public:
     SHOOTER2D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
+
+    class HUD: public sf::RenderTexture {
+    public:
+        HUD() {
+            tAmmo.setPosition(1200, 650);
+            tAllAmmo.setPosition(1250, 650);
+            tScore.setPosition(1250, 10);
+            reloading.setSize(sf::Vector2f(30, 10));
+            reloading.setFillColor(sf::Color::Green);
+        }
+        sf::Sprite healthBar;
+        sf::Sprite healthFrame;
+        sf::RectangleShape reloading;
+        sf::Text tScore;
+        sf::Text tAmmo;
+        sf::Text tAllAmmo;
+        void update() {
+            draw(healthFrame);
+            draw(healthBar);
+            draw(tScore);
+            draw(tAmmo);
+            draw(tAllAmmo);
+            display();
+        }
+        void setFont(sf::Font* f) {
+            tScore.setFont(*f);
+            tAmmo.setFont(*f);
+            tAllAmmo.setFont(*f);
+        }
+    };
 
     class MovingEntity: public sf::Sprite {
     public:
@@ -86,7 +117,7 @@ public:
             y+=velocity.y;
             velocity.x*=0.9;
             velocity.y*=0.9;
-            sortPoints();
+            if (velocity.x!=0 && velocity.y!=0) sortPoints();
         }
         void sortPoints(){
             std::sort(points.begin(), points.end());
@@ -97,19 +128,6 @@ public:
         sf::VertexArray shadow = sf::VertexArray(sf::TrianglesFan, 0);
         sf::Sprite sprite;
         sf::Color color;
-    };
-
-    class Weapon {
-    public:
-        Weapon(MovingEntity* p): parent(p) {};
-        void shoot() {
-
-        }
-        MovingEntity* parent;
-        double reloadTime = 1;
-        unsigned int magSize = 30;
-        unsigned int maxAmmo = 90;
-        sf::Sprite sprite;
     };
 
     class Bullet: public sf::Sprite {
@@ -144,6 +162,49 @@ public:
         double speed = 5;
     };
 
+    class Weapon {
+    public:
+        Weapon() {};
+        Weapon(MovingEntity* p): parent(p) {};
+        void getBullet() {
+
+        }
+        void loadFromFile(std::string directory) {
+            std::string texDirectory;
+            std::ifstream file;
+            file.open(directory);
+            file >> texDirectory;
+            texture.loadFromFile(texDirectory);
+            sprite.setTexture(texture);
+            file >> magSize;
+            file >> maxMagAmount;
+            file >> reloadTime;
+            file >> damage;
+            file >> fireTime;
+            ammo = magSize;
+            mags = magAmount;
+            file.close();
+        }
+        void setParent(MovingEntity* p) {parent = p;}
+        void setBullet() {
+            bullet.damage = damage;
+            bullet.knockback = knockback;
+        }
+        MovingEntity* parent;
+        double reloadTime = 1;
+        double fireTime = 1;
+        unsigned int magSize = 30;
+        unsigned int magAmount = 3;
+        unsigned int maxMagAmount = 3;
+        unsigned int ammo;
+        unsigned int mags;
+        int damage = 100;
+        double knockback = -2;
+        sf::Texture texture;
+        sf::Sprite sprite;
+        Bullet bullet;
+    };
+
     class Player: public MovingEntity {
     public:
         Player() {
@@ -164,8 +225,22 @@ public:
         double maxSpeed = 10;
         double angle;
         double speed;
+
         Bullet playerBullet;
         std::vector <Weapon> weapons;
+        int currentWeapon = 0;
+        void nextWeapon() {
+            currentWeapon++;
+            if (currentWeapon==weapons.size()) currentWeapon = 0;
+        }
+        void prevWeapon() {
+            currentWeapon--;
+            if (currentWeapon==-1) currentWeapon = weapons.size()-1;
+        }
+        void addWeapon(Weapon w) {
+            w.setParent(this);
+            weapons.push_back(w);
+        }
     };
 
     class Enemy: public MovingEntity {
@@ -273,6 +348,7 @@ public:
     double getAngle (sf::Vector2f p1, sf::Vector2f p2) {
         return atan2(p2.y-p1.y, p2.x-p1.x);
     }
+
     double getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
         return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
     }
@@ -363,17 +439,16 @@ public:
 
         texHealthBar.loadFromFile("files/textures/shooter2D/healthBar.png");
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
-        spHealthBar.setTexture(texHealthBar);
-        spHealthFrame.setTexture(texHealthFrame);
 
         loadMap();
 
-        spBullet.setFillColor(sf::Color::White);
-        spBullet.setRadius(3);
-        spBullet.setOrigin(3, 3);
-
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
+
+        hud.create(window->getSize().x, window->getSize().y);
+        hud.healthBar.setTexture(texHealthBar);
+        hud.healthFrame.setTexture(texHealthFrame);
+        hud.setFont(&font);
 
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
 
@@ -385,6 +460,12 @@ public:
 
         vecWalls.push_back(tmpObject);
 
+        Weapon wGlock;
+        wGlock.loadFromFile("files/resource/shooter2D/weapons/glock.dat");
+        wGlock.bullet.setTexture(texBullet1);
+        wGlock.bullet.setScale(0.2, 0.2);
+        wGlock.bullet.setOrigin(wGlock.bullet.getTextureRect().width/2, wGlock.bullet.getTextureRect().height/2);
+        spTadzik.addWeapon(wGlock);
     }
 
     virtual void onSceneActivate() {
@@ -518,11 +599,23 @@ public:
         }
     }
 
+    void reload() {
+        if (spTadzik.weapons[spTadzik.currentWeapon].ammo < spTadzik.weapons[spTadzik.currentWeapon].magSize && !isReloading && spTadzik.weapons[spTadzik.currentWeapon].mags > 0) {
+            isReloading = true;
+            reloadFor.restart();
+        }
+    }
+
     void shoot() {
-        tmpBullet = spTadzik.playerBullet;
-        tmpBullet.setPosition(spTadzik.getPosition());
-        tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
-        vecBullets.push_back(tmpBullet);
+        if (lastShot.getElapsedTime().asMilliseconds() > spTadzik.weapons[spTadzik.currentWeapon].fireTime && spTadzik.weapons[spTadzik.currentWeapon].ammo>0 && !isReloading) {
+            lastShot.restart();
+            spTadzik.weapons[spTadzik.currentWeapon].ammo--;
+            tmpBullet = spTadzik.weapons[spTadzik.currentWeapon].bullet;
+            tmpBullet.setPosition(spTadzik.getPosition());
+            tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
+            vecBullets.push_back(tmpBullet);
+            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
+        }
     }
 
     void updateEnemies() {
@@ -539,7 +632,7 @@ public:
                     vecEnemies[i].onHit(vecBullets[j]);
                     vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
-                    if (vecEnemies[i].health<=0) vecEnemies.erase(vecEnemies.begin()+i);
+                    if (vecEnemies[i].health<=0) vecEnemies.erase(vecEnemies.begin()+i), score++;
                 }
             }
         }
@@ -558,6 +651,20 @@ public:
         }
     }
 
+    void updateHUD() {
+        hud.tScore.setString(Utils::stringify(score));
+        hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
+        hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
+        hud.healthBar.setScale(spTadzik.health/100, 1);
+        hud.clear(sf::Color(0, 0, 0, 0));
+        if (isReloading) {
+            hud.reloading.setScale(1-reloadFor.getElapsedTime().asMilliseconds()/spTadzik.weapons[spTadzik.currentWeapon].reloadTime, 1);
+            hud.reloading.setPosition(spTadzik.getGlobalBounds().left, spTadzik.getPosition().y);
+            hud.draw(hud.reloading);
+        }
+        hud.update();
+    }
+
     virtual void draw(double deltaTime) {
         //input z klawiatury
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
@@ -573,8 +680,16 @@ public:
             spTadzik.velocity.x += acceleration;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) spTadzik.health-=10;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) reload();
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
             vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+        }
+        if (isReloading) {
+            if (reloadFor.getElapsedTime().asMilliseconds()>spTadzik.weapons[spTadzik.currentWeapon].reloadTime) {
+                isReloading = false;
+                spTadzik.weapons[spTadzik.currentWeapon].ammo = spTadzik.weapons[spTadzik.currentWeapon].magSize;
+                spTadzik.weapons[spTadzik.currentWeapon].mags--;
+            }
         }
 
         updateEnemies();
@@ -613,7 +728,6 @@ public:
             window->draw(vecEnemies[i]);
             window->draw(vecEnemies[i].healthBar);
         }
-        //std::cout << vecEnemies.size();
 
         rTexture.clear(sf::Color(0, 0, 0, 255));
         for (int i=0; i<spTadzik.ls.points.size(); i++) {
@@ -652,8 +766,8 @@ public:
         for (unsigned int i = 0; i<vecLights.size(); i++) window->draw(vecLights[i].sprite);
         window->draw(spTadzik);
 
-        //std::cout << vecWalls[5].points.size();
-        //std::cout << vecLights.size();
+        updateHUD();
+        window->draw(sf::Sprite(hud.getTexture()));
     }
 
 protected:
@@ -670,13 +784,13 @@ protected:
     sf::Font font;
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
+    sf::RenderTexture rGUI;
+    HUD hud;
+
     sf::BlendMode myBlendMode;
 
     Player spTadzik;
     sf::Sprite spWall;
-    sf::Sprite spHealthBar;
-    sf::Sprite spHealthFrame;
-    sf::CircleShape spBullet;
 
     Bullet tmpBullet;
     Enemy tmpEnemy = Enemy(sf::Vector2f(500, 500), &texEnemy1, &spTadzik);
@@ -692,8 +806,14 @@ protected:
     std::vector <sf::Sprite> vecSprites;
     double acceleration = 2;
     int tileSize = 20;
+    int score = 0;
 
-    bool debug = true;
+    sf::Clock lastShot;
+    sf::Clock reloadFor;
+
+    bool isReloading = false;
+
+    bool debug = false;
 };
 
 #endif //SHOOTER2D
