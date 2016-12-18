@@ -67,7 +67,6 @@ public:
     class Object {
     public:
         std::vector <sf::Vector2f> points;
-        //std::vector <sf::Sprite> sprites;
     };
 
     class CrossingPoint{

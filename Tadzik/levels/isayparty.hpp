@@ -312,7 +312,7 @@ public:
         sf::Text txt;
         txt.setString(str);
         txt.setFont(font);
-        txt.setPosition(window->getSize().x*Utils::randFloat(0.1, 0.9), window->getSize().y*Utils::randF(0.4, 0.9));
+        txt.setPosition(window->getSize().x*Utils::randFloat(0.1, 0.9), window->getSize().y*Utils::randFloat(0.4, 0.9));
         txt.setRotation(360.0 * Utils::randFloat(0.0, 1.0));
         double scale = Utils::randFloat(0.5, 0.75);
         txt.setScale(scale, scale);
