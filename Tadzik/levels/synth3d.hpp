@@ -283,7 +283,6 @@ void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float s
     line.setPointCount(4);
     sf::Vector2f norm;
     float temp, lenght;
-
     norm = (vec1 - vec2);
     lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
     norm.x /= lenght, norm.y /= lenght;
@@ -322,8 +321,22 @@ void Camera::drawWall(wall const& wallie)
         if(spot3d[i].z >= 0)
             usefulSpot.push_back(i);
     }
-    if(usefulSpot.size() >= 1)
+    if(!usefulSpot.empty())
     {
+    if(usefulSpot.size() < spot3d.size())
+    {
+        usefulSpot.clear();
+    for(int i=0, j=0; i<2*spot3d.size(); i++)
+        if(spot3d[i%spot3d.size()].z < 0 or j > 0)
+        {
+            if(j == 0)
+                j = 1;
+            if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
+                usefulSpot.push_back(i%spot3d.size()), j = 2;
+            else if(j == 2)
+                j = 3;
+        }
+    }
         if(usefulSpot.size() == spot3d.size())
         {
             for(int i=0; i<usefulSpot.size(); i++)
@@ -356,12 +369,12 @@ void Camera::drawWall(wall const& wallie)
             fillament.setPoint(i, spot[i]);
         fillament.setFillColor(wallie.trans);
         p->window->draw(fillament);
-        for(int i=0; i<wallie.size() - indicator; i++)
+        for(int i=0; i<spot.size() - indicator; i++)
         {
             drawLine(spot[i],
-                     spot[(i+1)%wallie.size()],
+                     spot[(i+1)%spot.size()],
                      dot[i],
-                     dot[(i+1)%wallie.size()],
+                     dot[(i+1)%spot.size()],
                      wallie.color);
             drawDot(spot[i], dot[i], wallie.color);
         }
