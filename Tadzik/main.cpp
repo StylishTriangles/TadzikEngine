@@ -11,6 +11,7 @@
 #include "levels/levelselect.hpp"
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
+#include "levels/isayparty.hpp"
 
 #include <cstdlib>
 
