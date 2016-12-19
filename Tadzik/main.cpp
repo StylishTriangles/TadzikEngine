@@ -21,7 +21,7 @@ int main(){
     //settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     sf::Image screenshot;
-    screenshot.create(1280, 720, sf::Color::White);
+    screenshot.create(1280, 720);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
@@ -54,7 +54,7 @@ int main(){
             }
             if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
                 screenshot = window.capture();
-                screenshot.saveToFile("screenshots/screenshot.png");
+                screenshot.saveToFile("screenshots/"+Utils::getDate()+".png");
             }
             else{
                 sceneManager.deliverEvent(event);

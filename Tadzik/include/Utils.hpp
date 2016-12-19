@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <sstream>
+#include <ctime>
 
 const double M_PI = 3.1415926535897;
 
@@ -18,6 +19,7 @@ bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window);
 std::string stringify(int x);
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot);
 int sgn(double x);
+std::string getDate();
 
 }
 

@@ -64,4 +64,17 @@ int sgn(double x)
     if (x<0) return -1;
 }
 
+std::string getDate() {
+    std::time_t t = std::time(0);
+    tm *ltm = std::localtime(&t);
+    std::string s;
+    s  = stringify(1900+ltm->tm_year) + "-";
+    s += stringify(1 + ltm->tm_mon) + "-";
+    s += stringify(ltm->tm_mday) + "_";
+    s += stringify(ltm->tm_hour) + "-";
+    s += stringify(ltm->tm_min) + "-";
+    s += stringify(1 + ltm->tm_sec);
+    return s;
+}
+
 }
