@@ -20,6 +20,8 @@ int main(){
     sf::ContextSettings settings;
     //settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
+    sf::Image screenshot;
+    screenshot.create(1280, 720, sf::Color::White);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
@@ -46,9 +48,13 @@ int main(){
         sf::Event event;
         while(window.pollEvent(event)){
             if(event.type == sf::Event::Closed )
-                 window.close();
+                window.close();
             if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
                 window.close();
+            }
+            if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
+                screenshot = window.capture();
+                screenshot.saveToFile("screenshots/screenshot.png");
             }
             else{
                 sceneManager.deliverEvent(event);
