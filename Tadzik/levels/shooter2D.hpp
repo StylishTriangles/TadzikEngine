@@ -22,19 +22,23 @@ public:
     class HUD: public sf::RenderTexture {
     public:
         HUD() {
-            tAmmo.setPosition(1200, 650);
-            tAllAmmo.setPosition(1250, 650);
-            tScore.setPosition(1250, 10);
+            tAmmo.setPosition(1200, 690);
+            tAllAmmo.setPosition(1250, 690);
+            tScore.setPosition(1250, 0);
+            healthBar.setPosition(10, 5);
+            healthFrame.setPosition(10, 5);
             reloading.setSize(sf::Vector2f(30, 10));
             reloading.setFillColor(sf::Color::Green);
         }
         sf::Sprite healthBar;
         sf::Sprite healthFrame;
+        sf::Sprite frame;
         sf::RectangleShape reloading;
         sf::Text tScore;
         sf::Text tAmmo;
         sf::Text tAllAmmo;
         void update() {
+            draw(frame);
             draw(healthFrame);
             draw(healthBar);
             draw(tScore);
@@ -42,10 +46,13 @@ public:
             draw(tAllAmmo);
             display();
         }
-        void setFont(sf::Font* f) {
+        void setFont(sf::Font* f, sf::Color c) {
             tScore.setFont(*f);
             tAmmo.setFont(*f);
             tAllAmmo.setFont(*f);
+            tScore.setColor(c);
+            tAmmo.setColor(c);
+            tAllAmmo.setColor(c);
         }
     };
 
@@ -418,8 +425,10 @@ public:
     }
 
     virtual void onSceneLoadToMemory() {
-        font.loadFromFile("files/Carnevalee_Freakshow.ttf");
+        font.loadFromFile("files/28_Days_Later.ttf");
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
+
+        deathMessage.setFont(font);
 
         texBullet1.loadFromFile("files/textures/shooter2D/bullet1.png");
         tmpBullet.setTexture(texBullet1);
@@ -444,10 +453,16 @@ public:
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
 
+        texHud.loadFromFile("files/textures/shooter2D/hud.png");
         hud.create(window->getSize().x, window->getSize().y);
         hud.healthBar.setTexture(texHealthBar);
         hud.healthFrame.setTexture(texHealthFrame);
-        hud.setFont(&font);
+        hud.frame.setTexture(texHud);
+        hud.setFont(&font, sf::Color::Black);
+
+        texCrosshair.loadFromFile("files/textures/shooter2D/crosshair.png");
+        spCrosshair.setTexture(texCrosshair);
+        spCrosshair.setOrigin(spCrosshair.getTextureRect().width/2, spCrosshair.getTextureRect().height/2);
 
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
 
@@ -468,7 +483,7 @@ public:
     }
 
     virtual void onSceneActivate() {
-
+        window->setMouseCursorVisible(0);
     }
 
     void loadMap() {
@@ -583,7 +598,8 @@ public:
     }
 
     void gameOver() {
-
+        isDead = true;
+        deathMessage.setString("YOU SUCK");
     }
 
     void deliverEvent(sf::Event& event){
@@ -767,6 +783,11 @@ public:
 
         updateHUD();
         window->draw(sf::Sprite(hud.getTexture()));
+        spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+        window->draw(spCrosshair);
+        if (isDead) {
+            window->draw(deathMessage);
+        }
     }
 
 protected:
@@ -778,9 +799,14 @@ protected:
     sf::Texture texBullet1;
     sf::Texture texCandle;
     sf::Texture texEnemy1;
+    sf::Texture texCrosshair;
+    sf::Texture texHud;
+
+    sf::Sprite spCrosshair;
 
     sf::Image mapa;
     sf::Font font;
+    sf::Text deathMessage;
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
     sf::RenderTexture rGUI;
@@ -811,6 +837,7 @@ protected:
     sf::Clock reloadFor;
 
     bool isReloading = false;
+    bool isDead = false;
 
     bool debug = false;
 };

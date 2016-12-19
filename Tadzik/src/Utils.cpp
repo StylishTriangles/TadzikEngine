@@ -28,6 +28,14 @@ int randInt(int from, int to) {
     return (rand()%(to-from))+from;
 }
 
+sf::Vector2i randVector2i (int from, int to) {
+    return sf::Vector2i(randInt(from, to), randInt(from, to));
+}
+
+sf::Vector2f randVector2f (float from, float to) {
+    return sf::Vector2f(randFloat(from, to), randFloat(from, to));
+}
+
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window) {
     if (sf::Mouse::getPosition(*window).x >= sp.getPosition().x && sf::Mouse::getPosition(*window).x <= sp.getPosition().x+sp.getGlobalBounds().width &&
         sf::Mouse::getPosition(*window).y >= sp.getPosition().y && sf::Mouse::getPosition(*window).y <= sp.getPosition().y+sp.getGlobalBounds().height)
