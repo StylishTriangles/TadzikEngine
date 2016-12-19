@@ -27,8 +27,8 @@ public:
             {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0))
                 {
-                    tempMur.setPosition(i*tilesize,j*tilesize);
-                    spMur.push_back(tempMur);
+                    tempWall.setPosition(i*tilesize,j*tilesize);
+                    spWall.push_back(tempWall);
                 }
                 else if(mapa.getPixel(i,j)==sf::Color(128,32,0))
                 {
@@ -54,11 +54,10 @@ public:
             }
         }
     }
-    bool checkCollision(sf::Vector2f pos)
+
+    float distance(sf::Sprite spA, sf::Sprite spB)
     {
-        if (mapa.getPixel(pos.x/tilesize, pos.y/tilesize)==sf::Color(0, 0, 0))
-            return 1;
-        else return 0;
+        return sqrt((spA.getPosition().x-spB.getPosition().x)*(spA.getPosition().x-spB.getPosition().x)+(spA.getPosition().y-spB.getPosition().y)*(spA.getPosition().y-spB.getPosition().y));
     }
 
     virtual void onSceneLoadToMemory()
@@ -68,15 +67,18 @@ public:
             std::cout << "cannot load font\n";
         }
         texTadeusz.loadFromFile("files/textures/rpg/playerStand.png");
+
         spTadeusz.setTexture(texTadeusz);
         spTadeusz.setScale(1, 1);
+        spTadeusz.setOrigin(spTadeusz.getTextureRect().width*0.5,spTadeusz.getTextureRect().height*0.5);
 
-        texMur.loadFromFile("files/textures/rpg/mur.png");
-        tempMur.setTexture(texMur);
-        tempMur.setScale(1, 1);
+        texWall.loadFromFile("files/textures/rpg/Wall.png");
+        tempWall.setTexture(texWall);
+        tempWall.setScale(1, 1);
 
         texEnemy.loadFromFile("files/textures/rpg/enemyStand.png");
         tempEnemy.setTexture(texEnemy);
+        tempEnemy.setOrigin(tempEnemy.getTextureRect().width*0.5, tempEnemy.getTextureRect().height*0.5);
 
         texGrass.loadFromFile("files/textures/rpg/grass.png");
         tempGrass.setTexture(texGrass);
@@ -84,11 +86,20 @@ public:
         texDoor.loadFromFile("files/textures/rpg/door.png");
         texDoorOpen.loadFromFile("files/textures/rpg/doorOpen.png");
 
-for(int i=0; i<spDoor.size(); i++)
-            if(spTadeusz.getPosition()==spDoor[i].getPosition())
-                tempDoor.setTexture(texDoorOpen);
-            else tempDoor.setTexture(texDoor);
 
+
+
+        window->setMouseCursorVisible(0);
+        texCrosshair.loadFromFile("files/textures/rpg/crosshair.png");
+        spCrosshair.setTexture(texCrosshair);
+        spCrosshair.setOrigin(spCrosshair.getTextureRect().height*0.5, spCrosshair.getTextureRect().width*0.5);
+
+//attackcircle
+        Attack.setFillColor(sf::Color(0, 0, 0, 0));
+        Attack.setOutlineThickness(2);
+        Attack.setOutlineColor(sf::Color(250, 150, 100));
+        Attack.setRadius(50);
+        Attack.setOrigin(Attack.getRadius(), Attack.getRadius());
 
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
         loadMap();
@@ -108,75 +119,110 @@ for(int i=0; i<spDoor.size(); i++)
 
     virtual void draw(double deltaTime)
     {
-
-
+//MOVEMENT
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
         {
-            offset += sf::Vector2f(-tilesize, 0);
+            offset += sf::Vector2f(-tilesize*0.1, 0);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
-            offset += sf::Vector2f(0, -tilesize);
+            offset += sf::Vector2f(0, -tilesize*0.1);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
         {
-            offset += sf::Vector2f(0, tilesize);
+            offset += sf::Vector2f(0, tilesize*0.1);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
         {
-            offset += sf::Vector2f(tilesize, 0);
+            offset += sf::Vector2f(tilesize*0.1, 0);
         }
-
-        if(checkCollision(spTadeusz.getPosition()+offset))
-            offset=sf::Vector2f(0,0);
         spTadeusz.move(offset);
 
+//COLLISION
+        for(int i = 0; i<spEnemy.size(); i++)
+            if(Collision::BoundingBoxTest(spTadeusz,spEnemy[i]))
+                spTadeusz.move(-offset);
+        for(int i = 0; i<spWall.size(); i++)
+            if(Collision::BoundingBoxTest(spTadeusz,spWall[i]))
+                spTadeusz.move(-offset);;
+        offset=sf::Vector2f(0, 0);
+
+        spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+
+//OBRACANIE        spTadeusz.setRotation(90+180/M_PI*atan2(sf::Mouse::getPosition(*window).y-spTadeusz.getPosition().y, sf::Mouse::getPosition(*window).x-spTadeusz.getPosition().x));
+
+//SKELETON MOVEMENT
+
+          float RANDx, RANDy;
+              for(int i = 0; i < spEnemy.size(); i++)
+                  spEnemy[i].move(sf::Vector2f(Utils::randInt(-50,50)*tilesize*0.001,Utils::randInt(-50,50)*tilesize*0.001));
+
+
+//DOORS
         for(int i=0; i<spDoor.size(); i++)
-            if(spTadeusz.getPosition()==spDoor[i].getPosition() || spTadeusz.getPosition()+sf::Vector2f(0, -tilesize)==spDoor[i].getPosition()|| spTadeusz.getPosition()+sf::Vector2f(-tilesize, -tilesize)==spDoor[i].getPosition()|| spTadeusz.getPosition()+sf::Vector2f(-tilesize, 0)==spDoor[i].getPosition())
-                 spDoor[i].setTexture(texDoorOpen);
+            if(Collision::BoundingBoxTest(spTadeusz,spDoor[i]))
+                spDoor[i].setTexture(texDoorOpen);
             else spDoor[i].setTexture(texDoor);
 
+//DRAW STARTS
         window->clear(sf::Color());
-
         for(int i = 0; i < spGrass.size(); i++)
             window->draw(spGrass[i]);
-
-
-
+        for(int i = 0; i < spWall.size(); i++)
+            window->draw(spWall[i]);
         for(int i = 0; i < spDoor.size(); i++)
             window->draw(spDoor[i]);
-
-        window->draw(spTadeusz);
-
-        for(int i = 0; i < spMur.size(); i++)
-            window->draw(spMur[i]);
-
         for(int i = 0; i < spEnemy.size(); i++)
             window->draw(spEnemy[i]);
 
+        window->draw(spCrosshair);
+        window->draw(spTadeusz);
+//ATTACK
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        {
+            Attack.setPosition(spTadeusz.getPosition());
+            window->draw(Attack);
+            for(int i = spEnemy.size()-1; i>=0; i--)
+                if(distance(spEnemy[i],spTadeusz)<=50)
 
-        offset=sf::Vector2f(0, 0);
+                    spEnemy.erase(spEnemy.begin()+i);
+
+        }
+
     }
 
 protected:
     sf::Font font;
+
     sf::Texture texTadeusz;
     sf::Sprite spTadeusz;
+
     sf::Image mapa;
-    sf::Texture texMur;
-    std::vector <sf::Sprite> spMur;
-    sf::Sprite tempMur;
+
+    sf::Texture texWall;
+    std::vector <sf::Sprite> spWall;
+    sf::Sprite tempWall;
+
     int tilesize = 30;
+
     sf::Vector2f offset;
+
     sf::Texture texEnemy;
     std::vector <sf::Sprite> spEnemy;
     sf::Sprite tempEnemy;
+
     sf::Texture texGrass;
     std::vector <sf::Sprite> spGrass;
     sf::Sprite tempGrass;
+
     sf::Texture texDoor;
     sf::Texture texDoorOpen;
     std::vector <sf::Sprite> spDoor;
     sf::Sprite tempDoor;
+
+    sf::Texture texCrosshair;
+    sf::Sprite spCrosshair;
+
+    sf::CircleShape Attack;
 };
 #endif //RPG
