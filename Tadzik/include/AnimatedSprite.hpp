@@ -55,6 +55,13 @@ public:
     void move(double x, double y) {
         sprite.move(x, y);
     }
+
+    void setPosition(float x, float y) {
+        sprite.setPosition(x, y);
+    }
+    void setPosition(sf::Vector2f pos) {
+        sprite.setPosition(pos);
+    }
     Animation* getAnimation() {
         return currentAnimation;
     }

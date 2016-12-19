@@ -20,8 +20,12 @@ void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window){
     window->draw(shp);
 }
 
-float randF(float from, float to) {
+float randFloat(float from, float to) {
     return ((float)rand()/RAND_MAX*(to-from)+from);
+}
+
+int randInt(int from, int to) {
+    return (rand()%(to-from))+from;
 }
 
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window) {

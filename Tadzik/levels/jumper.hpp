@@ -71,6 +71,8 @@ public:
 
         texPlayerStand.loadFromFile("files/textures/universal/playerStand.png"), TadzikStand.addFrame(AnimationFrame(&texPlayerStand, 150));
 
+        texPlayerFall.loadFromFile("files/textures/universal/playerFall.png"), TadzikFall.addFrame(AnimationFrame(&texPlayerFall, 150));
+
         spTadzik.setAnimation(&TadzikRun);
         spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
                                     window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
@@ -230,7 +232,7 @@ public:
         if (!isStanding) {
             speedY += gravity;
             if (speedY>0) {
-                if (isJumping) spTadzik.setAnimation(&TadzikRun);
+                if (isJumping) spTadzik.setAnimation(&TadzikFall);
                 isJumping = false;
                 isRolling = false;
                 spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height);
@@ -288,15 +290,15 @@ public:
 
         //dodawanie platform i powerupow
         if (score - lastPlatformGenerated > window->getSize().y/2) {
-            if (Utils::randF(0, 50)<10) {
-                powerup1.setPosition(Utils::randF(10, window->getSize().x-10), Utils::randF(-100, -50));
+            if (Utils::randFloat(0, 50)<10) {
+                powerup1.setPosition(Utils::randFloat(10, window->getSize().x-10), Utils::randFloat(-100, -50));
                 powerup1.setScale(3, 3);
                 powerups.push_back(powerup1);
             }
-            int tmp = Utils::randF(-100, -50);
+            int tmp = Utils::randFloat(-100, -50);
             lastPlatformGenerated = score + tmp;
-            tmpPlatform.setPosition(Utils::randF(0, window->getSize().x-tmpPlatform.getTextureRect().width), tmp);
-            tmpPlatform.setScale(Utils::randF(1, 3), 1);
+            tmpPlatform.setPosition(Utils::randFloat(0, window->getSize().x-tmpPlatform.getTextureRect().width), tmp);
+            tmpPlatform.setScale(Utils::randFloat(1, 3), 1);
             platforms.push_back(platform(tmpPlatform));
         }
 
@@ -339,6 +341,8 @@ public:
 protected:
     sf::Texture texBackground;
     sf::Texture texPlatform;
+    sf::Texture texPowerup1;
+
     sf::Texture texPlayerRun1;
     sf::Texture texPlayerRun2;
     sf::Texture texPlayerRun3;
@@ -347,7 +351,7 @@ protected:
     sf::Texture texPlayerJump;
     sf::Texture texPlayerJumpSuper;
     sf::Texture texPlayerStand;
-    sf::Texture texPowerup1;
+    sf::Texture texPlayerFall;
 
     sf::Text textScore;
 
@@ -359,7 +363,7 @@ protected:
     sf::Sprite powerup1;
 
     AnimatedSprite spTadzik;
-    Animation TadzikRun, TadzikStand, TadzikRoll, TadzikJump, TadzikJumpSuper;
+    Animation TadzikRun, TadzikStand, TadzikRoll, TadzikJump, TadzikJumpSuper, TadzikFall;
 
     double speedX = 0.01;
     double prevSpeedX = 0.01;
