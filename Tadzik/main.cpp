@@ -1,6 +1,27 @@
+#include "../include/imgui/imgui.h"
+#include "../include/imgui/imgui-SFML.h"
+
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <ctime>
+
+
+//******
+//temporary workaround
+namespace sf{
+class KeyboardHacked: public sf::Keyboard{
+public:
+    static bool isKeyPressed (Key key){
+        if(ImGui::GetIO().WantCaptureKeyboard){
+            return false;
+        }
+        return sf::Keyboard::isKeyPressed(key);
+    }
+};
+}
+#define Keyboard KeyboardHacked
+//*****
+
 
 #include "SceneManager.hpp"
 #include "levels/trex.hpp"
@@ -14,6 +35,7 @@
 #include "levels/isayparty.hpp"
 
 #include <cstdlib>
+#include <iostream>
 
 int main(){
     srand(time(NULL));
@@ -22,6 +44,7 @@ int main(){
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
+    ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
     //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
@@ -40,9 +63,11 @@ int main(){
     //sceneManager.setActiveScene("SHOOTER2D");
     //sceneManager.setActiveScene("RPG");
     sf::Clock deltaClock;
+    char windowTitle[256]="Test";
     while(window.isOpen()){
         sf::Event event;
         while(window.pollEvent(event)){
+            ImGui::SFML::ProcessEvent(event);
             if(event.type == sf::Event::Closed )
                  window.close();
             if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
@@ -52,10 +77,17 @@ int main(){
                 sceneManager.deliverEvent(event);
             }
         }
-
 		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-		deltaClock.restart();
+        ImGui::SFML::Update(window, deltaClock.restart());
+
+        ImGui::Begin("Hello, world!");
+        ImGui::Button("Look at this pretty button");
+        bool b = ImGui::InputText("Window title", windowTitle, 255);
+        ImGui::End();
+
+        ImGui::Render();
         window.display();
     }
+    ImGui::SFML::Shutdown();
     return 0;
 }
