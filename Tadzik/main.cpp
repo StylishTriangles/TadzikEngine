@@ -46,22 +46,22 @@ int main(){
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
-    //sceneManager.registerScene<TREX>("TREX", &window);
-    //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
-    //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    //sceneManager.registerScene<RPG>("RPG", &window);
-    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
-    //sceneManager.setActiveScene("TREX");
+    sceneManager.registerScene<MARIO>("MARIO", &window);
+    sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
+    sceneManager.registerScene<RPG>("RPG", &window);
+    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    sceneManager.setActiveScene("SYNTH3D");
+    //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
     //sceneManager.setActiveScene("SHOOTER2D");
-    //sceneManager.setActiveScene("RPG");
+    sceneManager.setActiveScene("RPG");
     sf::Clock deltaClock;
     char windowTitle[256]="Test";
     while(window.isOpen()){
@@ -73,18 +73,18 @@ int main(){
             if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
                 window.close();
             }
+            if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Tilde) {
+                sceneManager.toogleCMD();
+            }
             else{
                 sceneManager.deliverEvent(event);
             }
         }
+        ImGui::SFML::Update(window, deltaClock.getElapsedTime());
 		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        ImGui::SFML::Update(window, deltaClock.restart());
+        deltaClock.restart();
 
-        ImGui::Begin("Hello, world!");
-        ImGui::Button("Look at this pretty button");
-        bool b = ImGui::InputText("Window title", windowTitle, 255);
-        ImGui::End();
-
+        window.resetGLStates();
         ImGui::Render();
         window.display();
     }

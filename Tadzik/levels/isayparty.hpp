@@ -286,6 +286,16 @@ public:
         actSprite.setAnimation(d->animation);
     }
 
+    virtual bool onConsoleUpdate(std::vector<std::string> args){
+        if(args.size() == 2){
+            if(args[0] == "addscore" || args[0] == "ads"){
+                score += atoi(args[1].c_str());
+                return true;
+            }
+        }
+        return false;
+    }
+
     void keyPressed(int k){
         int miniIdx=-1;
         float miniTime=1000000000.0;
@@ -387,9 +397,3 @@ protected:
 };
 
 #endif // ISAYPARTY_HPP
-
-
-
-
-
-
