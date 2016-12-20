@@ -51,6 +51,10 @@ public:
                     tempEnemy.setPosition(i*tilesize,j*tilesize);
                     spEnemy.push_back(tempEnemy);
                 }
+                if(mapa.getPixel(i, j)==sf::Color(0, 0, 255))
+                {
+                    spWaterfall.setPosition(i*tilesize, j*tilesize);
+                }
             }
         }
     }
@@ -86,7 +90,9 @@ public:
         texDoor.loadFromFile("files/textures/rpg/door.png");
         texDoorOpen.loadFromFile("files/textures/rpg/doorOpen.png");
 
-
+        texWaterfall.loadFromFile("files/textures/rpg/Waterfall.png");
+        spWaterfall.setTexture(texWaterfall);
+        spWaterfall.setScale(4,4);
 
 
         window->setMouseCursorVisible(0);
@@ -119,6 +125,13 @@ public:
 
     virtual void draw(double deltaTime)
     {
+
+        spWaterfall.setTextureRect(sf::IntRect( 0,  spWaterfall.getTextureRect().height-tilesize-w,    spWaterfall.getTextureRect().width, tilesize ));
+        w++;
+        if((texWaterfall.getSize().y-tilesize<w))
+            w=0;
+
+
 //MOVEMENT
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
         {
@@ -153,9 +166,8 @@ public:
 
 //SKELETON MOVEMENT
 
-          float RANDx, RANDy;
-              for(int i = 0; i < spEnemy.size(); i++)
-                  spEnemy[i].move(sf::Vector2f(Utils::randInt(-50,50)*tilesize*0.001,Utils::randInt(-50,50)*tilesize*0.001));
+        for(int i = 0; i < spEnemy.size(); i++)
+            spEnemy[i].move(sf::Vector2f(Utils::randInt(-50,50)*tilesize*0.001,Utils::randInt(-50,50)*tilesize*0.001));
 
 
 //DOORS
@@ -175,8 +187,11 @@ public:
         for(int i = 0; i < spEnemy.size(); i++)
             window->draw(spEnemy[i]);
 
+        window->draw(spWaterfall);
+
         window->draw(spCrosshair);
         window->draw(spTadeusz);
+
 //ATTACK
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
         {
@@ -186,6 +201,8 @@ public:
                 if(distance(spEnemy[i],spTadeusz)<=50)
 
                     spEnemy.erase(spEnemy.begin()+i);
+
+
 
         }
 
@@ -214,6 +231,9 @@ protected:
     sf::Texture texGrass;
     std::vector <sf::Sprite> spGrass;
     sf::Sprite tempGrass;
+    int w = 0;
+    sf::Texture texWaterfall;
+    sf::Sprite spWaterfall;
 
     sf::Texture texDoor;
     sf::Texture texDoorOpen;
