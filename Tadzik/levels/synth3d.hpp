@@ -22,8 +22,8 @@ struct wall
 {
     std::vector <sf::Vector3f*> coord;
     sf::Color color=sf::Color::Green;
-    sf::Color trans=sf::Color{0,0,0,200};
-    float pSize=500;
+    sf::Color trans=sf::Color::Magenta;
+    float pSize=100;
     void push_back(sf::Vector3f &c)
     {
         coord.push_back(&c);
@@ -58,13 +58,13 @@ public:
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
 protected:
-    sf::Vertex lina[2];
+    std::vector <sf::Vertex> triangleArray;
+    std::vector <sf::Vector2f> circleDef;
+    void initCircleDef(int n);
     SYNTH3D* p;
     float screenSize, viewAngle, eye, scale;
-    sf::Vector3f position;      //Pozycja kamery
-    sf::Vector3f angle;
+    sf::Vector3f position, angle;
     sf::Vector3f planeCross(sf::Vector3f vec1, sf::Vector3f vec2);
-    sf::Vector2f process(sf::Vector3f* point);    //Podaj wspolrzedne na ekranie
     sf::Vector3f vecTransform(sf::Vector3f vec);
     void drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color);
     void drawDot(sf::Vector2f spot, float size, sf::Color color);
@@ -77,10 +77,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos(
-    {
-        0, 0, -200
-    }), cameraAngle({0, 0, 0}), eyeDistance(-10)
+        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -88,49 +85,28 @@ public:
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf"))
         {
             std::cout << "cannot load font\n";
-        } //                             X   Y   Z
-        terrain.push_back(sf::Vector3f(-100,100,100)); // 0
-        terrain.push_back(sf::Vector3f(100,100,100));  // 1
-        terrain.push_back(sf::Vector3f(100,-100,100)); // 2
-        terrain.push_back(sf::Vector3f(-100,-100,100));// 3
-        terrain.push_back(sf::Vector3f(-100,100,300)); // 4
-        terrain.push_back(sf::Vector3f(100,100,300));  // 5
-        terrain.push_back(sf::Vector3f(100,-100,300)); // 6
-        terrain.push_back(sf::Vector3f(-100,-100,300));// 7
+        }
         object cube;
-        wall wallie[6]; // 0 - Rear Wall    |   1 - Right Wall     |   2 - Upper Wall     |   3 - Front Wall      | 4 - Left Wall     |   5 - Bottom Wall
+        std::vector <wall> wallie;
+        int scale = 100;
+        for(int i=0; i<20; i++)
+            for(int j=0; j<20; j++)
+                terrain.push_back({i*scale, 0, j*scale});
+        for(int i=0; i<19*19; i++)
+        {
+            if(i%20 != 19)
+            {
+            wall walion;
+            walion.push_back(terrain[i]);
+            walion.push_back(terrain[i+1]);
+            walion.push_back(terrain[i+21]);
+            walion.push_back(terrain[i+20]);
+            wallie.push_back(walion);
+            }
+        }
 
-        wallie[0].push_back(terrain[4]);
-        wallie[0].push_back(terrain[5]);
-        wallie[0].push_back(terrain[6]);
-        wallie[0].push_back(terrain[7]);
 
-        wallie[1].push_back(terrain[1]);
-        wallie[1].push_back(terrain[2]);
-        wallie[1].push_back(terrain[6]);
-        wallie[1].push_back(terrain[5]);
-
-        wallie[2].push_back(terrain[0]);
-        wallie[2].push_back(terrain[1]);
-        wallie[2].push_back(terrain[5]);
-        wallie[2].push_back(terrain[4]);
-
-        wallie[3].push_back(terrain[0]);
-        wallie[3].push_back(terrain[1]);
-        wallie[3].push_back(terrain[2]);
-        wallie[3].push_back(terrain[3]);
-
-        wallie[4].push_back(terrain[0]);
-        wallie[4].push_back(terrain[3]);
-        wallie[4].push_back(terrain[7]);
-        wallie[4].push_back(terrain[4]);
-
-        wallie[5].push_back(terrain[2]);
-        wallie[5].push_back(terrain[3]);
-        wallie[5].push_back(terrain[7]);
-        wallie[5].push_back(terrain[6]);
-
-        for(int i=0; i<6; i++)
+        for(int i=0; i<wallie.size(); i++)
             cube.push_back(wallie[i]);
         world.push_back(cube);
     }
@@ -216,26 +192,30 @@ protected:
 };
 Camera::Camera(SYNTH3D* parent):
     p(parent),
-    position(
+    position({0, 0, -400}),
+    eye(-80),
+    angle({0,0,0}),
+    screenSize(3),
+    scale(100)
 {
-    0, 0, -400
-}),
-eye(-80),
-angle({0,0,0}),
-screenSize(3),
-scale(100)
-{}
+    initCircleDef(16);
+}
+
+void Camera::initCircleDef(int n)
+{
+    sf::Vector2f target = {0, 1}, temp = target;
+    for(int i=0; i<n; i++)
+    {
+        circleDef.push_back(target);
+        target.x = temp.x*cosf(2*M_PI/n) - temp.y*sinf(2*M_PI/n);
+        target.y = temp.x*sinf(2*M_PI/n) + temp.y*cosf(2*M_PI/n);
+        temp = target;
+    }
+}
 
 sf::Vector3f Camera::planeCross(sf::Vector3f vec1, sf::Vector3f vec2)
 {
     return vec2 + (vec1-vec2)*((-vec2.z)/(vec1.z - vec2.z));
-}
-
-sf::Vector2f Camera::process(sf::Vector3f* point)
-{
-    sf::Vector3f vEye = {0, 0, eye};
-    sf::Vector3f tempPlane = planeCross(vecTransform(*point - position), vEye);
-    return {tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2};
 }
 
 void Camera::setPos(sf::Vector3f posGiven)
@@ -279,30 +259,28 @@ float Camera::dotSize(float dot, sf::Vector3f vec)
 
 void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color)
 {
-    sf::ConvexShape line;
-    line.setPointCount(4);
     sf::Vector2f norm;
     float temp, lenght;
     norm = (vec1 - vec2);
     lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
     norm.x /= lenght, norm.y /= lenght;
     temp = norm.x, norm.x = -norm.y, norm.y = temp;
-
-    line.setPoint(0, vec1 + norm*size1);
-    line.setPoint(1, vec2 + norm*size2);
-    line.setPoint(2, vec2 - norm*size2);
-    line.setPoint(3, vec1 - norm*size1);
-    line.setFillColor(color);
-    p->window->draw(line);
+    triangleArray.push_back(sf::Vertex(vec1 + norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+    triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+    triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 - norm*size2, color));
 }
 
 void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
 {
-    sf::CircleShape circle(size);
-    circle.setFillColor(color);
-    spot.x -= size, spot.y -= size;
-    circle.setPosition(spot);
-    p->window->draw(circle);
+    for(int i=0; i<circleDef.size(); i++)
+    {
+        triangleArray.push_back(sf::Vertex(spot, color));
+        triangleArray.push_back(sf::Vertex(spot + circleDef[i]*size, color));
+        triangleArray.push_back(sf::Vertex(spot + circleDef[(i+1)%circleDef.size()]*size, color));
+    }
 }
 
 void Camera::drawWall(wall const& wallie)
@@ -323,20 +301,20 @@ void Camera::drawWall(wall const& wallie)
     }
     if(!usefulSpot.empty())
     {
-    if(usefulSpot.size() < spot3d.size())
-    {
-        usefulSpot.clear();
-    for(int i=0, j=0; i<2*spot3d.size(); i++)
-        if(spot3d[i%spot3d.size()].z < 0 or j > 0)
+        if(usefulSpot.size() < spot3d.size())
         {
-            if(j == 0)
-                j = 1;
-            if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
-                usefulSpot.push_back(i%spot3d.size()), j = 2;
-            else if(j == 2)
-                j = 3;
+            usefulSpot.clear();
+        for(int i=0, j=0; i<2*spot3d.size(); i++)
+            if(spot3d[i%spot3d.size()].z < 0 or j > 0)
+            {
+                if(j == 0)
+                    j = 1;
+                if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
+                    usefulSpot.push_back(i%spot3d.size()), j = 2;
+                else if(j == 2)
+                    j = 3;
+            }
         }
-    }
         if(usefulSpot.size() == spot3d.size())
         {
             for(int i=0; i<usefulSpot.size(); i++)
@@ -363,20 +341,20 @@ void Camera::drawWall(wall const& wallie)
             dot.push_back(wallie.pSize);
             indicator = 1;
         }
-        sf::ConvexShape fillament;
-        fillament.setPointCount(spot.size());
-        for(int i=0; i<spot.size(); i++)
-            fillament.setPoint(i, spot[i]);
-        fillament.setFillColor(wallie.trans);
-        p->window->draw(fillament);
+        for(int i=1; i<spot.size()-1; i++)
+        {
+            triangleArray.push_back(sf::Vertex(spot[0], wallie.trans));
+            triangleArray.push_back(sf::Vertex(spot[i], wallie.trans));
+            triangleArray.push_back(sf::Vertex(spot[i+1], wallie.trans));
+        }
         for(int i=0; i<spot.size() - indicator; i++)
         {
-            drawLine(spot[i],
-                     spot[(i+1)%spot.size()],
-                     dot[i],
-                     dot[(i+1)%spot.size()],
-                     wallie.color);
-            drawDot(spot[i], dot[i], wallie.color);
+        drawLine(spot[i],
+                 spot[(i+1)%spot.size()],
+                 dot[i],
+                 dot[(i+1)%spot.size()],
+                 wallie.color);
+        drawDot(spot[i], dot[i], wallie.color);
         }
     }
 }
@@ -400,7 +378,7 @@ void Camera::display()
     };
 
     p->window->clear();
-    std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
+    //std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
     struct tempType
     {
         int i;
@@ -411,22 +389,12 @@ void Camera::display()
 
     for(int i=0; i<p->world.size(); i++)
         for(int j=0; j<p->world[i].size(); j++)
-        {
             wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position)});
-        }
-
-    /* Cpp 14 solution
-    std::sort(wallOrder.begin(), wallOrder.end(), [](auto &left, auto &right) {
-    return left.dist < right.dist;
-    });*/
-
-    std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right)
-    {
-        return left.dist > right.dist;
-    });
-
+    std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
+    triangleArray.clear();
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
+    p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
 }
 
 #endif //SYNTH3D_HPP
