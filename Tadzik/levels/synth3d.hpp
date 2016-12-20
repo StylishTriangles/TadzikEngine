@@ -22,7 +22,7 @@ struct wall
 {
     std::vector <sf::Vector3f*> coord;
     sf::Color color=sf::Color::Green;
-    sf::Color trans=sf::Color::Magenta;
+    sf::Color trans=sf::Color::Transparent;
     float pSize=100;
     void push_back(sf::Vector3f &c)
     {
@@ -77,7 +77,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10)
+        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -89,18 +89,18 @@ public:
         object cube;
         std::vector <wall> wallie;
         int scale = 100;
-        for(int i=0; i<20; i++)
-            for(int j=0; j<20; j++)
+        for(int i=0; i<30; i++)
+            for(int j=0; j<30; j++)
                 terrain.push_back({i*scale, 0, j*scale});
-        for(int i=0; i<19*19; i++)
+        for(int i=0; i<29*29; i++)
         {
-            if(i%20 != 19)
+            if(i%30 != 29)
             {
             wall walion;
             walion.push_back(terrain[i]);
             walion.push_back(terrain[i+1]);
-            walion.push_back(terrain[i+21]);
-            walion.push_back(terrain[i+20]);
+            walion.push_back(terrain[i+31]);
+            walion.push_back(terrain[i+30]);
             wallie.push_back(walion);
             }
         }
@@ -176,6 +176,21 @@ public:
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             eyeDistance-=0.1;
 
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+        {
+            extraBit += 0.5;
+            waveBuffor += extraBit;
+            for(int j=0; j<30; j++)
+            {
+            for(int i=0; i<30; i++)
+            {
+                terrain[i + j*30].y = sinf(waveBuffor/2)*(30-j) + cosf(float(j)/3)*30;
+            }
+            waveBuffor++;
+            }
+            waveBuffor = 0;
+        }
+
         c.setPos(cameraPos);
         c.setAngle(cameraAngle);
         c.setEyeDistance(eyeDistance);
@@ -188,7 +203,7 @@ protected:
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
-    float eyeDistance;
+    float eyeDistance, waveBuffor, extraBit;
 };
 Camera::Camera(SYNTH3D* parent):
     p(parent),
