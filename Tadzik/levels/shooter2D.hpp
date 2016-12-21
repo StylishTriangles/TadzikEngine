@@ -27,12 +27,14 @@ public:
             tScore.setPosition(1250, 0);
             healthBar.setPosition(10, 5);
             healthFrame.setPosition(10, 5);
+            activeWeapon.setPosition(1150, 600);
             reloading.setSize(sf::Vector2f(30, 10));
             reloading.setFillColor(sf::Color::Green);
         }
         sf::Sprite healthBar;
         sf::Sprite healthFrame;
         sf::Sprite frame;
+        sf::Sprite activeWeapon;
         sf::RectangleShape reloading;
         sf::Text tScore;
         sf::Text tAmmo;
@@ -44,6 +46,7 @@ public:
             draw(tScore);
             draw(tAmmo);
             draw(tAllAmmo);
+            draw(activeWeapon);
             display();
         }
         void setFont(sf::Font* f, sf::Color c) {
@@ -141,62 +144,45 @@ public:
         Bullet() {
 
         }
-        Bullet(sf::Vector2f p, double v) {
+        Bullet(sf::Vector2f p, double speed) {
             setPosition(p);
-            speed = v;
+            v = speed;
         }
         sf::Vector2f velocity;
         void update() {
-
             move(velocity);
             setRotation(atan2(velocity.y, velocity.x)*180/M_PI);
         }
-        void create(sf::Vector2f p, sf::Vector2f d, double v) {
+        void create(sf::Vector2f p, sf::Vector2f d, double speed) {
             setPosition(p);
-            velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*v;
-            velocity.y = sin (atan2(d.y-p.y, d.x-p.x))*v;
+            v = speed;
+            velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*speed;
+            velocity.y = sin (atan2(d.y-p.y, d.x-p.x))*speed;
         }
         void setDirection(sf::Vector2f d) {
-            velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
-            velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
+            velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
+            velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
         }
         double damage = 100;
         double knockback = -2;
         bool penetrating = false;
         bool bouncy = false;
         bool friendly = true;
-        double speed = 5;
+        double v = 5;
     };
 
     class Weapon {
     public:
         Weapon() {};
         Weapon(MovingEntity* p): parent(p) {};
-        void getBullet() {
-
-        }
-        void loadFromFile(std::string directory) {
-            std::string texDirectory;
-            std::ifstream file;
-            file.open(directory);
-            file >> texDirectory;
-            texture.loadFromFile(texDirectory);
-            sprite.setTexture(texture);
-            file >> magSize;
-            file >> maxMagAmount;
-            file >> reloadTime;
-            file >> damage;
-            file >> fireTime;
-            ammo = magSize;
-            mags = magAmount;
-            file.close();
-        }
         void setParent(MovingEntity* p) {parent = p;}
         void setBullet() {
             bullet.damage = damage;
             bullet.knockback = knockback;
+            bullet.v = velocity;
         }
         MovingEntity* parent;
+        std::string name;
         double reloadTime = 1;
         double fireTime = 1;
         unsigned int magSize = 30;
@@ -206,8 +192,9 @@ public:
         unsigned int mags;
         int damage = 100;
         double knockback = -2;
+        double velocity = 5;
+        bool automatic = true;
         sf::Texture texture;
-        sf::Sprite sprite;
         Bullet bullet;
     };
 
@@ -231,7 +218,6 @@ public:
         double maxSpeed = 10;
         double angle;
         double speed;
-
         Bullet playerBullet;
         std::vector <Weapon> weapons;
         int currentWeapon = 0;
@@ -474,12 +460,12 @@ public:
 
         vecWalls.push_back(tmpObject);
 
-        Weapon wGlock;
-        wGlock.loadFromFile("files/resource/shooter2D/weapons/glock.dat");
-        wGlock.bullet.setTexture(texBullet1);
-        wGlock.bullet.setScale(0.2, 0.2);
-        wGlock.bullet.setOrigin(wGlock.bullet.getTextureRect().width/2, wGlock.bullet.getTextureRect().height/2);
-        spTadzik.addWeapon(wGlock);
+        loadWeapons();
+        spTadzik.addWeapon(vecWeapons[0]);
+        spTadzik.addWeapon(vecWeapons[1]);
+        spTadzik.addWeapon(vecWeapons[2]);
+        spTadzik.addWeapon(vecWeapons[3]);
+        spTadzik.currentWeapon = 0;
     }
 
     virtual void onSceneActivate() {
@@ -565,6 +551,31 @@ public:
         }
     }
 
+    void loadWeapons() {
+        std::ifstream file;
+        std::string texDir;
+        Weapon tmpWeapon;
+        tmpWeapon.bullet.setTexture(texBullet1);
+        tmpWeapon.bullet.setScale(0.2, 0.2);
+        tmpWeapon.bullet.setOrigin(tmpWeapon.bullet.getTextureRect().width/2, tmpWeapon.bullet.getTextureRect().height/2);
+        file.open("files/resource/shooter2D/weapons.dat");
+        while (!file.eof()) {
+            std::cout << "lel";
+            file >> tmpWeapon.name;
+            file >> texDir;
+            tmpWeapon.texture.loadFromFile(texDir);
+            file >> tmpWeapon.damage;
+            file >> tmpWeapon.magSize; tmpWeapon.ammo = tmpWeapon.magSize;
+            file >> tmpWeapon.magAmount; tmpWeapon.mags = tmpWeapon.magAmount;
+            file >> tmpWeapon.automatic;
+            file >> tmpWeapon.reloadTime;
+            file >> tmpWeapon.fireTime;
+            file >> tmpWeapon.velocity;
+            tmpWeapon.setBullet();
+            vecWeapons.push_back(tmpWeapon);
+        }
+    }
+
     void handleCollision(MovingEntity& s1, std::vector <sf::Sprite>& walls) {
         for (unsigned int i=0; i<walls.size(); ++i) {
             sf::FloatRect intersection;
@@ -604,13 +615,20 @@ public:
 
     void deliverEvent(sf::Event& event){
         if (event.type == sf::Event::MouseButtonPressed) {
-            if (event.mouseButton.button == sf::Mouse::Left) {
+            if (event.mouseButton.button == sf::Mouse::Left && !spTadzik.weapons[spTadzik.currentWeapon].automatic) {
                 shoot();
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
                 vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), sf::Vector2f(0, 0), sf::Color(255, 255, 0, 100), &texCandle));
                 updateShadow(vecLights[vecLights.size()-1]);
             }
+        }
+        if (event.type == sf::Event::MouseWheelMoved) {
+            spTadzik.currentWeapon-=event.mouseWheel.delta;
+            while (spTadzik.currentWeapon<0) spTadzik.currentWeapon += spTadzik.weapons.size();
+            spTadzik.currentWeapon = spTadzik.currentWeapon%spTadzik.weapons.size();
+            isReloading = false;
+            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
         }
     }
 
@@ -648,6 +666,7 @@ public:
                     vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
                     if (vecEnemies[i].health<=0) vecEnemies.erase(vecEnemies.begin()+i), score++;
+                    break;
                 }
             }
         }
@@ -671,6 +690,8 @@ public:
         hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
         hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
         hud.healthBar.setScale(spTadzik.health/100, 1);
+        //hud.activeWeapon.setTextureRect(spTadzik.weapons[spTadzik.currentWeapon].texture.)
+        hud.activeWeapon.setTexture(spTadzik.weapons[spTadzik.currentWeapon].texture);
         hud.clear(sf::Color(0, 0, 0, 0));
         if (isReloading) {
             hud.reloading.setScale(1-reloadFor.getElapsedTime().asMilliseconds()/spTadzik.weapons[spTadzik.currentWeapon].reloadTime, 1);
@@ -681,6 +702,11 @@ public:
     }
 
     virtual void draw(double deltaTime) {
+        //input myszka
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
+            shoot();
+        }
+
         //input z klawiatury
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
             spTadzik.velocity.x -= acceleration;
@@ -769,8 +795,10 @@ public:
                 vecBullets[i].update();
                 window->draw(vecBullets[i]);
                 for (unsigned int j=0; j<vecSprites.size(); j++) {
-                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j]))
-                        if (vecBullets.size()!=0) vecBullets.erase(vecBullets.begin()+i);
+                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j])) {
+                        vecBullets.erase(vecBullets.begin()+i);
+                        break;
+                    }
                 }
             }
         }
@@ -829,6 +857,9 @@ protected:
     std::vector <Bullet> vecBullets;
 
     std::vector <sf::Sprite> vecSprites;
+
+    std::vector <Weapon> vecWeapons;
+
     double acceleration = 2;
     int tileSize = 20;
     int score = 0;

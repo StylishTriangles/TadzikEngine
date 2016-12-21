@@ -25,11 +25,11 @@ int main(){
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
-    //sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
+    sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
     //sceneManager.registerScene<RPG>("RPG", &window);
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);

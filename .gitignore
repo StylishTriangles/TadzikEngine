@@ -35,3 +35,6 @@ build-*
 *.cbp
 *.depend
 *.layout
+
+Tadzik/screenshots/
+Tadzik/raport.docx
