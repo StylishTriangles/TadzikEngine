@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "Scene.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/Utils.hpp"
 #include <vector>
 #include <cmath>
 using namespace Utils;

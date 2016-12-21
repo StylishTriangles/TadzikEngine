@@ -1,5 +1,5 @@
-#include "../include/imgui/imgui.h"
-#include "../include/imgui/imgui-SFML.h"
+#include "include/imgui/imgui.h"
+#include "include/imgui/imgui-SFML.h"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -23,7 +23,7 @@ public:
 //*****
 
 
-#include "SceneManager.hpp"
+#include "include/SceneManager.hpp"
 #include "levels/trex.hpp"
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"

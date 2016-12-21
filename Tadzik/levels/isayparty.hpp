@@ -3,9 +3,9 @@
 
 #include <SFML/Audio.hpp>
 
-#include "Scene.hpp"
-#include "AnimatedSprite.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/AnimatedSprite.hpp"
+#include "../include/Utils.hpp"
 
 #include <string>
 #include <vector>
