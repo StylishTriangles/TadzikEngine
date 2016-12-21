@@ -63,9 +63,12 @@ protected:
     void initCircleDef(int n);
     SYNTH3D* p;
     float screenSize, viewAngle, eye, scale;
+    float sinx, siny, sinz, cosx, cosy, cosz;
     sf::Vector3f position, angle;
     sf::Vector3f planeCross(sf::Vector3f vec1, sf::Vector3f vec2);
     sf::Vector3f vecTransform(sf::Vector3f vec);
+    sf::Vector3f vecTransformAngle(sf::Vector3f vec, sf::Vector3f ang);
+    void calcAngle();
     void drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color);
     void drawDot(sf::Vector2f spot, float size, sf::Color color);
     void drawWall(wall const& wallie);
@@ -89,18 +92,18 @@ public:
         object cube;
         std::vector <wall> wallie;
         int scale = 100;
-        for(int i=0; i<30; i++)
-            for(int j=0; j<30; j++)
+        for(int i=0; i<50; i++)
+            for(int j=0; j<50; j++)
                 terrain.push_back({i*scale, 0, j*scale});
-        for(int i=0; i<29*29; i++)
+        for(int i=0; i<49*49; i++)
         {
-            if(i%30 != 29)
+            if(i%50 != 49)
             {
             wall walion;
             walion.push_back(terrain[i]);
             walion.push_back(terrain[i+1]);
-            walion.push_back(terrain[i+31]);
-            walion.push_back(terrain[i+30]);
+            walion.push_back(terrain[i+51]);
+            walion.push_back(terrain[i+50]);
             wallie.push_back(walion);
             }
         }
@@ -180,11 +183,11 @@ public:
         {
             extraBit += 0.5;
             waveBuffor += extraBit;
-            for(int j=0; j<30; j++)
+            for(int j=0; j<50; j++)
             {
-            for(int i=0; i<30; i++)
+            for(int i=0; i<50; i++)
             {
-                terrain[i + j*30].y = sinf(waveBuffor/2)*(30-j) + cosf(float(j)/3)*30;
+                terrain[i + j*50].y = sinf(waveBuffor/2)*(50-j) + cosf(float(j)/3)*50;
             }
             waveBuffor++;
             }
@@ -216,6 +219,13 @@ Camera::Camera(SYNTH3D* parent):
     initCircleDef(16);
 }
 
+void Camera::calcAngle()
+{
+    sinx = sinf(angle.x), cosx = cosf(angle.x);
+    siny = sinf(angle.y), cosy = cosf(angle.y);
+    sinz = sinf(angle.z), cosz = cosf(angle.z);
+}
+
 void Camera::initCircleDef(int n)
 {
     sf::Vector2f target = {0, 1}, temp = target;
@@ -245,20 +255,37 @@ void Camera::setAngle(sf::Vector3f aGiven)
     angle.z = aGiven.z*(M_PI/180);
 }
 
+sf::Vector3f Camera::vecTransformAngle(sf::Vector3f vec, sf::Vector3f ang)
+{
+    sf::Vector3f target = vec;
+    //Yaw: (y axis)
+    target.x = vec.x*cosf(ang.y) + vec.z*sinf(ang.y);
+    target.z = vec.z*cosf(ang.y) - vec.x*sinf(ang.y);
+    //Pitch; (x axis)
+    vec = target;
+    target.y = vec.y*cosf(ang.x) - vec.z*sinf(ang.x);
+    target.z = vec.y*sinf(ang.x) + vec.z*cosf(ang.x);
+    //Roll: (z axis)
+    vec = target;
+    target.x = vec.x*cosf(ang.z) - vec.y*sinf(ang.z);
+    target.y = vec.x*sinf(ang.z) + vec.y*cosf(ang.z);
+    return target;
+}
+
 sf::Vector3f Camera::vecTransform(sf::Vector3f vec)
 {
     sf::Vector3f target = vec;
     //Yaw: (y axis)
-    target.x = vec.x*cosf(angle.y) + vec.z*sinf(angle.y);
-    target.z = vec.z*cosf(angle.y) - vec.x*sinf(angle.y);
+    target.x = vec.x*cosy + vec.z*siny;
+    target.z = vec.z*cosy - vec.x*siny;
     //Pitch; (x axis)
     vec = target;
-    target.y = vec.y*cosf(angle.x) - vec.z*sinf(angle.x);
-    target.z = vec.y*sinf(angle.x) + vec.z*cosf(angle.x);
+    target.y = vec.y*cosx - vec.z*sinx;
+    target.z = vec.y*sinx + vec.z*cosx;
     //Roll: (z axis)
     vec = target;
-    target.x = vec.x*cosf(angle.z) - vec.y*sinf(angle.z);
-    target.y = vec.x*sinf(angle.z) + vec.y*cosf(angle.z);
+    target.x = vec.x*cosz - vec.y*sinz;
+    target.y = vec.x*sinz + vec.y*cosz;
     return target;
 }
 
@@ -407,6 +434,7 @@ void Camera::display()
             wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position)});
     std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
     triangleArray.clear();
+    calcAngle();
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
     p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
