@@ -353,6 +353,15 @@ public:
         spTadzik.changeAnimation(FALL);
         spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
         spTadzik.sprite.setScale(2, 2);
+//domin
+                texWaterfall.loadFromFile("files/textures/mario/waterfall.png");
+                texWaterfall.setRepeated(true);
+                tempWaterfall.setTexture(texWaterfall);
+                tempWaterfall.setColor(sf::Color(255,255,255,Utils::randInt(100,200)));
+    texColumn.loadFromFile("files/textures/mario/column.png");
+    texColumn.setRepeated(true);
+    tempColumn.setTexture(texColumn);
+
 
         mapa.loadFromFile("files/maps/mario/map1.png");
         loadMap();
@@ -431,6 +440,27 @@ public:
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 0, 255)) {
                     spTadzik.setPosition(i*TileSize, j*TileSize);
+                }//domin tu był
+                else if (mapa.getPixel(i, j)==sf::Color(123, 123, 123)) {
+                    tempColumn.setPosition(i*TileSize, j*TileSize);
+                    tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 1000 ));
+                    spColumnBehind.push_back(tempColumn);
+                    tempColumn.move(sf::Vector2f(0,tempColumn.getGlobalBounds().width));
+                    tempColumn.setRotation(-90);
+                    tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 120 ));
+                    spColumnBehind.push_back(tempColumn);
+                    tempColumn.setRotation(0);
+                    tempColumn.setPosition(i*TileSize, j*TileSize);
+
+                }
+                 else if (mapa.getPixel(i, j)==sf::Color(231, 231, 231)) {
+                   tempColumn.setPosition(i*TileSize, j*TileSize);
+                   tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 1000 ));
+                  spColumnOver.push_back(tempColumn);
+                }
+                 else if (mapa.getPixel(i, j)==sf::Color(123, 231, 231)) {
+                    tempWaterfall.setPosition(i*TileSize, j*TileSize);
+                    spWaterfall.push_back(tempWaterfall);
                 }
             }
         }
@@ -704,6 +734,11 @@ public:
         window->clear();
         window->draw(Background1);
         window->draw(Background2);
+
+        //domin tu byl
+for(int i =0; i<spColumnBehind.size();i++)
+    window->draw(spColumnBehind[i]);
+
         for (auto a:hitboxlessBack) {
             if (isActive(a)) window->draw(a);
         }
@@ -719,7 +754,18 @@ public:
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
         if (spTadzik.isDead) window->draw(circle);
         window->draw(textScore);
+  //domin tu byl
 
+
+
+
+  for(int i=0; i<spWaterfall.size();i++)
+   {    spWaterfall[i].setTextureRect(sf::IntRect(0, -waterfall, texWaterfall.getSize().x, 1000 ));
+        window->draw(spWaterfall[i]);
+   }
+   waterfall++;
+for(int i =0; i<spColumnOver.size();i++)
+    window->draw(spColumnOver[i]);
     }
 
 protected:
@@ -730,6 +776,7 @@ protected:
     sf::Texture texCoin;
     sf::Texture texBullet1;
     sf::Texture texPowerup;
+
 
     std::vector <sf::Texture> texSnekWalk;
 
@@ -803,5 +850,15 @@ protected:
     sf::Font font;
 
     sf::CircleShape circle;
+
+    //tu bylem domingo
+    int waterfall = 0;
+    sf::Texture texColumn;
+    sf::Texture texWaterfall;
+    sf::Sprite tempColumn;
+    sf::Sprite tempWaterfall;
+    std::vector <sf::Sprite> spWaterfall;
+    std::vector <sf::Sprite> spColumnBehind;
+    std::vector <sf::Sprite> spColumnOver;
 };
 #endif //mario
