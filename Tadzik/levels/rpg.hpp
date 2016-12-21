@@ -91,9 +91,8 @@ public:
         texDoorOpen.loadFromFile("files/textures/rpg/doorOpen.png");
 
         texWaterfall.loadFromFile("files/textures/rpg/Waterfall.png");
-        texWaterfall.setRepeated(true);
         spWaterfall.setTexture(texWaterfall);
-   //     spWaterfall.setScale(4,4);
+        spWaterfall.setScale(4,4);
 
 
         window->setMouseCursorVisible(0);
@@ -127,15 +126,11 @@ public:
     virtual void draw(double deltaTime)
     {
 
-      //  spWaterfall.setTextureRect(sf::IntRect(0, texWaterfall.getSize().y-2*tilesize-w, texWaterfall.getSize().x, tilesize*2 ));
-        //w++;
-        //if((texWaterfall.getSize().y-2*tilesize<w))
-          //  w=0;
+        spWaterfall.setTextureRect(sf::IntRect( 0,  spWaterfall.getTextureRect().height-tilesize-w,    spWaterfall.getTextureRect().width, tilesize ));
+        w++;
+        if((texWaterfall.getSize().y-tilesize<w))
+            w=0;
 
-spWaterfall.setTextureRect(sf::IntRect(0, -w, texWaterfall.getSize().x, tilesize*2 ));
-w++;
-
-spWaterfall.setColor(sf::Color(255,255,255,Utils::randInt(100,200)));
 
 //MOVEMENT
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
