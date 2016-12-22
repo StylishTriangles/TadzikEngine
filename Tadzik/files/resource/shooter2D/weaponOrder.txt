@@ -6,3 +6,5 @@
 //automatic?
 //reload time
 //shooting delay
+//velocity
+//knockback

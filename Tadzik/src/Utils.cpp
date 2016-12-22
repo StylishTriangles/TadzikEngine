@@ -28,12 +28,12 @@ int randInt(int from, int to) {
     return (rand()%(to-from))+from;
 }
 
-sf::Vector2i randVector2i (int from, int to) {
-    return sf::Vector2i(randInt(from, to), randInt(from, to));
+sf::Vector2i randVector2i (sf::IntRect i) {
+    return sf::Vector2i(randInt(i.left, i.left+i.width), randInt(i.top, i.top+i.height));
 }
 
-sf::Vector2f randVector2f (float from, float to) {
-    return sf::Vector2f(randFloat(from, to), randFloat(from, to));
+sf::Vector2f randVector2f (sf::FloatRect i) {
+    return sf::Vector2f(randFloat(i.left, i.left+i.width), randFloat(i.top, i.top+i.height));
 }
 
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window) {

@@ -59,6 +59,16 @@ public:
         }
     };
 
+    class Wave {
+    public:
+
+        Wave(double t, int e) {
+            time = t; maxEnemies = e;
+        }
+        double time;
+        int maxEnemies;
+    };
+
     class MovingEntity: public sf::Sprite {
     public:
         MovingEntity() {
@@ -211,7 +221,7 @@ public:
             ls = getPosition();
             hitbox.setPosition(getPosition());
         }
-        lightSource ls = lightSource(getPosition(), {0, 0}, sf::Color(255, 255, 255, 100));
+        lightSource ls = lightSource(getPosition(), {0, 0}, sf::Color(255, 255, 255, 255));
         double health = 100;
         sf::Clock sinceHit;
         sf::Time invincibilityTime = sf::seconds(1);
@@ -435,6 +445,7 @@ public:
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
 
         loadMap();
+        loadWaves();
 
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
@@ -560,7 +571,6 @@ public:
         tmpWeapon.bullet.setOrigin(tmpWeapon.bullet.getTextureRect().width/2, tmpWeapon.bullet.getTextureRect().height/2);
         file.open("files/resource/shooter2D/weapons.dat");
         while (!file.eof()) {
-            std::cout << "lel";
             file >> tmpWeapon.name;
             file >> texDir;
             tmpWeapon.texture.loadFromFile(texDir);
@@ -571,8 +581,20 @@ public:
             file >> tmpWeapon.reloadTime;
             file >> tmpWeapon.fireTime;
             file >> tmpWeapon.velocity;
+            file >> tmpWeapon.knockback;
             tmpWeapon.setBullet();
             vecWeapons.push_back(tmpWeapon);
+        }
+    }
+
+    void loadWaves() {
+        std::ifstream file;
+        file.open("files/resource/shooter2D/waves.dat");
+        Wave tmpWave(0, 0);
+        while (!file.eof()) {
+            file >> tmpWave.time;
+            file >> tmpWave.maxEnemies;
+            vecWaves.push_back(tmpWave);
         }
     }
 
@@ -654,6 +676,7 @@ public:
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
             getEnemyPath(vecEnemies[i]);
+            vecEnemies[i].setRotation(getAngle(vecEnemies[i].getPosition(), vecEnemies[i].destination)*180/M_PI);
             sf::VertexArray a (sf::LinesStrip, 3);
             a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
             a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
@@ -675,13 +698,17 @@ public:
                 handleEntityCollision(vecEnemies[i], vecEnemies[j], 0.02);
             }
         }
-        if (vecEnemies.size()<1) {
-            //sf::Image img = sf::Sprite(rTexture.getTexture());
-            //do {
-            //    tmpEnemy.setPosition(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)));
-            //}
-            //while (rTexture.)
-            vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+        if (clock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
+            sf::Image img;
+            img = rTexture.getTexture().copyToImage();
+            for (unsigned int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
+                sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
+                if (img.getPixel(t.x, t.y).a==255)
+                    vecEnemies.push_back(Enemy(sf::Vector2f(t), &texEnemy1, &spTadzik));
+            }
+            clock.restart();
+            currentWave++;
+            currentWave=currentWave%vecWaves.size();
         }
     }
 
@@ -690,7 +717,6 @@ public:
         hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
         hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
         hud.healthBar.setScale(spTadzik.health/100, 1);
-        //hud.activeWeapon.setTextureRect(spTadzik.weapons[spTadzik.currentWeapon].texture.)
         hud.activeWeapon.setTexture(spTadzik.weapons[spTadzik.currentWeapon].texture);
         hud.clear(sf::Color(0, 0, 0, 0));
         if (isReloading) {
@@ -733,7 +759,7 @@ public:
             }
         }
 
-        updateEnemies();
+        //updateEnemies();
         for (unsigned i=0; i<vecEnemies.size(); i++) {
             if (Collision::PixelPerfectTest(spTadzik, vecEnemies[i])) {
                 handleEntityCollision(spTadzik, vecEnemies[i], 0.5);
@@ -758,14 +784,16 @@ public:
         for (unsigned int i=0; i<vecLights.size(); i++)
             updateShadow(vecLights[i]);
 
-        window->clear(sf::Color(0, 0, 255));
+        //updateEnemies();
+        window->clear(sf::Color(50+200*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+                                50, 50, 255));
 
         for (unsigned int i=0; i<vecSprites.size(); i++)
             window->draw(vecSprites[i]);
 
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
-            window->draw(vecEnemies[i].hitbox);
+            rDebug.draw(vecEnemies[i].hitbox);
             window->draw(vecEnemies[i]);
             window->draw(vecEnemies[i].healthBar);
         }
@@ -779,10 +807,11 @@ public:
             rDebug.draw(c);
         }
         for (unsigned int i=0; i<vecLights.size(); i++)
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
+            rTexture.draw(vecLights[i].shadow, myBlendMode);
+        rTexture.draw(spTadzik.ls.shadow, myBlendMode);
         rTexture.display();
         window->draw(sf::Sprite(rTexture.getTexture()));
+        updateEnemies();
 
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -840,7 +869,8 @@ protected:
     sf::RenderTexture rGUI;
     HUD hud;
 
-    sf::BlendMode myBlendMode;
+    sf::BlendMode myBlendMode = sf::BlendMode(sf::BlendMode::SrcColor, sf::BlendMode::DstColor, sf::BlendMode::Add,
+                                              sf::BlendMode::OneMinusDstAlpha, sf::BlendMode::OneMinusDstAlpha, sf::BlendMode::Subtract);
 
     Player spTadzik;
     sf::Sprite spWall;
@@ -866,6 +896,10 @@ protected:
 
     sf::Clock lastShot;
     sf::Clock reloadFor;
+    sf::Clock clock;
+
+    std::vector <Wave> vecWaves;
+    int currentWave = 0;
 
     bool isReloading = false;
     bool isDead = false;
