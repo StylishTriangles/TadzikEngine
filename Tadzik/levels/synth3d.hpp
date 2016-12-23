@@ -20,13 +20,14 @@ inline realType toRad(realType angle)
 
 struct wall
 {
-    std::vector <sf::Vector3f*> coord;
+    //std::vector <sf::Vector3f*> coord;
+    std::vector <int> coord;
     sf::Color color=sf::Color::Green;
     sf::Color trans=sf::Color::Transparent;
     float pSize=100;
-    void push_back(sf::Vector3f &c)
+    void push_back(int c)
     {
-        coord.push_back(&c);
+        coord.push_back(c);
     }
     unsigned int size() const
     {
@@ -58,9 +59,15 @@ public:
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
 protected:
+    std::vector <bool> drawMask;
     std::vector <sf::Vertex> triangleArray;
     std::vector <sf::Vector2f> circleDef;
+    std::vector <sf::Vector3f> spot3d;
+    std::vector <sf::Vector3f> spot2d;
     void initCircleDef(int n);
+    void calcDrawMask();
+    void calcTerrain();
+    void updateTerrain();
     SYNTH3D* p;
     float screenSize, viewAngle, eye, scale;
     float sinx, siny, sinz, cosx, cosy, cosz;
@@ -80,7 +87,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0)
+        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -100,10 +107,10 @@ public:
             if(i%50 != 49)
             {
             wall walion;
-            walion.push_back(terrain[i]);
-            walion.push_back(terrain[i+1]);
-            walion.push_back(terrain[i+51]);
-            walion.push_back(terrain[i+50]);
+            walion.push_back(i);
+            walion.push_back(i+1);
+            walion.push_back(i+51);
+            walion.push_back(i+50);
             wallie.push_back(walion);
             }
         }
@@ -219,6 +226,17 @@ Camera::Camera(SYNTH3D* parent):
     initCircleDef(16);
 }
 
+void Camera::updateTerrain()
+{
+    spot3d.resize(p->terrain.size());
+    spot2d.resize(spot3d.size());
+}
+
+void Camera::calcDrawMask()
+{
+
+}
+
 void Camera::calcAngle()
 {
     sinx = sinf(angle.x), cosx = cosf(angle.x);
@@ -325,60 +343,63 @@ void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
     }
 }
 
+void Camera::calcTerrain()
+{
+    sf::Vector3f vEye = {0, 0, eye};
+    for(int i=0; i<p->terrain.size(); i++)
+    {
+        spot3d[i] = vecTransform(p->terrain[i] - position);
+        spot2d[i] = planeCross(spot3d[i], vEye);
+    }
+}
+
 void Camera::drawWall(wall const& wallie)
 {
     /*auto drawDot = [](sf::Vector2f spot, float size, sf::Color color) -> void
     {};*/
-    sf::Vector3f tempPlane, vEye = {0, 0, eye};
     std::vector <sf::Vector2f> spot;
-    std::vector <sf::Vector3f> spot3d;
     std::vector <float> dot;
     std::vector <int> usefulSpot;
     int indicator;
     for(int i=0; i<wallie.size(); i++)
     {
-        spot3d.push_back(vecTransform(*wallie.coord[i] - position));
-        if(spot3d[i].z >= 0)
+        if(spot3d[ wallie.coord[i] ].z >= 0)
             usefulSpot.push_back(i);
     }
     if(!usefulSpot.empty())
     {
-        if(usefulSpot.size() < spot3d.size())
-        {
-            usefulSpot.clear();
-        for(int i=0, j=0; i<2*spot3d.size(); i++)
-            if(spot3d[i%spot3d.size()].z < 0 or j > 0)
-            {
-                if(j == 0)
-                    j = 1;
-                if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
-                    usefulSpot.push_back(i%spot3d.size()), j = 2;
-                else if(j == 2)
-                    j = 3;
-            }
-        }
-        if(usefulSpot.size() == spot3d.size())
+        if(usefulSpot.size() == wallie.size())
         {
             for(int i=0; i<usefulSpot.size(); i++)
             {
-                tempPlane = planeCross(spot3d[i], vEye);
-                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
-                dot.push_back(dotSize(wallie.pSize, spot3d[i]));
+                spot.push_back({spot2d[wallie.coord[i]].x*scale + p->window->getSize().x/2, spot2d[wallie.coord[i]].y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[wallie.coord[i]]));
                 indicator = 0;
             }
         }
         else
         {
-            tempPlane = planeCross(spot3d[usefulSpot[0]], spot3d[(usefulSpot[0] - 1)%spot3d.size()]);
+            usefulSpot.clear();
+        for(int i=0, j=0; i<2*wallie.size(); i++)
+            if(spot3d[ wallie.coord[i%wallie.size()] ].z < 0 or j > 0)
+            {
+                if(j == 0)
+                    j = 1;
+                if(spot3d[ wallie.coord[i%wallie.size()] ].z >= 0 and j != 3)
+                    usefulSpot.push_back(i%wallie.size()), j = 2;
+                else if(j == 2)
+                    j = 3;
+            }
+            sf::Vector3f tempPlane, vEye = {0, 0, eye};
+            tempPlane = planeCross(spot3d[wallie.coord[ usefulSpot[0]] ], spot3d[wallie.coord[ (usefulSpot[0] - 1)%wallie.size() ]]);
             spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
             dot.push_back(wallie.pSize);
             for(int i=0; i<usefulSpot.size(); i++)
             {
-                tempPlane = planeCross(spot3d[ usefulSpot[i] ], vEye);
-                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
-                dot.push_back(dotSize(wallie.pSize, spot3d[usefulSpot[i]]));
+                spot.push_back({spot2d[ wallie.coord[usefulSpot[i]] ].x*scale + p->window->getSize().x/2, spot2d[ wallie.coord[usefulSpot[i]] ].y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[ wallie.coord[usefulSpot[i]] ]));
             }
-            tempPlane = planeCross(spot3d[ usefulSpot[ usefulSpot.size() - 1 ] ], spot3d[ (usefulSpot[ usefulSpot.size() - 1 ] + 1)%spot3d.size() ]);
+            tempPlane = planeCross(spot3d[ wallie.coord [usefulSpot[ usefulSpot.size() - 1 ] ]], spot3d[ wallie.coord[(usefulSpot[ usefulSpot.size() - 1 ] + 1)%wallie.size()] ]);
             spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
             dot.push_back(wallie.pSize);
             indicator = 1;
@@ -390,14 +411,13 @@ void Camera::drawWall(wall const& wallie)
             triangleArray.push_back(sf::Vertex(spot[i+1], wallie.trans));
         }
         for(int i=0; i<spot.size() - indicator; i++)
-        {
         drawLine(spot[i],
                  spot[(i+1)%spot.size()],
                  dot[i],
                  dot[(i+1)%spot.size()],
                  wallie.color);
-        drawDot(spot[i], dot[i], wallie.color);
-        }
+        for(int i=0; i<spot.size(); i++)
+            drawDot(spot[i], dot[i], wallie.color);
     }
 }
 
@@ -408,17 +428,16 @@ void Camera::display()
         sf::Vector3f temp = *point - *pos;
         return temp.x*temp.x + temp.y*temp.y + temp.z*temp.z;
     };
-    auto squareWallDist = [](wall& jackson, sf::Vector3f& pos) -> float
+    auto squareWallDist = [](wall& jackson, sf::Vector3f& pos, std::vector <sf::Vector3f>& spot) -> float
     {
         float summary = 0;
         for(int i=0; i<jackson.size(); i++)
         {
-            sf::Vector3f temp = *jackson.coord[i] - pos;
+            sf::Vector3f temp = spot[jackson.coord[i]] - pos;
             summary += temp.x*temp.x + temp.y*temp.y + temp.z*temp.z;
         }
         return summary/float(jackson.size());
     };
-
     p->window->clear();
     //std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
     struct tempType
@@ -428,13 +447,15 @@ void Camera::display()
         float dist;
     };
     std::vector <tempType> wallOrder;
-
+    if(p->terrain.size() != spot3d.size())
+        updateTerrain();
+    calcAngle();
+    calcTerrain();
     for(int i=0; i<p->world.size(); i++)
         for(int j=0; j<p->world[i].size(); j++)
-            wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position)});
+            wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position, spot3d)});
     std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
     triangleArray.clear();
-    calcAngle();
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
     p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);

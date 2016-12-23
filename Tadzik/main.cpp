@@ -46,22 +46,22 @@ int main(){
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
-    sceneManager.registerScene<TREX>("TREX", &window);
-    sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    //sceneManager.registerScene<TREX>("TREX", &window);
+    //sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    sceneManager.registerScene<MARIO>("MARIO", &window);
-    sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    sceneManager.registerScene<RPG>("RPG", &window);
-    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
-    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
+    //sceneManager.registerScene<MARIO>("MARIO", &window);
+    //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
+    //sceneManager.registerScene<RPG>("RPG", &window);
+    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
     //sceneManager.setActiveScene("SHOOTER2D");
-    sceneManager.setActiveScene("RPG");
+    //sceneManager.setActiveScene("RPG");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
@@ -87,7 +87,7 @@ int main(){
         ImGui::Render();
         window.display();
 
-        //std::cout << "fps: " << sceneManager.getFPS() << "\n";
+        std::cout << "fps: " << sceneManager.getFPS() << "\n";
     }
     ImGui::SFML::Shutdown();
     return 0;
