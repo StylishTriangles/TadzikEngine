@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "Scene.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/Utils.hpp"
 #include <vector>
 #include <cmath>
 using namespace Utils;
@@ -13,7 +13,8 @@ using namespace Utils;
 # define M_PI           3.14159265358979323846  /* pi */
 #endif
 template<typename realType>
-inline realType toRad(realType angle) {
+inline realType toRad(realType angle)
+{
     return angle * (realType)0.017453292519943295769;
 }
 
@@ -21,8 +22,8 @@ struct wall
 {
     std::vector <sf::Vector3f*> coord;
     sf::Color color=sf::Color::Green;
-    sf::Color trans=sf::Color{0,0,0,230};
-    float pSize=500;
+    sf::Color trans=sf::Color::Transparent;
+    float pSize=100;
     void push_back(sf::Vector3f &c)
     {
         coord.push_back(&c);
@@ -57,14 +58,17 @@ public:
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
 protected:
-    sf::Vertex lina[2];
+    std::vector <sf::Vertex> triangleArray;
+    std::vector <sf::Vector2f> circleDef;
+    void initCircleDef(int n);
     SYNTH3D* p;
-    float screenSize, viewAngle, eye;
-    sf::Vector3f position;      //Pozycja kamery
-    sf::Vector3f angle;
-    sf::Vector3f planeCross(sf::Vector3f* point); //Policz przeciecie punktu z ekranem
-    sf::Vector2f process(sf::Vector3f* point);    //Podaj wspolrzedne na ekranie
+    float screenSize, viewAngle, eye, scale;
+    float sinx, siny, sinz, cosx, cosy, cosz;
+    sf::Vector3f position, angle;
+    sf::Vector3f planeCross(sf::Vector3f vec1, sf::Vector3f vec2);
     sf::Vector3f vecTransform(sf::Vector3f vec);
+    sf::Vector3f vecTransformAngle(sf::Vector3f vec, sf::Vector3f ang);
+    void calcAngle();
     void drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color);
     void drawDot(sf::Vector2f spot, float size, sf::Color color);
     void drawWall(wall const& wallie);
@@ -76,7 +80,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10)
+        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -84,122 +88,116 @@ public:
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf"))
         {
             std::cout << "cannot load font\n";
-        } //                             X   Y   Z
-        terrain.push_back(sf::Vector3f(-100,100,100)); // 0
-        terrain.push_back(sf::Vector3f(100,100,100));  // 1
-        terrain.push_back(sf::Vector3f(100,-100,100)); // 2
-        terrain.push_back(sf::Vector3f(-100,-100,100));// 3
-        terrain.push_back(sf::Vector3f(-100,100,300)); // 4
-        terrain.push_back(sf::Vector3f(100,100,300));  // 5
-        terrain.push_back(sf::Vector3f(100,-100,300)); // 6
-        terrain.push_back(sf::Vector3f(-100,-100,300));// 7
+        }
         object cube;
-        wall wallie[6]; // 0 - Rear Wall    |   1 - Right Wall     |   2 - Upper Wall     |   3 - Front Wall      | 4 - Left Wall     |   5 - Bottom Wall
+        std::vector <wall> wallie;
+        int scale = 100;
+        for(int i=0; i<50; i++)
+            for(int j=0; j<50; j++)
+                terrain.push_back({i*scale, 0, j*scale});
+        for(int i=0; i<49*49; i++)
+        {
+            if(i%50 != 49)
+            {
+            wall walion;
+            walion.push_back(terrain[i]);
+            walion.push_back(terrain[i+1]);
+            walion.push_back(terrain[i+51]);
+            walion.push_back(terrain[i+50]);
+            wallie.push_back(walion);
+            }
+        }
 
-        wallie[0].push_back(terrain[4]);
-        wallie[0].push_back(terrain[5]);
-        wallie[0].push_back(terrain[6]);
-        wallie[0].push_back(terrain[7]);
 
-        wallie[1].push_back(terrain[1]);
-        wallie[1].push_back(terrain[2]);
-        wallie[1].push_back(terrain[6]);
-        wallie[1].push_back(terrain[5]);
-
-        wallie[2].push_back(terrain[0]);
-        wallie[2].push_back(terrain[1]);
-        wallie[2].push_back(terrain[5]);
-        wallie[2].push_back(terrain[4]);
-
-        wallie[3].push_back(terrain[0]);
-        wallie[3].push_back(terrain[1]);
-        wallie[3].push_back(terrain[2]);
-        wallie[3].push_back(terrain[3]);
-
-        wallie[4].push_back(terrain[0]);
-        wallie[4].push_back(terrain[3]);
-        wallie[4].push_back(terrain[7]);
-        wallie[4].push_back(terrain[4]);
-
-        wallie[5].push_back(terrain[2]);
-        wallie[5].push_back(terrain[3]);
-        wallie[5].push_back(terrain[7]);
-        wallie[5].push_back(terrain[6]);
-
-        for(int i=0;i<6;i++)
+        for(int i=0; i<wallie.size(); i++)
             cube.push_back(wallie[i]);
         world.push_back(cube);
     }
     virtual void onSceneActivate() {}
     virtual void draw(double dt)
     {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-                cameraPos.x-=1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-                cameraPos.x+=1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-                cameraPos.z+=1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-                cameraPos.z-=1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-                cameraPos.y+=1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-                cameraPos.y-=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+            cameraPos.x-=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+            cameraPos.x+=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+            cameraPos.z+=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+            cameraPos.z-=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+            cameraPos.y+=1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+            cameraPos.y-=1;
 
         // EXPERIMENTAL
-         /*   if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            {
-                cameraPos.z+= cos(toRad(cameraAngle.y));
-                cameraPos.y+= sin(toRad(cameraAngle.x));
-                cameraPos.x-= sin(toRad(cameraAngle.y));
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-            {
-                cameraPos.z-= cos(toRad(cameraAngle.y));
-                cameraPos.y-= sin(toRad(cameraAngle.x));
-                cameraPos.x+= sin(toRad(cameraAngle.y));
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            {
-                cameraPos.x += cos(toRad(cameraAngle.z));
-                cameraPos.y -= sin(toRad(cameraAngle.z));
-                cameraPos.z += sin(toRad(cameraAngle.y));
-            }
+        /*   if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+           {
+               cameraPos.z+= cos(toRad(cameraAngle.y));
+               cameraPos.y+= sin(toRad(cameraAngle.x));
+               cameraPos.x-= sin(toRad(cameraAngle.y));
+           }
+           if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+           {
+               cameraPos.z-= cos(toRad(cameraAngle.y));
+               cameraPos.y-= sin(toRad(cameraAngle.x));
+               cameraPos.x+= sin(toRad(cameraAngle.y));
+           }
+           if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+           {
+               cameraPos.x += cos(toRad(cameraAngle.z));
+               cameraPos.y -= sin(toRad(cameraAngle.z));
+               cameraPos.z += sin(toRad(cameraAngle.y));
+           }
 
         */
         // END EXPERIMENTAL
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-                cameraAngle.y+=0.5;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-                cameraAngle.y-=0.5;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-                cameraAngle.x-=0.5;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-                cameraAngle.x+=0.5;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
-                cameraAngle.z-=0.5;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
-                cameraAngle.z+=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            cameraAngle.y+=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            cameraAngle.y-=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+            cameraAngle.x-=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+            cameraAngle.x+=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+            cameraAngle.z-=0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
+            cameraAngle.z+=0.5;
 
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
-            {
-                for(int i=0; i<8;i++)
-                    terrain[i].z--;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-            {
-                for(int i=0; i<8;i++)
-                    terrain[i].x++;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
-                eyeDistance+=0.1;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-                eyeDistance-=0.1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+        {
+            for(int i=0; i<8; i++)
+                terrain[i].z--;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+        {
+            for(int i=0; i<8; i++)
+                terrain[i].x++;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
+            eyeDistance+=0.1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
+            eyeDistance-=0.1;
 
-            c.setPos(cameraPos);
-            c.setAngle(cameraAngle);
-            c.setEyeDistance(eyeDistance);
-            c.display();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+        {
+            extraBit += 0.5;
+            waveBuffor += extraBit;
+            for(int j=0; j<50; j++)
+            {
+            for(int i=0; i<50; i++)
+            {
+                terrain[i + j*50].y = sinf(waveBuffor/2)*(50-j) + cosf(float(j)/3)*50;
+            }
+            waveBuffor++;
+            }
+            waveBuffor = 0;
+        }
+
+        c.setPos(cameraPos);
+        c.setAngle(cameraAngle);
+        c.setEyeDistance(eyeDistance);
+        c.display();
     }
 protected:
     sf::Font font;
@@ -208,27 +206,41 @@ protected:
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
-    float eyeDistance;
+    float eyeDistance, waveBuffor, extraBit;
 };
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     position({0, 0, -400}),
     eye(-80),
     angle({0,0,0}),
-    screenSize(3)
-{}
-
-sf::Vector3f Camera::planeCross(sf::Vector3f* point)
+    screenSize(3),
+    scale(100)
 {
-    sf::Vector3f temp = vecTransform(*point - position), vEye = {0, 0, eye};
-    return vEye + temp*((-eye)/(temp.z - eye));
+    initCircleDef(16);
 }
 
-sf::Vector2f Camera::process(sf::Vector3f* point)
+void Camera::calcAngle()
 {
-    float scale = 100;
-    sf::Vector3f tempPlane = planeCross(point);
-    return {tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2};
+    sinx = sinf(angle.x), cosx = cosf(angle.x);
+    siny = sinf(angle.y), cosy = cosf(angle.y);
+    sinz = sinf(angle.z), cosz = cosf(angle.z);
+}
+
+void Camera::initCircleDef(int n)
+{
+    sf::Vector2f target = {0, 1}, temp = target;
+    for(int i=0; i<n; i++)
+    {
+        circleDef.push_back(target);
+        target.x = temp.x*cosf(2*M_PI/n) - temp.y*sinf(2*M_PI/n);
+        target.y = temp.x*sinf(2*M_PI/n) + temp.y*cosf(2*M_PI/n);
+        temp = target;
+    }
+}
+
+sf::Vector3f Camera::planeCross(sf::Vector3f vec1, sf::Vector3f vec2)
+{
+    return vec2 + (vec1-vec2)*((-vec2.z)/(vec1.z - vec2.z));
 }
 
 void Camera::setPos(sf::Vector3f posGiven)
@@ -243,20 +255,37 @@ void Camera::setAngle(sf::Vector3f aGiven)
     angle.z = aGiven.z*(M_PI/180);
 }
 
+sf::Vector3f Camera::vecTransformAngle(sf::Vector3f vec, sf::Vector3f ang)
+{
+    sf::Vector3f target = vec;
+    //Yaw: (y axis)
+    target.x = vec.x*cosf(ang.y) + vec.z*sinf(ang.y);
+    target.z = vec.z*cosf(ang.y) - vec.x*sinf(ang.y);
+    //Pitch; (x axis)
+    vec = target;
+    target.y = vec.y*cosf(ang.x) - vec.z*sinf(ang.x);
+    target.z = vec.y*sinf(ang.x) + vec.z*cosf(ang.x);
+    //Roll: (z axis)
+    vec = target;
+    target.x = vec.x*cosf(ang.z) - vec.y*sinf(ang.z);
+    target.y = vec.x*sinf(ang.z) + vec.y*cosf(ang.z);
+    return target;
+}
+
 sf::Vector3f Camera::vecTransform(sf::Vector3f vec)
 {
     sf::Vector3f target = vec;
     //Yaw: (y axis)
-    target.x = vec.x*cosf(angle.y) + vec.z*sinf(angle.y);
-    target.z = vec.z*cosf(angle.y) - vec.x*sinf(angle.y);
+    target.x = vec.x*cosy + vec.z*siny;
+    target.z = vec.z*cosy - vec.x*siny;
     //Pitch; (x axis)
     vec = target;
-    target.y = vec.y*cosf(angle.x) - vec.z*sinf(angle.x);
-    target.z = vec.y*sinf(angle.x) + vec.z*cosf(angle.x);
+    target.y = vec.y*cosx - vec.z*sinx;
+    target.z = vec.y*sinx + vec.z*cosx;
     //Roll: (z axis)
     vec = target;
-    target.x = vec.x*cosf(angle.z) - vec.y*sinf(angle.z);
-    target.y = vec.x*sinf(angle.z) + vec.y*cosf(angle.z);
+    target.x = vec.x*cosz - vec.y*sinz;
+    target.y = vec.x*sinz + vec.y*cosz;
     return target;
 }
 
@@ -267,66 +296,108 @@ void Camera::setEyeDistance(float distance)
 
 float Camera::dotSize(float dot, sf::Vector3f vec)
 {
-    return ((-eye)/vecTransform(vec - position).z)*dot;
+    return -eye*dot/(vec.z - eye);
 }
 
 void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color)
 {
-    sf::ConvexShape line;
-    line.setPointCount(4);
     sf::Vector2f norm;
     float temp, lenght;
-
     norm = (vec1 - vec2);
     lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
     norm.x /= lenght, norm.y /= lenght;
     temp = norm.x, norm.x = -norm.y, norm.y = temp;
-
-    line.setPoint(0, vec1 + norm*size1);
-    line.setPoint(1, vec2 + norm*size2);
-    line.setPoint(2, vec2 - norm*size2);
-    line.setPoint(3, vec1 - norm*size1);
-    line.setFillColor(color);
-    p->window->draw(line);
+    triangleArray.push_back(sf::Vertex(vec1 + norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+    triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+    triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    triangleArray.push_back(sf::Vertex(vec2 - norm*size2, color));
 }
 
 void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
 {
-    sf::CircleShape circle(size);
-        circle.setFillColor(color);
-        spot.x -= size, spot.y -= size;
-        circle.setPosition(spot);
-        p->window->draw(circle);
+    for(int i=0; i<circleDef.size(); i++)
+    {
+        triangleArray.push_back(sf::Vertex(spot, color));
+        triangleArray.push_back(sf::Vertex(spot + circleDef[i]*size, color));
+        triangleArray.push_back(sf::Vertex(spot + circleDef[(i+1)%circleDef.size()]*size, color));
+    }
 }
 
 void Camera::drawWall(wall const& wallie)
 {
     /*auto drawDot = [](sf::Vector2f spot, float size, sf::Color color) -> void
     {};*/
+    sf::Vector3f tempPlane, vEye = {0, 0, eye};
     std::vector <sf::Vector2f> spot;
+    std::vector <sf::Vector3f> spot3d;
     std::vector <float> dot;
-    for(int i=0;i<wallie.size();i++)
-        spot.push_back(process(wallie.coord[i])), dot.push_back(dotSize(wallie.pSize, *wallie.coord[i]));
-
-    sf::ConvexShape fillament;
-    fillament.setPointCount(wallie.size());
-    for(int i=0;i<wallie.size();i++)
-        fillament.setPoint(i, spot[i]);
-    fillament.setFillColor(wallie.trans);
-    p->window->draw(fillament);
-
-    for(int i=0;i<wallie.size();i++)
+    std::vector <int> usefulSpot;
+    int indicator;
+    for(int i=0; i<wallie.size(); i++)
     {
-        //drawLine() od process od punktow
+        spot3d.push_back(vecTransform(*wallie.coord[i] - position));
+        if(spot3d[i].z >= 0)
+            usefulSpot.push_back(i);
+    }
+    if(!usefulSpot.empty())
+    {
+        if(usefulSpot.size() < spot3d.size())
+        {
+            usefulSpot.clear();
+        for(int i=0, j=0; i<2*spot3d.size(); i++)
+            if(spot3d[i%spot3d.size()].z < 0 or j > 0)
+            {
+                if(j == 0)
+                    j = 1;
+                if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
+                    usefulSpot.push_back(i%spot3d.size()), j = 2;
+                else if(j == 2)
+                    j = 3;
+            }
+        }
+        if(usefulSpot.size() == spot3d.size())
+        {
+            for(int i=0; i<usefulSpot.size(); i++)
+            {
+                tempPlane = planeCross(spot3d[i], vEye);
+                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[i]));
+                indicator = 0;
+            }
+        }
+        else
+        {
+            tempPlane = planeCross(spot3d[usefulSpot[0]], spot3d[(usefulSpot[0] - 1)%spot3d.size()]);
+            spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
+            dot.push_back(wallie.pSize);
+            for(int i=0; i<usefulSpot.size(); i++)
+            {
+                tempPlane = planeCross(spot3d[ usefulSpot[i] ], vEye);
+                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[usefulSpot[i]]));
+            }
+            tempPlane = planeCross(spot3d[ usefulSpot[ usefulSpot.size() - 1 ] ], spot3d[ (usefulSpot[ usefulSpot.size() - 1 ] + 1)%spot3d.size() ]);
+            spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
+            dot.push_back(wallie.pSize);
+            indicator = 1;
+        }
+        for(int i=1; i<spot.size()-1; i++)
+        {
+            triangleArray.push_back(sf::Vertex(spot[0], wallie.trans));
+            triangleArray.push_back(sf::Vertex(spot[i], wallie.trans));
+            triangleArray.push_back(sf::Vertex(spot[i+1], wallie.trans));
+        }
+        for(int i=0; i<spot.size() - indicator; i++)
+        {
         drawLine(spot[i],
-                 spot[(i+1)%wallie.size()],
+                 spot[(i+1)%spot.size()],
                  dot[i],
-                 dot[(i+1)%wallie.size()],
-                 //wallie.pSize,
-                 //wallie.pSize,
+                 dot[(i+1)%spot.size()],
                  wallie.color);
         drawDot(spot[i], dot[i], wallie.color);
-        //drawDot(process(wallie.coord[i]), wallie.pSize, wallie.color);
+        }
     }
 }
 
@@ -349,8 +420,9 @@ void Camera::display()
     };
 
     p->window->clear();
-    std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
-    struct tempType{
+    //std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
+    struct tempType
+    {
         int i;
         int j;
         float dist;
@@ -359,22 +431,13 @@ void Camera::display()
 
     for(int i=0; i<p->world.size(); i++)
         for(int j=0; j<p->world[i].size(); j++)
-        {
             wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position)});
-        }
-
-    /* Cpp 14 solution
-    std::sort(wallOrder.begin(), wallOrder.end(), [](auto &left, auto &right) {
-    return left.dist < right.dist;
-    });*/
-
-    std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right)
-    {
-    return left.dist > right.dist;
-    });
-
+    std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
+    triangleArray.clear();
+    calcAngle();
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
+    p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
 }
 
 #endif //SYNTH3D_HPP
