@@ -116,11 +116,6 @@ public:
     {}
 
     virtual void onSceneLoadToMemory(){
-        texArrowLeft.loadFromFile("files/textures/isaydisco/arrow_left.png");
-        texArrowUp.loadFromFile("files/textures/isaydisco/arrow_up.png");
-        texArrowRight.loadFromFile("files/textures/isaydisco/arrow_right.png");
-        texArrowDown.loadFromFile("files/textures/isaydisco/arrow_down.png");
-
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
             std::cout << "cannot load font\n";
         }
@@ -137,27 +132,47 @@ public:
 
         texIdle.loadFromFile("files/textures/isaydisco/idle.png");
 
-        animHands.addFrame(AnimationFrame(&vecTextures[2], 120*2));
-        animHands.addFrame(AnimationFrame(&vecTextures[8], 120*2));
-        animHands.addFrame(AnimationFrame(&vecTextures[4], 120*2));
-        animHands.addFrame(AnimationFrame(&vecTextures[6], 120*2));
+        vecTexturesDaftDJ.resize(8);
+        for(int i = 0; i < vecTexturesDaftDJ.size(); i++){
+            vecTexturesDaftDJ[i].loadFromFile("files/textures/isaydisco/DaftPunk1_DJ"+Utils::stringify(i)+".png");
+        }
 
-        animHips.addFrame(AnimationFrame(&vecTextures[9], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[10], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[11], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[12], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[9], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[10], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[11], 120*2));
-        animHips.addFrame(AnimationFrame(&vecTextures[12], 120*2));
+        vecTexturesDaftGuitar.resize(8);
+        for(int i = 0; i < 4; i++){
+            vecTexturesDaftGuitar[i].loadFromFile("files/textures/isaydisco/DaftPunk1_GF"+Utils::stringify(i)+".png");
+        }
+        for(int i = 0; i < 4; i++){
+            vecTexturesDaftGuitar[i+4].loadFromFile("files/textures/isaydisco/DaftPunk1_GG"+Utils::stringify(i)+".png");
+        }
 
-        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 120*2));
-        animWindmill.addFrame(AnimationFrame(&vecTextures[8], 120*2));
-        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 120*2));
-        animWindmill.addFrame(AnimationFrame(&texIdle, 120*4));
-        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 120*2));
-        animWindmill.addFrame(AnimationFrame(&vecTextures[15], 120*2));
-        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 120*2));
+        for(int i = 0; i < 4; i++){
+            animDJ1.addFrame(AnimationFrame(&vecTexturesDaftDJ[i], 112*2));
+            animGuitar1.addFrame(AnimationFrame(&vecTexturesDaftGuitar[i], 112*2));
+            animDJ2.addFrame(AnimationFrame(&vecTexturesDaftDJ[i+4], 112*2));
+            animGuitar2.addFrame(AnimationFrame(&vecTexturesDaftGuitar[i+4], 112*2));
+        }
+
+        animHands.addFrame(AnimationFrame(&vecTextures[2], 112*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[8], 112*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[4], 112*2));
+        animHands.addFrame(AnimationFrame(&vecTextures[6], 112*2));
+
+        animHips.addFrame(AnimationFrame(&vecTextures[9], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[10], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[11], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[12], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[9], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[10], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[11], 112*2));
+        animHips.addFrame(AnimationFrame(&vecTextures[12], 112*2));
+
+        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 112*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[8], 112*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[0], 112*2));
+        animWindmill.addFrame(AnimationFrame(&texIdle, 112*4));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 112*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[15], 112*2));
+        animWindmill.addFrame(AnimationFrame(&vecTextures[6], 112*2));
 
         vecSteps.resize(4);
         vecSteps[0] = DanceStep(&animHands, {0,2,4,6}, {HAND_LEFT, HAND_RIGHT, HAND_LEFT, HAND_RIGHT});
@@ -200,6 +215,16 @@ public:
         setDanceStep(&vecSteps[0]);
         loadNewTrack();
         vecKeyTexts.clear();
+
+        spriteDaft1.setAnimation(&animDJ1);
+        spriteDaft2.setAnimation(&animGuitar1);
+
+        spriteDaft1.sprite.setScale(4.f, 4.f);
+        spriteDaft2.sprite.setScale(4.f, 4.f);
+        spriteDaft1.sprite.setPosition(actSprite.sprite.getPosition());
+        spriteDaft2.sprite.setPosition(actSprite.sprite.getPosition());
+        spriteDaft1.sprite.move(-200, 0);
+        spriteDaft2.sprite.move(-300, 0);
     }
 
     void deliverEvent(sf::Event& event){
@@ -229,8 +254,16 @@ public:
             kt.update(deltaTime);
         }
         actSprite.update(deltaTime);
+        spriteDaft1.update(deltaTime);
+        spriteDaft2.update(deltaTime);
         if(actSprite.getReplays() != 0){
             setDanceStep(&vecSteps[rand()%vecSteps.size()]);
+        }
+        if(spriteDaft1.getReplays() != 0){
+            setDanceStepDP(1);
+        }
+        if(spriteDaft2.getReplays() != 0){
+            setDanceStepDP(2);
         }
         for(StepPose& sp: actStep->vecPoses){
             if(actSprite.getFrame() == sp.tempoPosition && !sp.used){
@@ -262,6 +295,8 @@ public:
             window->draw(txt.text);
         }
         window->draw(actSprite.sprite);
+        window->draw(spriteDaft1.sprite);
+        window->draw(spriteDaft2.sprite);
 
         sf::RectangleShape rectangle(sf::Vector2f(2*actSprite.sprite.getGlobalBounds().width, 20.0f));
         rectangle.setPosition(actSprite.sprite.getPosition());
@@ -284,6 +319,21 @@ public:
             actStep->clearUsedPoses();
         actStep = d;
         actSprite.setAnimation(d->animation);
+    }
+
+    void setDanceStepDP(int idx){
+        if(idx==1){
+            Animation* a = &animDJ1;
+            if(Utils::randFloat(0.0, 1.0) >= 0.5)
+                a = &animDJ2;
+            spriteDaft1.setAnimation(a);
+        }
+        if(idx==2){
+            Animation* a = &animGuitar1;
+            if(Utils::randFloat(0.0, 1.0) >= 0.5)
+                a = &animGuitar2;
+            spriteDaft2.setAnimation(a);
+        }
     }
 
     virtual bool onConsoleUpdate(std::vector<std::string> args){
@@ -373,11 +423,11 @@ protected:
     std::vector<DanceStep> vecSteps;
     DanceStep* actStep = nullptr;
 
-    sf::Texture texArrowLeft, texArrowUp, texArrowRight, texArrowDown;
-    std::vector<sf::Sprite> vecArrows;
     std::vector<TextCraft> vecText;
     std::vector<Track> vecTracks;
     std::vector<sf::Texture> vecTextures;
+    std::vector<sf::Texture> vecTexturesDaftDJ;
+    std::vector<sf::Texture> vecTexturesDaftGuitar;
     sf::Texture texIdle;
     std::vector<KeyText> vecKeyTexts;
     std::vector<sf::Color> vecDiscoColors;
@@ -392,8 +442,15 @@ protected:
     Animation animHands;
     Animation animHips;
     Animation animWindmill;
-    AnimatedSprite actSprite;
 
+    Animation animGuitar1;
+    Animation animGuitar2;
+    Animation animDJ1;
+    Animation animDJ2;
+
+    AnimatedSprite actSprite;
+    AnimatedSprite spriteDaft1;
+    AnimatedSprite spriteDaft2;
 };
 
 #endif // ISAYPARTY_HPP
