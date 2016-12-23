@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <ctime>
+#include <cstdlib>
 
 #include "SceneManager.hpp"
 #include "levels/trex.hpp"
@@ -13,7 +14,6 @@
 #include "levels/rpg.hpp"
 #include "levels/isayparty.hpp"
 
-#include <cstdlib>
 
 int main(){
     srand(time(NULL));
@@ -25,22 +25,22 @@ int main(){
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     SceneManager sceneManager(&window);
-    sceneManager.registerScene<TREX>("TREX", &window);
+    //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    sceneManager.registerScene<MARIO>("MARIO", &window);
+    //sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
     //sceneManager.registerScene<RPG>("RPG", &window);
-    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
-    sceneManager.setActiveScene("MARIO");
+    //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
-    //sceneManager.setActiveScene("SHOOTER2D");
+    sceneManager.setActiveScene("SHOOTER2D");
     //sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
     sf::Clock deltaClock;

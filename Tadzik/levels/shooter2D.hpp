@@ -259,6 +259,7 @@ public:
         }
         void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
+            setRotation(angle*180/M_PI);
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
             move(velocity);
@@ -379,11 +380,11 @@ public:
         ls.shadow.append(sf::Vertex(ls.points[0].point, ls.color));
     }
 
-    void drawLine(sf::Vector2f p1, sf::Vector2f p2) {
+    sf::VertexArray getLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color c = sf::Color::White) {
         sf::VertexArray a (sf::Lines, 2);
         a[0]=p1;
         a[1]=p2;
-        window->draw(a);
+        return a;
     }
 
     sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, double d) {
@@ -411,8 +412,8 @@ public:
                 sd ={p2.x-sp.x, p2.y-sp.y};
                 T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
                 T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-                rMag = sqrt(rd.x*rd.x+rd.y*rd.y);
-                sMag = sqrt(sd.x*sd.x+sd.y*sd.y);
+                rMag = rd.x*rd.x+rd.y*rd.y;
+                sMag = sd.x*sd.x+sd.y*sd.y;
                 if (T1<T1Min && T1>0 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag)
                     T1Min=T1;
             }
@@ -449,6 +450,23 @@ public:
 
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
+        rLines.create(window->getSize().x, window->getSize().y);
+
+        Object tmpObject;
+        tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, window->getSize().y-tileSize));
+        tmpObject.points.push_back(sf::Vector2f(tileSize, window->getSize().y-tileSize));
+
+        vecWalls.push_back(tmpObject);
+
+        rLines.clear(sf::Color(0, 0, 0, 0));
+        for (unsigned int i=0; i<vecWalls.size(); i++) {
+            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
+                rLines.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]));
+            }
+        }
+        rLines.display();
 
         texHud.loadFromFile("files/textures/shooter2D/hud.png");
         hud.create(window->getSize().x, window->getSize().y);
@@ -462,14 +480,6 @@ public:
         spCrosshair.setOrigin(spCrosshair.getTextureRect().width/2, spCrosshair.getTextureRect().height/2);
 
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
-
-        Object tmpObject;
-        tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(window->getSize().x-tileSize, window->getSize().y-tileSize));
-        tmpObject.points.push_back(sf::Vector2f(tileSize, window->getSize().y-tileSize));
-
-        vecWalls.push_back(tmpObject);
 
         loadWeapons();
         spTadzik.addWeapon(vecWeapons[0]);
@@ -676,7 +686,6 @@ public:
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
             getEnemyPath(vecEnemies[i]);
-            vecEnemies[i].setRotation(getAngle(vecEnemies[i].getPosition(), vecEnemies[i].destination)*180/M_PI);
             sf::VertexArray a (sf::LinesStrip, 3);
             a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
             a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
@@ -727,13 +736,7 @@ public:
         hud.update();
     }
 
-    virtual void draw(double deltaTime) {
-        //input myszka
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
-            shoot();
-        }
-
-        //input z klawiatury
+    void getKeyboardStuff() {
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
             spTadzik.velocity.x -= acceleration;
         }
@@ -751,6 +754,17 @@ public:
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
             vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
         }
+    }
+
+    virtual void draw(double deltaTime) {
+        //input myszka
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
+            shoot();
+        }
+
+        //input z klawiatury
+        getKeyboardStuff();
+
         if (isReloading) {
             if (reloadFor.getElapsedTime().asMilliseconds()>spTadzik.weapons[spTadzik.currentWeapon].reloadTime) {
                 isReloading = false;
@@ -759,7 +773,6 @@ public:
             }
         }
 
-        //updateEnemies();
         for (unsigned i=0; i<vecEnemies.size(); i++) {
             if (Collision::PixelPerfectTest(spTadzik, vecEnemies[i])) {
                 handleEntityCollision(spTadzik, vecEnemies[i], 0.5);
@@ -784,12 +797,11 @@ public:
         for (unsigned int i=0; i<vecLights.size(); i++)
             updateShadow(vecLights[i]);
 
-        //updateEnemies();
-        window->clear(sf::Color(50+200*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+        window->clear(sf::Color(50+20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
                                 50, 50, 255));
 
-        for (unsigned int i=0; i<vecSprites.size(); i++)
-            window->draw(vecSprites[i]);
+        //for (unsigned int i=0; i<vecSprites.size(); i++)
+        //    window->draw(vecSprites[i]);
 
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
@@ -797,6 +809,7 @@ public:
             window->draw(vecEnemies[i]);
             window->draw(vecEnemies[i].healthBar);
         }
+        updateEnemies();
 
         rTexture.clear(sf::Color(0, 0, 0, 255));
         for (int i=0; i<spTadzik.ls.points.size(); i++) {
@@ -809,15 +822,12 @@ public:
         for (unsigned int i=0; i<vecLights.size(); i++)
             rTexture.draw(vecLights[i].shadow, myBlendMode);
         rTexture.draw(spTadzik.ls.shadow, myBlendMode);
-        rTexture.display();
-        window->draw(sf::Sprite(rTexture.getTexture()));
-        updateEnemies();
 
-        for (unsigned int i=0; i<vecWalls.size(); i++) {
-            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
-                drawLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]);
-            }
-        }
+        rTexture.display();
+        rDebug.display();
+        window->draw(sf::Sprite(rTexture.getTexture()));
+        window->draw(sf::Sprite(rLines.getTexture()));
+        if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
 
         if (vecBullets.size()>0) {
             for (int i=vecBullets.size()-1; i>=0; i--) {
@@ -832,10 +842,9 @@ public:
             }
         }
 
-        rDebug.display();
-        if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
         rDebug.clear(sf::Color(0, 0, 0, 0));
-        for (unsigned int i = 0; i<vecLights.size(); i++) window->draw(vecLights[i].sprite);
+        for (unsigned int i = 0; i<vecLights.size(); i++)
+            window->draw(vecLights[i].sprite);
         window->draw(spTadzik);
 
         updateHUD();
@@ -867,6 +876,7 @@ protected:
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
     sf::RenderTexture rGUI;
+    sf::RenderTexture rLines;
     HUD hud;
 
     sf::BlendMode myBlendMode = sf::BlendMode(sf::BlendMode::SrcColor, sf::BlendMode::DstColor, sf::BlendMode::Add,
@@ -890,6 +900,8 @@ protected:
 
     std::vector <Weapon> vecWeapons;
 
+    std::vector <Wave> vecWaves;
+
     double acceleration = 2;
     int tileSize = 20;
     int score = 0;
@@ -898,7 +910,6 @@ protected:
     sf::Clock reloadFor;
     sf::Clock clock;
 
-    std::vector <Wave> vecWaves;
     int currentWave = 0;
 
     bool isReloading = false;
