@@ -736,24 +736,42 @@ public:
         hud.update();
     }
 
+    virtual bool onConsoleUpdate(std::vector<std::string> args){
+        if (args[0] == "debug") {
+            debug = !debug;
+        }
+        else if (args[0] == "gib") {
+            for (int i=0; i<spTadzik.weapons.size(); i++) {
+                spTadzik.weapons[i].ammo = spTadzik.weapons[i].magSize;
+                spTadzik.weapons[i].mags = spTadzik.weapons[i].magAmount;
+                spTadzik.health = 100;
+            }
+        }
+        else if (args.size()==2 && args[0] == "spawn") {
+            for (int i=0; i<atoi(args[1].c_str()); i++)
+                vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+        }
+        else if (args[0] == "killall") {
+            vecEnemies.clear();
+        }
+        else
+            return false;
+        return true;
+    }
+
     void getKeyboardStuff() {
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed)
             spTadzik.velocity.x -= acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed)
             spTadzik.velocity.y -= acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed)
             spTadzik.velocity.y += acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed)
             spTadzik.velocity.x += acceleration;
-        }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) spTadzik.health-=10;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) reload();
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
-        }
     }
 
     virtual void draw(double deltaTime) {
