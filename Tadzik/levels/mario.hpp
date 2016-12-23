@@ -1,10 +1,10 @@
 #ifndef MARIO_HPP
 #define MARIO_HPP
 
-#include "Scene.hpp"
-#include "AnimatedSprite.hpp"
-#include "Collision.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/AnimatedSprite.hpp"
+#include "../include/Collision.hpp"
+#include "../include/Utils.hpp"
 
 #include <string>
 #include <vector>
