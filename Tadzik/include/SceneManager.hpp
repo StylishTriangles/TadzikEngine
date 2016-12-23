@@ -53,6 +53,13 @@ public:
         actScene->deliverEvent(e);
     }
     void runSceneFrame(double delta){
+        actSecondCtr+=delta;
+        fpsCtr++;
+        if(actSecondCtr >= 1000.0f){
+            lastFrameFPS = fpsCtr;
+            fpsCtr=0;
+            actSecondCtr=0.0;
+        }
         actScene->draw(delta);
         if(cmdEnabled){
             ImGui::SetNextWindowPos(sf::Vector2f(0,0));
@@ -106,12 +113,19 @@ public:
         return false;
     }
 
+    int getFPS(){
+        return lastFrameFPS;
+    }
+
 private:
     std::unordered_map<std::string, Scene*> scenes;
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
     char cmdBuffer[1024];
+    int fpsCtr=0;
+    int lastFrameFPS=0;
+    float actSecondCtr=0.0f;
 };
 
 #endif // SCENEMANAGER_HPP

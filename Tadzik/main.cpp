@@ -63,7 +63,6 @@ int main(){
     //sceneManager.setActiveScene("SHOOTER2D");
     sceneManager.setActiveScene("RPG");
     sf::Clock deltaClock;
-    char windowTitle[256]="Test";
     while(window.isOpen()){
         sf::Event event;
         while(window.pollEvent(event)){
@@ -87,6 +86,8 @@ int main(){
         window.resetGLStates();
         ImGui::Render();
         window.display();
+
+        //std::cout << "fps: " << sceneManager.getFPS() << "\n";
     }
     ImGui::SFML::Shutdown();
     return 0;
