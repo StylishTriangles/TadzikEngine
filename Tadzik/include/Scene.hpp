@@ -22,6 +22,7 @@ public:
     virtual void draw(double deltaTime){}
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
+    virtual bool onConsoleUpdate(std::vector<std::string> args){}
 
     std::string getName(){
         return name;
@@ -46,4 +47,3 @@ protected:
 };
 
 #endif // SCENE_HPP
-
