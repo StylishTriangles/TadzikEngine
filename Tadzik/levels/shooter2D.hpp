@@ -445,12 +445,17 @@ public:
         texHealthBar.loadFromFile("files/textures/shooter2D/healthBar.png");
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
 
+        texShadow.loadFromFile("files/textures/shooter2D/shadow.png");
+        spShadow.setTexture(texShadow);
+        spShadow.setOrigin(spShadow.getTextureRect().width/2, spShadow.getTextureRect().height/2);
+
         loadMap();
         loadWaves();
 
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
         rLines.create(window->getSize().x, window->getSize().y);
+        rShadows.create(window->getSize().x, window->getSize().y);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
@@ -815,8 +820,8 @@ public:
         for (unsigned int i=0; i<vecLights.size(); i++)
             updateShadow(vecLights[i]);
 
-        window->clear(sf::Color(50+20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
-                                50, 50, 255));
+        window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+                                255, 255, 255));
 
         //for (unsigned int i=0; i<vecSprites.size(); i++)
         //    window->draw(vecSprites[i]);
@@ -830,6 +835,13 @@ public:
         updateEnemies();
 
         rTexture.clear(sf::Color(0, 0, 0, 255));
+
+        rShadows.clear(sf::Color(0, 0, 0, 255));
+        spShadow.setPosition(spTadzik.getPosition());
+        spShadow.setScale(2, 2);
+        rShadows.draw(spShadow, sf::BlendNone);
+        rShadows.display();
+
         for (int i=0; i<spTadzik.ls.points.size(); i++) {
             sf::CircleShape c(2);
             c.setOrigin(1, 1);
@@ -840,7 +852,7 @@ public:
         for (unsigned int i=0; i<vecLights.size(); i++)
             rTexture.draw(vecLights[i].shadow, myBlendMode);
         rTexture.draw(spTadzik.ls.shadow, myBlendMode);
-
+        rTexture.draw(sf::Sprite(rShadows.getTexture()));
         rTexture.display();
         rDebug.display();
         window->draw(sf::Sprite(rTexture.getTexture()));
@@ -885,6 +897,7 @@ protected:
     sf::Texture texEnemy1;
     sf::Texture texCrosshair;
     sf::Texture texHud;
+    sf::Texture texShadow;
 
     sf::Sprite spCrosshair;
 
@@ -895,6 +908,7 @@ protected:
     sf::RenderTexture rDebug;
     sf::RenderTexture rGUI;
     sf::RenderTexture rLines;
+    sf::RenderTexture rShadows;
     HUD hud;
 
     sf::BlendMode myBlendMode = sf::BlendMode(sf::BlendMode::SrcColor, sf::BlendMode::DstColor, sf::BlendMode::Add,
@@ -902,6 +916,7 @@ protected:
 
     Player spTadzik;
     sf::Sprite spWall;
+    sf::Sprite spShadow;
 
     Bullet tmpBullet;
     Enemy tmpEnemy = Enemy(sf::Vector2f(500, 500), &texEnemy1, &spTadzik);
