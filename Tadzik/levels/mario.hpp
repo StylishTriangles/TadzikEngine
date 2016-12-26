@@ -749,7 +749,7 @@ public:
         for (auto a:powerupBlocks) { window->draw(a);}
         window->draw(spTadzik.sprite);
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
-        for(int i=0; i<vecWaterfall.size();i++) {
+        for (int i=0; i<vecWaterfall.size();i++) {
             vecWaterfall[i].setTextureRect(sf::IntRect(0, -clock.getElapsedTime().asMilliseconds()/10, texWaterfall.getSize().x, 1000 ));
             window->draw(vecWaterfall[i]);
         }

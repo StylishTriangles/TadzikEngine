@@ -103,50 +103,37 @@ public:
         double angle;
     };
 
-    class lightSource: public sf::Vector2f {
+    class lightSource: public sf::Vector2f{
     public:
-
         lightSource(){
-            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+
         }
-        lightSource(sf::Vector2f f) {
-            x=f.x, y=f.y;
-            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+        lightSource(sf::Vector2f pos) {
+            x=pos.x, y=pos.y;
         }
-        lightSource(sf::Vector2f p, sf::Vector2f v, sf::Color c) {
-            x=p.x, y=p.y;
-            color = c;
-            velocity = v;
-        }
-        lightSource(sf::Vector2f p, sf::Vector2f v, sf::Color c, sf::Texture* t) {
-            x=p.x, y=p.y;
-            color = c;
-            velocity = v;
+        lightSource(sf::Vector2f pos, sf::Texture* t, sf::Texture* g, sf::Color color = sf::Color::White) {
+            x=pos.x, y=pos.y;
+            glow.setTexture(*g);
+            glow.setOrigin(glow.getTextureRect().width/2, glow.getTextureRect().height/2);
+            glow.setPosition(sf::Vector2f(x, y));
+            glow.setColor(color);
+
             sprite.setTexture(*t);
             sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height/2);
             sprite.setPosition(sf::Vector2f(x, y));
         }
-        void operator= (sf::Vector2f v) {
-            x = v.x;
-            y = v.y;
-            sprite.setPosition(x, y);
-        }
         void update() {
-            x+=velocity.x;
-            y+=velocity.y;
-            velocity.x*=0.9;
-            velocity.y*=0.9;
-            if (velocity.x!=0 && velocity.y!=0) sortPoints();
+            sortPoints();
+            sprite.setPosition(x, y);
+            glow.setPosition(x, y);
         }
         void sortPoints(){
             std::sort(points.begin(), points.end());
         }
         std::vector <CrossingPoint> points;
-        sf::Vector2f velocity;
-        sf::Vector2f acceleration;
         sf::VertexArray shadow = sf::VertexArray(sf::TrianglesFan, 0);
+        sf::Sprite glow;
         sf::Sprite sprite;
-        sf::Color color;
     };
 
     class Bullet: public sf::Sprite {
@@ -218,10 +205,12 @@ public:
             speed = sqrt(velocity.x*velocity.x+velocity.y*velocity.y);
             sf::Vector2f m = {std::min(speed, maxSpeed)*cos(angle), std::min(speed, maxSpeed)*sin(angle)};
             move(m);
-            ls = getPosition();
+            ls.x = getPosition().x;
+            ls.y = getPosition().y;
+            ls.update();
             hitbox.setPosition(getPosition());
         }
-        lightSource ls = lightSource(getPosition(), {0, 0}, sf::Color(255, 255, 255, 255));
+        lightSource ls = lightSource(getPosition());
         double health = 100;
         sf::Clock sinceHit;
         sf::Time invincibilityTime = sf::seconds(1);
@@ -373,11 +362,12 @@ public:
         }
         ls.sortPoints();
         ls.shadow.clear();
-        ls.shadow.append(sf::Vertex(ls, ls.color));
+        sf::Color c = sf::Color(0, 0, 0, 0);
+        ls.shadow.append(sf::Vertex(ls, c));
         for (int i=0; i<ls.points.size(); i++) {
-            ls.shadow.append(sf::Vertex(ls.points[i].point, ls.color));
+            ls.shadow.append(sf::Vertex(ls.points[i].point, c));
         }
-        ls.shadow.append(sf::Vertex(ls.points[0].point, ls.color));
+        ls.shadow.append(sf::Vertex(ls.points[0].point, c));
     }
 
     sf::VertexArray getLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color c = sf::Color::White) {
@@ -446,6 +436,10 @@ public:
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
 
         texShadow.loadFromFile("files/textures/shooter2D/shadow.png");
+
+        spTadzik.ls.glow.setTexture(texShadow);
+        spTadzik.ls.glow.setOrigin(spTadzik.ls.glow.getTextureRect().width/2, spTadzik.ls.glow.getTextureRect().height/2);
+
         spShadow.setTexture(texShadow);
         spShadow.setOrigin(spShadow.getTextureRect().width/2, spShadow.getTextureRect().height/2);
 
@@ -495,7 +489,7 @@ public:
     }
 
     virtual void onSceneActivate() {
-        window->setMouseCursorVisible(0);
+        window->setMouseCursorVisible(false);
     }
 
     void loadMap() {
@@ -656,7 +650,7 @@ public:
                 shoot();
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
-                vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), sf::Vector2f(0, 0), sf::Color(255, 255, 0, 100), &texCandle));
+                vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), &texCandle, &texShadow, Utils::randColor()));
                 updateShadow(vecLights[vecLights.size()-1]);
             }
         }
@@ -764,7 +758,7 @@ public:
         return true;
     }
 
-    void getKeyboardStuff() {
+    virtual void getKeyboardStuff() {
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed)
             spTadzik.velocity.x -= acceleration;
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed)
@@ -796,7 +790,7 @@ public:
             }
         }
 
-        for (unsigned i=0; i<vecEnemies.size(); i++) {
+        for (unsigned int i=0; i<vecEnemies.size(); i++) {
             if (Collision::PixelPerfectTest(spTadzik, vecEnemies[i])) {
                 handleEntityCollision(spTadzik, vecEnemies[i], 0.5);
                 if (spTadzik.sinceHit.getElapsedTime() > spTadzik.invincibilityTime) {
@@ -821,7 +815,7 @@ public:
             updateShadow(vecLights[i]);
 
         window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
-                                255, 255, 255));
+                                255, 255));
 
         //for (unsigned int i=0; i<vecSprites.size(); i++)
         //    window->draw(vecSprites[i]);
@@ -835,27 +829,35 @@ public:
         updateEnemies();
 
         rTexture.clear(sf::Color(0, 0, 0, 255));
+        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
+        for (unsigned int i=0; i<vecLights.size(); i++)
+            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
+        rTexture.display();
 
-        rShadows.clear(sf::Color(0, 0, 0, 255));
-        spShadow.setPosition(spTadzik.getPosition());
-        spShadow.setScale(2, 2);
-        rShadows.draw(spShadow, sf::BlendNone);
+        rShadows.clear(sf::Color(0, 0, 0));
+        rShadows.draw(spTadzik.ls.glow);
+        for (unsigned int i=0; i<vecLights.size(); i++)
+            rShadows.draw(vecLights[i].glow);
+        rShadows.draw(sf::Sprite(rTexture.getTexture()));
         rShadows.display();
 
-        for (int i=0; i<spTadzik.ls.points.size(); i++) {
-            sf::CircleShape c(2);
-            c.setOrigin(1, 1);
-            c.setFillColor(sf::Color::Green);
-            c.setPosition(spTadzik.ls.points[i].point);
-            rDebug.draw(c);
+        if (debug) {
+            for (int i=0; i<spTadzik.ls.points.size(); i++) {
+                sf::CircleShape c(2);
+                c.setOrigin(1, 1);
+                c.setFillColor(sf::Color::Green);
+                c.setPosition(spTadzik.ls.points[i].point);
+                rDebug.draw(c);
+            }
         }
+
         for (unsigned int i=0; i<vecLights.size(); i++)
-            rTexture.draw(vecLights[i].shadow, myBlendMode);
-        rTexture.draw(spTadzik.ls.shadow, myBlendMode);
-        rTexture.draw(sf::Sprite(rShadows.getTexture()));
-        rTexture.display();
+            //rTexture.draw(vecLights[i].shadow, myBlendMode);
+        //rTexture.draw(spTadzik.ls.shadow, myBlendMode);
+        //rTexture.draw(sf::Sprite(rShadows.getTexture()), sf::BlendMultiply);
+        //rTexture.display();
         rDebug.display();
-        window->draw(sf::Sprite(rTexture.getTexture()));
+        window->draw(sf::Sprite(rShadows.getTexture()), sf::BlendMultiply);
         window->draw(sf::Sprite(rLines.getTexture()));
         if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
 
