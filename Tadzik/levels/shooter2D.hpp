@@ -121,7 +121,7 @@ public:
             sprite.setTexture(*t);
             sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height/2);
             sprite.setPosition(sf::Vector2f(x, y));
-            //sprite.setColor(sf::Color(255-(255-color.r)/5, 255-(255-color.g)/5, 255-(255-color.g)/5));
+            //sprite.setColor(sf::Color(255-(255-color.r)/50, 255-(255-color.g)/50, 255-(255-color.b)/50));
             sprite.setColor(color);
         }
         void update() {
@@ -755,6 +755,14 @@ public:
         else if (args[0] == "killall") {
             vecEnemies.clear();
         }
+        else if (args[0] == "stopspawning") {
+            vecEnemies.clear();
+            currentWave = 0;
+            vecWaves[0].time = 1000000;
+        }
+        else if (args[0] == "lightsoff") {
+            vecLights.clear();
+        }
         else
             return false;
         return true;
@@ -776,14 +784,15 @@ public:
     }
 
     virtual void draw(double deltaTime) {
-        //input myszka
+        /// INPUT MYSZK¥
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
             shoot();
         }
 
-        //input z klawiatury
+        /// INPUT Z KLAWIATURY
         getKeyboardStuff();
 
+        /// RELOADING
         if (isReloading) {
             if (reloadFor.getElapsedTime().asMilliseconds()>spTadzik.weapons[spTadzik.currentWeapon].reloadTime) {
                 isReloading = false;
@@ -792,6 +801,7 @@ public:
             }
         }
 
+        /// OGARNIANIE KOLIZJI
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             if (Collision::PixelPerfectTest(spTadzik, vecEnemies[i])) {
                 handleEntityCollision(spTadzik, vecEnemies[i], 0.5);
@@ -813,12 +823,12 @@ public:
         spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
 
         updateShadow(spTadzik.ls);
-        //for (unsigned int i=0; i<vecLights.size(); i++)
-        //    updateShadow(vecLights[i]);
 
         window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
                                 255, 255));
 
+
+        /// OGARNIANIE PRZECIWNIKÓW
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
             rDebug.draw(vecEnemies[i].hitbox);
@@ -827,44 +837,7 @@ public:
         }
         updateEnemies();
 
-
-        /// TEMPORARY LIGHTNING
-        rTexture.clear(sf::Color(0, 0, 0, 255));
-        rHelp.clear(sf::Color(0, 0, 0, 255));
-        rShadows.clear(sf::Color(0, 0, 0));
-        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
-        rTexture.display();
-        rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
-        rShadows.draw(sf::Sprite(rTexture.getTexture()));
-        rShadows.display();
-        rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
-        for (unsigned int i=0; i<vecLights.size(); i++) {
-            rTexture.clear(sf::Color(0, 0, 0, 255));
-            rShadows.clear(sf::Color(0, 0, 0));
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-            rTexture.display();
-            rShadows.draw(vecLights[i].glow, sf::BlendAdd);
-            rShadows.draw(sf::Sprite(rTexture.getTexture()));
-            rShadows.display();
-            rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
-        }
-        rHelp.display();
-
-        if (debug) {
-            for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
-                sf::CircleShape c(2);
-                c.setOrigin(1, 1);
-                c.setFillColor(sf::Color::Green);
-                c.setPosition(spTadzik.ls.points[i].point);
-                rDebug.draw(c);
-            }
-        }
-
-        rDebug.display();
-        window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
-        window->draw(sf::Sprite(rLines.getTexture()));
-        if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
-
+        /// OGARNIANIE POCISKÓW
         if (vecBullets.size()>0) {
             for (int i=vecBullets.size()-1; i>=0; i--) {
                 vecBullets[i].update();
@@ -878,9 +851,49 @@ public:
             }
         }
 
-        rDebug.clear(sf::Color(0, 0, 0, 0));
+        /// TEMPORARY LIGHTNING
+        rTexture.clear(sf::Color(0, 0, 0, 255));
+        rHelp.clear(sf::Color(0, 0, 0, 255));
         for (unsigned int i = 0; i<vecLights.size(); i++)
-            window->draw(vecLights[i].sprite);
+            rHelp.draw(vecLights[i].sprite, sf::BlendAdd);
+
+        rShadows.clear(sf::Color(0, 0, 0));
+        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
+        rTexture.display();
+        rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
+        rShadows.draw(sf::Sprite(rTexture.getTexture()));
+        rShadows.display();
+        rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        for (unsigned int i=0; i<vecLights.size(); i++) {
+            rTexture.clear(sf::Color(0, 0, 0, 255));
+            rShadows.clear(sf::Color(0, 0, 0, 255));
+            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
+            rTexture.display();
+            rShadows.draw(vecLights[i].glow, sf::BlendAdd);
+            rShadows.draw(sf::Sprite(rTexture.getTexture()));
+            rShadows.display();
+            rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        }
+        rHelp.display();
+
+        window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
+        window->draw(sf::Sprite(rLines.getTexture()));
+
+        /// DEBUG
+        if (debug) {
+            for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
+                sf::CircleShape c(2);
+                c.setOrigin(1, 1);
+                c.setFillColor(sf::Color::Green);
+                c.setPosition(spTadzik.ls.points[i].point);
+                rDebug.draw(c);
+            }
+            rDebug.display();
+            window->draw(sf::Sprite(rDebug.getTexture()));
+        }
+        rDebug.clear(sf::Color(0, 0, 0, 0));
+
+
         window->draw(spTadzik);
 
         updateHUD();

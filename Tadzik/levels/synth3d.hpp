@@ -20,13 +20,14 @@ inline realType toRad(realType angle)
 
 struct wall
 {
-    std::vector <sf::Vector3f*> coord;
+    //std::vector <sf::Vector3f*> coord;
+    std::vector <int> coord;
     sf::Color color=sf::Color::Green;
     sf::Color trans=sf::Color::Transparent;
     float pSize=100;
-    void push_back(sf::Vector3f &c)
+    void push_back(int c)
     {
-        coord.push_back(&c);
+        coord.push_back(c);
     }
     unsigned int size() const
     {
@@ -57,10 +58,18 @@ public:
     void setPos(sf::Vector3f posGiven); //Ustaw pozycje kamery
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
+    void update();
 protected:
+    std::vector <std::vector <bool> > drawMask;
     std::vector <sf::Vertex> triangleArray;
+    std::vector <sf::Vertex> quadArray;
     std::vector <sf::Vector2f> circleDef;
+    std::vector <sf::Vector3f> spot3d;
+    std::vector <sf::Vector3f> spot2d;
     void initCircleDef(int n);
+    void calcDrawMask();
+    void calcTerrain();
+    void updateTerrain();
     SYNTH3D* p;
     float screenSize, viewAngle, eye, scale;
     float sinx, siny, sinz, cosx, cosy, cosz;
@@ -73,6 +82,8 @@ protected:
     void drawDot(sf::Vector2f spot, float size, sf::Color color);
     void drawWall(wall const& wallie);
     float dotSize(float dot, sf::Vector3f vec);
+    sf::VertexArray vArray;
+    int index;
 };
 
 class SYNTH3D: public Scene
@@ -80,7 +91,7 @@ class SYNTH3D: public Scene
 public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -200}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0)
+        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}), eyeDistance(-10), waveBuffor(0), extraBit(0), terrainSize(120), alpha(0)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -92,26 +103,26 @@ public:
         object cube;
         std::vector <wall> wallie;
         int scale = 100;
-        for(int i=0; i<50; i++)
-            for(int j=0; j<50; j++)
+        for(int i=0; i<terrainSize; i++)
+            for(int j=0; j<terrainSize; j++)
                 terrain.push_back({i*scale, 0, j*scale});
-        for(int i=0; i<49*49; i++)
+        for(int i=0; i<(terrainSize-1)*(terrainSize-1); i++)
         {
-            if(i%50 != 49)
+            if(i%terrainSize != terrainSize-1)
             {
             wall walion;
-            walion.push_back(terrain[i]);
-            walion.push_back(terrain[i+1]);
-            walion.push_back(terrain[i+51]);
-            walion.push_back(terrain[i+50]);
+            walion.push_back(i);
+            walion.push_back(i+1);
+            walion.push_back(i+terrainSize+1);
+            walion.push_back(i+terrainSize);
             wallie.push_back(walion);
             }
         }
 
-
         for(int i=0; i<wallie.size(); i++)
             cube.push_back(wallie[i]);
         world.push_back(cube);
+        c.update();
     }
     virtual void onSceneActivate() {}
     virtual void draw(double dt)
@@ -183,16 +194,22 @@ public:
         {
             extraBit += 0.5;
             waveBuffor += extraBit;
-            for(int j=0; j<50; j++)
+            for(int j=0; j<terrainSize; j++)
             {
-            for(int i=0; i<50; i++)
+            for(int i=0; i<terrainSize; i++)
             {
-                terrain[i + j*50].y = sinf(waveBuffor/2)*(50-j) + cosf(float(j)/3)*50;
+                terrain[i + j*terrainSize].y = sinf(waveBuffor/2)*(terrainSize-j) + cosf(float(j)/3)*terrainSize;
             }
             waveBuffor++;
             }
             waveBuffor = 0;
         }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y))
+            alpha = 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::T))
+            alpha = 0;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::H))
+            alpha = 2;
 
         c.setPos(cameraPos);
         c.setAngle(cameraAngle);
@@ -207,6 +224,7 @@ protected:
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
     float eyeDistance, waveBuffor, extraBit;
+    int terrainSize, alpha;
 };
 Camera::Camera(SYNTH3D* parent):
     p(parent),
@@ -214,9 +232,78 @@ Camera::Camera(SYNTH3D* parent):
     eye(-80),
     angle({0,0,0}),
     screenSize(3),
-    scale(100)
+    scale(100),
+    vArray(sf::Triangles, 169944)
 {
     initCircleDef(16);
+}
+
+void Camera::updateTerrain()
+{
+    spot3d.resize(p->terrain.size());
+    spot2d.resize(spot3d.size());
+}
+
+void Camera::update()
+{
+    updateTerrain();
+    calcDrawMask();
+}
+
+void Camera::calcDrawMask()
+{
+    auto insideVector = [](std::pair <int, int> element, std::vector <std::pair <int, int> >& vec, int& k) -> bool
+    {
+        bool indicator = false;
+        for(int i=0; i<vec.size(); i++)
+            if((element.first == vec[i].first and element.second == vec[i].second) or (element.first == vec[i].second and element.second == vec[i].first))
+                k = i, indicator = true;
+        return indicator;
+    };
+    drawMask.clear();
+    std::vector <bool> temp1;
+    for(int i=0; i<spot2d.size(); i++)
+        temp1.push_back(true);
+    for(int i=0; i<spot2d.size(); i++)
+        drawMask.push_back(temp1);
+    std::vector <std::pair <int, int> > lineBuffor;
+    std::vector <std::pair <std::pair <int, int>, int> > wallBuffor;
+    int index;
+    for(int i=0; i<p->world.size(); i++)
+        for(int j=0; j<p->world[i].size(); j++)
+            for(int k=0; k<p->world[i].wallie[j].size(); k++)
+                if(insideVector({p->world[i].wallie[j].coord[k],
+                                p->world[i].wallie[j].coord[(k+1)%p->world[i].wallie[j].size()]},
+                                lineBuffor, index))
+                {
+                    if(p->world[i].wallie[j].pSize > p->world[wallBuffor[index].first.first].wallie[wallBuffor[index].first.second].pSize)
+                        drawMask[ p->world[wallBuffor[index].first.first]
+                        .wallie[wallBuffor[index].first.second]
+                        .coord[wallBuffor[index].second] ]
+
+                        [ p->world[wallBuffor[index].first.first]
+                        .wallie[wallBuffor[index].first.second]
+                        .coord[(wallBuffor[index].second + 1) %
+                        p->world[wallBuffor[index].first.first]
+                        .wallie[wallBuffor[index].first.second].size()] ]
+                        = false;
+
+
+                        /*drawMask[wallBuffor[index].first.first]
+                        [wallBuffor[index].first.second]
+                        [wallBuffor[index].second]
+                        = false;*/
+                    else
+                        drawMask[p->world[i].wallie[j].coord[k]]
+                        [p->world[i].wallie[j].coord[(k+1)%p->world[i].wallie[j].size()]]
+                        = false;
+                }
+                else
+                {
+                    lineBuffor.push_back({p->world[i].wallie[j].coord[k],
+                                         p->world[i].wallie[j].coord[(k+1)%p->world[i].wallie[j].size()]});
+                    wallBuffor.push_back({{i, j}, k});
+                }
 }
 
 void Camera::calcAngle()
@@ -307,12 +394,31 @@ void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float s
     lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
     norm.x /= lenght, norm.y /= lenght;
     temp = norm.x, norm.x = -norm.y, norm.y = temp;
+    if(p->alpha == 0)
+    {
     triangleArray.push_back(sf::Vertex(vec1 + norm*size1, color));
     triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
     triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
     triangleArray.push_back(sf::Vertex(vec2 + norm*size2, color));
     triangleArray.push_back(sf::Vertex(vec1 - norm*size1, color));
     triangleArray.push_back(sf::Vertex(vec2 - norm*size2, color));
+    }
+    else if(p->alpha == 1)
+    {
+    quadArray.push_back(sf::Vertex(vec1 + norm*size1, color));
+    quadArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+    quadArray.push_back(sf::Vertex(vec2 - norm*size2, color));
+    quadArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    }
+    else
+    {
+    vArray[index++].position = vec1 + norm*size1;
+    vArray[index++].position = vec2 + norm*size2;
+    vArray[index++].position = vec1 - norm*size1;
+    vArray[index++].position = vec2 + norm*size2;
+    vArray[index++].position = vec1 - norm*size1;
+    vArray[index++].position = vec2 - norm*size2;
+    }
 }
 
 void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
@@ -325,64 +431,68 @@ void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
     }
 }
 
+void Camera::calcTerrain()
+{
+    sf::Vector3f vEye = {0, 0, eye};
+    for(int i=0; i<p->terrain.size(); i++)
+    {
+        spot3d[i] = vecTransform(p->terrain[i] - position);
+        spot2d[i] = planeCross(spot3d[i], vEye);
+    }
+}
+
 void Camera::drawWall(wall const& wallie)
 {
     /*auto drawDot = [](sf::Vector2f spot, float size, sf::Color color) -> void
     {};*/
-    sf::Vector3f tempPlane, vEye = {0, 0, eye};
     std::vector <sf::Vector2f> spot;
-    std::vector <sf::Vector3f> spot3d;
     std::vector <float> dot;
     std::vector <int> usefulSpot;
     int indicator;
     for(int i=0; i<wallie.size(); i++)
     {
-        spot3d.push_back(vecTransform(*wallie.coord[i] - position));
-        if(spot3d[i].z >= 0)
+        if(spot3d[ wallie.coord[i] ].z >= 0)
             usefulSpot.push_back(i);
     }
     if(!usefulSpot.empty())
     {
-        if(usefulSpot.size() < spot3d.size())
-        {
-            usefulSpot.clear();
-        for(int i=0, j=0; i<2*spot3d.size(); i++)
-            if(spot3d[i%spot3d.size()].z < 0 or j > 0)
-            {
-                if(j == 0)
-                    j = 1;
-                if(spot3d[i%spot3d.size()].z >= 0 and j != 3)
-                    usefulSpot.push_back(i%spot3d.size()), j = 2;
-                else if(j == 2)
-                    j = 3;
-            }
-        }
-        if(usefulSpot.size() == spot3d.size())
+        if(usefulSpot.size() == wallie.size())
         {
             for(int i=0; i<usefulSpot.size(); i++)
             {
-                tempPlane = planeCross(spot3d[i], vEye);
-                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
-                dot.push_back(dotSize(wallie.pSize, spot3d[i]));
+                spot.push_back({spot2d[wallie.coord[i]].x*scale + p->window->getSize().x/2, spot2d[wallie.coord[i]].y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[wallie.coord[i]]));
                 indicator = 0;
             }
         }
         else
         {
-            tempPlane = planeCross(spot3d[usefulSpot[0]], spot3d[(usefulSpot[0] - 1)%spot3d.size()]);
+            usefulSpot.clear();
+        for(int i=0, j=0; i<2*wallie.size(); i++)
+            if(spot3d[ wallie.coord[i%wallie.size()] ].z < 0 or j > 0)
+            {
+                if(j == 0)
+                    j = 1;
+                if(spot3d[ wallie.coord[i%wallie.size()] ].z >= 0 and j != 3)
+                    usefulSpot.push_back(i%wallie.size()), j = 2;
+                else if(j == 2)
+                    j = 3;
+            }
+            sf::Vector3f tempPlane, vEye = {0, 0, eye};
+            tempPlane = planeCross(spot3d[wallie.coord[ usefulSpot[0]] ], spot3d[wallie.coord[ (usefulSpot[0] - 1)%wallie.size() ]]);
             spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
             dot.push_back(wallie.pSize);
             for(int i=0; i<usefulSpot.size(); i++)
             {
-                tempPlane = planeCross(spot3d[ usefulSpot[i] ], vEye);
-                spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
-                dot.push_back(dotSize(wallie.pSize, spot3d[usefulSpot[i]]));
+                spot.push_back({spot2d[ wallie.coord[usefulSpot[i]] ].x*scale + p->window->getSize().x/2, spot2d[ wallie.coord[usefulSpot[i]] ].y*scale + p->window->getSize().y/2});
+                dot.push_back(dotSize(wallie.pSize, spot3d[ wallie.coord[usefulSpot[i]] ]));
             }
-            tempPlane = planeCross(spot3d[ usefulSpot[ usefulSpot.size() - 1 ] ], spot3d[ (usefulSpot[ usefulSpot.size() - 1 ] + 1)%spot3d.size() ]);
+            tempPlane = planeCross(spot3d[ wallie.coord [usefulSpot[ usefulSpot.size() - 1 ] ]], spot3d[ wallie.coord[(usefulSpot[ usefulSpot.size() - 1 ] + 1)%wallie.size()] ]);
             spot.push_back({tempPlane.x*scale + p->window->getSize().x/2, tempPlane.y*scale + p->window->getSize().y/2});
             dot.push_back(wallie.pSize);
             indicator = 1;
         }
+        if(wallie.trans != sf::Color::Transparent)
         for(int i=1; i<spot.size()-1; i++)
         {
             triangleArray.push_back(sf::Vertex(spot[0], wallie.trans));
@@ -390,14 +500,14 @@ void Camera::drawWall(wall const& wallie)
             triangleArray.push_back(sf::Vertex(spot[i+1], wallie.trans));
         }
         for(int i=0; i<spot.size() - indicator; i++)
-        {
+            if(drawMask[wallie.coord[i]][wallie.coord[(i+1)%wallie.size()] ] == true)
         drawLine(spot[i],
                  spot[(i+1)%spot.size()],
                  dot[i],
                  dot[(i+1)%spot.size()],
                  wallie.color);
-        drawDot(spot[i], dot[i], wallie.color);
-        }
+        //drawDot(spot[i], dot[i], wallie.color);
+        //drawDot(spot[spot.size()-1], dot[spot.size()-1], wallie.color);
     }
 }
 
@@ -408,17 +518,16 @@ void Camera::display()
         sf::Vector3f temp = *point - *pos;
         return temp.x*temp.x + temp.y*temp.y + temp.z*temp.z;
     };
-    auto squareWallDist = [](wall& jackson, sf::Vector3f& pos) -> float
+    auto squareWallDist = [](wall& jackson, sf::Vector3f& pos, std::vector <sf::Vector3f>& spot) -> float
     {
         float summary = 0;
         for(int i=0; i<jackson.size(); i++)
         {
-            sf::Vector3f temp = *jackson.coord[i] - pos;
+            sf::Vector3f temp = spot[jackson.coord[i]] - pos;
             summary += temp.x*temp.x + temp.y*temp.y + temp.z*temp.z;
         }
         return summary/float(jackson.size());
     };
-
     p->window->clear();
     //std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
     struct tempType
@@ -428,16 +537,34 @@ void Camera::display()
         float dist;
     };
     std::vector <tempType> wallOrder;
-
+    calcAngle();
+    calcTerrain();
     for(int i=0; i<p->world.size(); i++)
         for(int j=0; j<p->world[i].size(); j++)
-            wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position)});
+            wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j], position, spot3d)});
     std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
     triangleArray.clear();
-    calcAngle();
+    quadArray.clear();
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
-    p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
+    if(p->alpha == 1)
+    {
+        sf::RenderStates states;
+        states.texture = NULL;
+        p->window->draw(&quadArray[0], quadArray.size(), sf::Quads, states);
+        std::cout << "Quad Array size: " << quadArray.size() << "\n";
+    }
+    else if(p->alpha == 2)
+    {
+        p->window->draw(vArray);
+        std::cout << "vArray size: " << vArray.getVertexCount() << "\n";
+    }
+    else
+    {
+        p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
+        std::cout << "Triangle Array size: " << triangleArray.size() << "\n";
+    }
+    index = 0;
 }
 
 #endif //SYNTH3D_HPP

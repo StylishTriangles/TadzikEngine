@@ -38,7 +38,7 @@ public:
 int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
-    //settings.antialiasingLevel = 8;
+    settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     sf::Image screenshot;
     screenshot.create(1280, 720);
@@ -92,6 +92,8 @@ int main(){
         window.resetGLStates();
         ImGui::Render();
         window.display();
+
+        std::cout << "fps: " << sceneManager.getFPS() << "\n";
     }
     ImGui::SFML::Shutdown();
     return 0;
