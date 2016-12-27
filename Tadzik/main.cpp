@@ -58,7 +58,7 @@ int main(){
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
-    sceneManager.setActiveScene("SYNTH3D");
+    //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
     sceneManager.setActiveScene("SHOOTER2D");
