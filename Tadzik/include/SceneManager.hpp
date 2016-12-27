@@ -78,7 +78,7 @@ public:
         std::string cmd = std::string(cmdBuffer);
         std::string tmp="";
         std::vector<std::string> vParsed;
-        for(int i = 0; i < cmd.size(); i++){
+        for(unsigned int i = 0; i < cmd.size(); i++){
             if(std::isspace(static_cast<unsigned char>(cmd[i]))){
                 if(tmp != "" )
                     vParsed.push_back(tmp);

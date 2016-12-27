@@ -19,8 +19,8 @@ public:
     {}
 
     void loadMap() {
-        for (int i=0; i<mapa.getSize().y; i++) {
-            for (int j=0; j<mapa.getSize().x; j++) {
+        for (unsigned int i=0; i<mapa.getSize().y; i++) {
+            for (unsigned int j=0; j<mapa.getSize().x; j++) {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0)) {
 
                 }

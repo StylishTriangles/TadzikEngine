@@ -79,7 +79,7 @@ public:
         void loadTextures(std::vector <sf::Texture>& t) {
             textures.clear();
             hits = t.size();
-            for (int i=0; i<t.size(); i++) {
+            for (unsigned int i=0; i<t.size(); i++) {
                 textures.push_back(&t[i]);
             }
         }
@@ -568,17 +568,17 @@ public:
         //przewijanie i movement
         if ((spTadzik.sprite.getPosition().x>(double)window->getSize().x*(3.0/4.0) && speedX>0) ||
             (spTadzik.sprite.getPosition().x<(double)window->getSize().x*(1.0/5.0) && speedX<0 && floor[0].getPosition().x<0)) {
-            for (int i=0; i<floor.size(); i++)              { floor[i].move(-speedX, 0);}
-            for (int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
-            for (int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
-            for (int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
-            for (int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
-            for (int i=0; i<vecWaterfall.size(); i++)          { vecWaterfall[i].move(-speedX, 0);}
-            for (int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
-            for (int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
+            for (unsigned int i=0; i<floor.size(); i++)              { floor[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecWaterfall.size(); i++)          { vecWaterfall[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
             spTadzik.pos.left-=speedX;
             spTadzik.pos.right-=speedX;
             spTadzik.prevPosition.x-=speedX;
@@ -749,7 +749,7 @@ public:
         for (auto a:powerupBlocks) { window->draw(a);}
         window->draw(spTadzik.sprite);
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
-        for (int i=0; i<vecWaterfall.size();i++) {
+        for (unsigned int i=0; i<vecWaterfall.size(); i++) {
             vecWaterfall[i].setTextureRect(sf::IntRect(0, -clock.getElapsedTime().asMilliseconds()/10, texWaterfall.getSize().x, 1000 ));
             window->draw(vecWaterfall[i]);
         }

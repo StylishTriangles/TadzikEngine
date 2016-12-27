@@ -121,6 +121,8 @@ public:
             sprite.setTexture(*t);
             sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height/2);
             sprite.setPosition(sf::Vector2f(x, y));
+            //sprite.setColor(sf::Color(255-(255-color.r)/5, 255-(255-color.g)/5, 255-(255-color.g)/5));
+            sprite.setColor(color);
         }
         void update() {
             sortPoints();
@@ -315,7 +317,7 @@ public:
             double minAngle = 20;
             int pLeft = -1;
             int pRight = -1;
-            for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
+            for (unsigned int i=0; i<vecWalls[furthestObject].points.size(); i++) {
                 double tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
                 tmpAngle-=rayAngle;
                 if (tmpAngle<-M_PI) tmpAngle +=2*M_PI;
@@ -364,7 +366,7 @@ public:
         ls.shadow.clear();
         sf::Color c = sf::Color(0, 0, 0, 0);
         ls.shadow.append(sf::Vertex(ls, c));
-        for (int i=0; i<ls.points.size(); i++) {
+        for (unsigned int i=0; i<ls.points.size(); i++) {
             ls.shadow.append(sf::Vertex(ls.points[i].point, c));
         }
         ls.shadow.append(sf::Vertex(ls.points[0].point, c));
@@ -379,7 +381,6 @@ public:
 
     sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, double d) {
         double a = atan2(p.y-center.y, p.x-center.x);
-        double l = sqrt((p.y-center.y)*(p.y-center.y)+(p.x-center.x)*(p.x-center.x));
         sf::Vector2f r;
         r.x = p.x+d*sin(a);
         r.y = p.y-d*cos(a);
@@ -450,6 +451,7 @@ public:
         rDebug.create(window->getSize().x, window->getSize().y);
         rLines.create(window->getSize().x, window->getSize().y);
         rShadows.create(window->getSize().x, window->getSize().y);
+        rHelp.create(window->getSize().x, window->getSize().y);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
@@ -701,17 +703,17 @@ public:
                 }
             }
         }
-        for (int i=0; i+1<vecEnemies.size(); i++) {
-            for (int j=i+1; j<vecEnemies.size(); j++) {
+        for (unsigned int i=0; i+1<vecEnemies.size(); i++) {
+            for (unsigned int j=i+1; j<vecEnemies.size(); j++) {
                 handleEntityCollision(vecEnemies[i], vecEnemies[j], 0.02);
             }
         }
         if (clock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
             sf::Image img;
-            img = rTexture.getTexture().copyToImage();
-            for (unsigned int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
+            img = rHelp.getTexture().copyToImage();
+            for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
                 sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
-                if (img.getPixel(t.x, t.y).a==255)
+                if (img.getPixel(t.x, t.y) == sf::Color::Black)
                     vecEnemies.push_back(Enemy(sf::Vector2f(t), &texEnemy1, &spTadzik));
             }
             clock.restart();
@@ -740,7 +742,7 @@ public:
             debug = !debug;
         }
         else if (args[0] == "gib") {
-            for (int i=0; i<spTadzik.weapons.size(); i++) {
+            for (unsigned int i=0; i<spTadzik.weapons.size(); i++) {
                 spTadzik.weapons[i].ammo = spTadzik.weapons[i].magSize;
                 spTadzik.weapons[i].mags = spTadzik.weapons[i].magAmount;
                 spTadzik.health = 100;
@@ -811,14 +813,11 @@ public:
         spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
 
         updateShadow(spTadzik.ls);
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            updateShadow(vecLights[i]);
+        //for (unsigned int i=0; i<vecLights.size(); i++)
+        //    updateShadow(vecLights[i]);
 
         window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
                                 255, 255));
-
-        //for (unsigned int i=0; i<vecSprites.size(); i++)
-        //    window->draw(vecSprites[i]);
 
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
@@ -828,21 +827,31 @@ public:
         }
         updateEnemies();
 
-        rTexture.clear(sf::Color(0, 0, 0, 255));
-        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-        rTexture.display();
 
+        /// TEMPORARY LIGHTNING
+        rTexture.clear(sf::Color(0, 0, 0, 255));
+        rHelp.clear(sf::Color(0, 0, 0, 255));
         rShadows.clear(sf::Color(0, 0, 0));
-        rShadows.draw(spTadzik.ls.glow);
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            rShadows.draw(vecLights[i].glow);
+        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
+        rTexture.display();
+        rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
         rShadows.draw(sf::Sprite(rTexture.getTexture()));
         rShadows.display();
+        rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        for (unsigned int i=0; i<vecLights.size(); i++) {
+            rTexture.clear(sf::Color(0, 0, 0, 255));
+            rShadows.clear(sf::Color(0, 0, 0));
+            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
+            rTexture.display();
+            rShadows.draw(vecLights[i].glow, sf::BlendAdd);
+            rShadows.draw(sf::Sprite(rTexture.getTexture()));
+            rShadows.display();
+            rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        }
+        rHelp.display();
 
         if (debug) {
-            for (int i=0; i<spTadzik.ls.points.size(); i++) {
+            for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
                 sf::CircleShape c(2);
                 c.setOrigin(1, 1);
                 c.setFillColor(sf::Color::Green);
@@ -851,13 +860,8 @@ public:
             }
         }
 
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            //rTexture.draw(vecLights[i].shadow, myBlendMode);
-        //rTexture.draw(spTadzik.ls.shadow, myBlendMode);
-        //rTexture.draw(sf::Sprite(rShadows.getTexture()), sf::BlendMultiply);
-        //rTexture.display();
         rDebug.display();
-        window->draw(sf::Sprite(rShadows.getTexture()), sf::BlendMultiply);
+        window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
         window->draw(sf::Sprite(rLines.getTexture()));
         if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
 
@@ -911,10 +915,8 @@ protected:
     sf::RenderTexture rGUI;
     sf::RenderTexture rLines;
     sf::RenderTexture rShadows;
+    sf::RenderTexture rHelp;
     HUD hud;
-
-    sf::BlendMode myBlendMode = sf::BlendMode(sf::BlendMode::SrcColor, sf::BlendMode::DstColor, sf::BlendMode::Add,
-                                              sf::BlendMode::OneMinusDstAlpha, sf::BlendMode::OneMinusDstAlpha, sf::BlendMode::Subtract);
 
     Player spTadzik;
     sf::Sprite spWall;

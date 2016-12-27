@@ -36,8 +36,8 @@ sf::Vector2f randVector2f (sf::FloatRect i) {
     return sf::Vector2f(randFloat(i.left, i.left+i.width), randFloat(i.top, i.top+i.height));
 }
 
-sf::Color randColor () {
-    return sf::Color(randInt(0, 255), randInt(0, 255), randInt(0, 255));
+sf::Color randColor (int from, int to) {
+    return sf::Color(randInt(from, to), randInt(from, to), randInt(from, to));
 }
 
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window) {
