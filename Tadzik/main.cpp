@@ -1,3 +1,5 @@
+#include "../glad/glad.h"
+
 #include "include/imgui/imgui.h"
 #include "include/imgui/imgui-SFML.h"
 
@@ -33,6 +35,7 @@ public:
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
 #include "levels/isayparty.hpp"
+#include "levels/arrrr.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -40,11 +43,32 @@ public:
 int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
+    settings.depthBits = 24;
+    settings.stencilBits = 8;
     settings.antialiasingLevel = 8;
+    settings.majorVersion = 3;
+    settings.minorVersion = 3;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
+    if(!gladLoadGL()){
+        std::cout << "Kurwa spock\n";
+    }
+    else{
+        int v1=31337, v2=1337;
+        glGetIntegerv(GL_MAJOR_VERSION, &v1);
+        glGetIntegerv(GL_MINOR_VERSION, &v2);
+        std::cout << "versions vol1: " << v1 << " " << v2 << "\n";
+        std::cout << "OpenGL Version: " << GLVersion.major << ", " << GLVersion.minor << "\n";
+    }
+
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
+    int v1=31337, v2=1337;
+    glGetIntegerv(GL_MAJOR_VERSION, &v1);
+    glGetIntegerv(GL_MINOR_VERSION, &v2);
+    std::cout << "versions (imGUI): " << v1 << " " << v2 << "\n";
+    std::cout << "OpenGL Version (imGUI): " << GLVersion.major << ", " << GLVersion.minor << "\n";
+
     SceneManager sceneManager(&window);
     sceneManager.registerScene<TREX>("TREX", &window);
     sceneManager.registerScene<CLICKER>("CLICKER", &window);
@@ -55,13 +79,14 @@ int main(){
     sceneManager.registerScene<RPG>("RPG", &window);
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
+    sceneManager.registerScene<ARRRR>("ARRRR", &window);
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
     //sceneManager.setActiveScene("SHOOTER2D");
-    sceneManager.setActiveScene("RPG");
+    sceneManager.setActiveScene("ARRRR");
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
