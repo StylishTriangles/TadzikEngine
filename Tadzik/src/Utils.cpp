@@ -28,6 +28,18 @@ int randInt(int from, int to) {
     return (rand()%(to-from))+from;
 }
 
+sf::Vector2i randVector2i (sf::IntRect i) {
+    return sf::Vector2i(randInt(i.left, i.left+i.width), randInt(i.top, i.top+i.height));
+}
+
+sf::Vector2f randVector2f (sf::FloatRect i) {
+    return sf::Vector2f(randFloat(i.left, i.left+i.width), randFloat(i.top, i.top+i.height));
+}
+
+sf::Color randColor (int from, int to) {
+    return sf::Color(randInt(from, to), randInt(from, to), randInt(from, to));
+}
+
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window) {
     if (sf::Mouse::getPosition(*window).x >= sp.getPosition().x && sf::Mouse::getPosition(*window).x <= sp.getPosition().x+sp.getGlobalBounds().width &&
         sf::Mouse::getPosition(*window).y >= sp.getPosition().y && sf::Mouse::getPosition(*window).y <= sp.getPosition().y+sp.getGlobalBounds().height)
@@ -54,6 +66,19 @@ int sgn(double x)
     if (x==0) return 0;
     if (x>0) return 1;
     if (x<0) return -1;
+}
+
+std::string getDate() {
+    std::time_t t = std::time(0);
+    tm *ltm = std::localtime(&t);
+    std::string s;
+    s  = stringify(1900+ltm->tm_year) + "-";
+    s += stringify(1 + ltm->tm_mon) + "-";
+    s += stringify(ltm->tm_mday) + "_";
+    s += stringify(ltm->tm_hour) + "-";
+    s += stringify(ltm->tm_min) + "-";
+    s += stringify(1 + ltm->tm_sec);
+    return s;
 }
 
 }

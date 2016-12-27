@@ -29,7 +29,6 @@ public:
                 selected = 0, amount = 1;
             } else selected++, amount*=10;
             buyButton.setTexture(howMany[selected]);
-
         }
         void setPosition (int x, int y) {
             background.setPosition(x, y);
@@ -84,7 +83,7 @@ public:
         void buyAmountChanged (int amount) {
             costShown=0;
             double tmpCost = cost;
-            for (unsigned int i=0; i<amount; i++) {
+            for (int i=0; i<amount; i++) {
                 costShown += tmpCost;
                 tmpCost*=multiplier;
             }
@@ -222,7 +221,7 @@ public:
             if (Utils::isMouseOnSprite(wiener, window)) {
                 isPressed = true;
             }
-            for (int i=0; i<vec.size(); i++) {
+            for (unsigned int i=0; i<vec.size(); i++) {
                 if (Utils::isMouseOnSprite(vec[i].buyButton, window)) {
                     if (wienerAmount >= vec[i].costShown) {
                         wienerAmount -= vec[i].costShown;

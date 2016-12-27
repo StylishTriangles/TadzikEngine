@@ -35,7 +35,10 @@ build-*
 *.cbp
 *.depend
 *.layout
+
 Tadzik/src/imgui/imgui.cpp
 Tadzik/src/imgui/imgui_draw.cpp
 Tadzik/src/imgui
 Tadzik/src/imgui/
+
+Tadzik/screenshots/

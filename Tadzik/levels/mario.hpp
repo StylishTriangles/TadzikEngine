@@ -79,7 +79,7 @@ public:
         void loadTextures(std::vector <sf::Texture>& t) {
             textures.clear();
             hits = t.size();
-            for (int i=0; i<t.size(); i++) {
+            for (unsigned int i=0; i<t.size(); i++) {
                 textures.push_back(&t[i]);
             }
         }
@@ -288,9 +288,7 @@ public:
 
         texBackground.loadFromFile("files/textures/mario/background.png");
 
-
         texFloorTile.loadFromFile("files/textures/mario/floor1.png"), FloorTile.setTexture(texFloorTile);
-
 
         texBreakableTile.resize(3);
         texBreakableTile[0].loadFromFile("files/textures/mario/breakable1.png");
@@ -301,6 +299,7 @@ public:
 
         texCoin.loadFromFile("files/textures/mario/coin1.png"), coinRotate.addFrame(AnimationFrame(&texCoin, 500));
         tmpCoin.setAnimation(&coinRotate);
+        tmpCoin.sprite.setOrigin(tmpCoin.sprite.getTextureRect().width/2, tmpCoin.sprite.getTextureRect().height/2);
 
         texPowerupTileActive.loadFromFile("files/textures/mario/powerupTileActive.png");
         texPowerupTileInactive.loadFromFile("files/textures/mario/powerupTileInactive.png");
@@ -308,9 +307,9 @@ public:
 
         texPowerup.loadFromFile("files/textures/mario/powerup.png"), powerupAnim.addFrame(AnimationFrame(&texPowerup, 500));
         spritePowerup.setAnimation(&powerupAnim);
+        spritePowerup.sprite.setOrigin(spritePowerup.sprite.getTextureRect().width/2, spritePowerup.sprite.getTextureRect().height/2);
 
         texBullet1.loadFromFile("files/textures/mario/bullet1.png");
-
 
         texSnekWalk.resize(2);
         texSnekWalk[0].loadFromFile("files/textures/mario/enemy1Run2.png"), snekWalk.addFrame(AnimationFrame(&texSnekWalk[0], 500));
@@ -354,8 +353,16 @@ public:
         spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
         spTadzik.sprite.setScale(2, 2);
 
+        texWaterfall.loadFromFile("files/textures/mario/waterfall.png");
+        texWaterfall.setRepeated(true);
+        tempWaterfall.setTexture(texWaterfall);
+        tempWaterfall.setColor(sf::Color(255,255,255,Utils::randInt(100,200)));
+
+        texColumn.loadFromFile("files/textures/mario/column.png");
+        texColumn.setRepeated(true);
+        tempColumn.setTexture(texColumn);
+
         mapa.loadFromFile("files/maps/mario/map1.png");
-        loadMap();
     }
 
     virtual void onSceneActivate() {
@@ -370,6 +377,7 @@ public:
         circle.setFillColor(sf::Color::Transparent);
         circle.setOrigin(500, 500);
         circle.setOutlineColor(sf::Color::Black);
+        loadMap();
 
     }
 
@@ -386,6 +394,7 @@ public:
     }
 
     void loadMap() {
+        tilesPerY = mapa.getSize().y;
         FloorTile.setScale(((double)window->getSize().y/(double)tilesPerY)/FloorTile.getTextureRect().width,
                            ((double)window->getSize().y/(double)tilesPerY)/FloorTile.getTextureRect().height);
         BreakableTile.setScale(((double)window->getSize().y/(double)tilesPerY)/BreakableTile.getTextureRect().width,
@@ -394,7 +403,7 @@ public:
                              ((double)window->getSize().y/(double)tilesPerY)/PowerupTile.getTextureRect().height);
         tmpCoin.sprite.setScale(((double)window->getSize().y/(double)tilesPerY)/tmpCoin.sprite.getTextureRect().width,
                                 ((double)window->getSize().y/(double)tilesPerY)/tmpCoin.sprite.getTextureRect().height);
-        int TileSize = FloorTile.getGlobalBounds().width;
+        TileSize = FloorTile.getGlobalBounds().width;
         for (unsigned int i=0; i<mapa.getSize().x; i++) {
             for (unsigned int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0)) {
@@ -418,7 +427,7 @@ public:
                     powerupBlocks.push_back(PowerupTile);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(255, 255, 0)) {
-                    tmpCoin.setPosition(i*TileSize, j*TileSize);
+                    tmpCoin.setPosition((i+0.5)*TileSize, (j+0.5)*TileSize);
                     vecCoins.push_back(tmpCoin);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(255, 0, 0)) {
@@ -426,11 +435,32 @@ public:
                     vecSnekes.push_back(tmpSnek);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 255, 255)) {
-                    spritePowerup.setPosition(i*TileSize, j*TileSize);
+                    spritePowerup.setPosition((i+0.5)*TileSize, (j+0.5)*TileSize);
                     vecPowerups.push_back(spritePowerup);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 0, 255)) {
                     spTadzik.setPosition(i*TileSize, j*TileSize);
+                }
+                else if (mapa.getPixel(i, j)==sf::Color(123, 123, 123)) {
+                    tempColumn.setPosition(i*TileSize, j*TileSize);
+                    tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 1000 ));
+                    hitboxlessFront.push_back(tempColumn);
+                    tempColumn.move(sf::Vector2f(0,tempColumn.getGlobalBounds().width));
+                    tempColumn.setRotation(-90);
+                    tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 120 ));
+                    hitboxlessFront.push_back(tempColumn);
+                    tempColumn.setRotation(0);
+                    tempColumn.setPosition(i*TileSize, j*TileSize);
+
+                }
+                 else if (mapa.getPixel(i, j)==sf::Color(231, 231, 231)) {
+                    tempColumn.setPosition(i*TileSize, j*TileSize);
+                    tempColumn.setTextureRect(sf::IntRect(0, 0, texColumn.getSize().x, 1000 ));
+                    hitboxlessFront.push_back(tempColumn);
+                }
+                 else if (mapa.getPixel(i, j)==sf::Color(123, 231, 231)) {
+                    tempWaterfall.setPosition(i*TileSize, j*TileSize);
+                    vecWaterfall.push_back(tempWaterfall);
                 }
             }
         }
@@ -538,16 +568,17 @@ public:
         //przewijanie i movement
         if ((spTadzik.sprite.getPosition().x>(double)window->getSize().x*(3.0/4.0) && speedX>0) ||
             (spTadzik.sprite.getPosition().x<(double)window->getSize().x*(1.0/5.0) && speedX<0 && floor[0].getPosition().x<0)) {
-            for (int i=0; i<floor.size(); i++)              { floor[i].move(-speedX, 0);}
-            for (int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
-            for (int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
-            for (int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
-            for (int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
-            for (int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
-            for (int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
-            for (int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
+            for (unsigned int i=0; i<floor.size(); i++)              { floor[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecWaterfall.size(); i++)          { vecWaterfall[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
+            for (unsigned int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
+            for (unsigned int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
             spTadzik.pos.left-=speedX;
             spTadzik.pos.right-=speedX;
             spTadzik.prevPosition.x-=speedX;
@@ -599,8 +630,8 @@ public:
         if (powerupBlocks.size()>0 && closestQuestionBlock!=-1) {
             if (powerupBlocks[closestQuestionBlock].hit(spTadzik.powerLevel) && spTadzik.powerLevel==0) {
                 spritePowerup.setAnimation(&powerupAnim);
-                spritePowerup.sprite.setPosition(powerupBlocks[closestQuestionBlock].getPosition().x,
-                                             powerupBlocks[closestQuestionBlock].getPosition().y-30);
+                spritePowerup.sprite.setPosition(powerupBlocks[closestQuestionBlock].getPosition().x+0.5*TileSize,
+                                                 powerupBlocks[closestQuestionBlock].getPosition().y-0.5*TileSize);
                 vecPowerups.push_back(spritePowerup);
             }
         }
@@ -704,6 +735,7 @@ public:
         window->clear();
         window->draw(Background1);
         window->draw(Background2);
+
         for (auto a:hitboxlessBack) {
             if (isActive(a)) window->draw(a);
         }
@@ -717,9 +749,12 @@ public:
         for (auto a:powerupBlocks) { window->draw(a);}
         window->draw(spTadzik.sprite);
         for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
+        for (unsigned int i=0; i<vecWaterfall.size(); i++) {
+            vecWaterfall[i].setTextureRect(sf::IntRect(0, -clock.getElapsedTime().asMilliseconds()/10, texWaterfall.getSize().x, 1000 ));
+            window->draw(vecWaterfall[i]);
+        }
         if (spTadzik.isDead) window->draw(circle);
         window->draw(textScore);
-
     }
 
 protected:
@@ -730,6 +765,7 @@ protected:
     sf::Texture texCoin;
     sf::Texture texBullet1;
     sf::Texture texPowerup;
+
 
     std::vector <sf::Texture> texSnekWalk;
 
@@ -793,7 +829,8 @@ protected:
     double timeLeft = 30;
 
     int onTile = 0;
-    int tilesPerY = 20;
+    int tilesPerY;
+    int TileSize;
     int closestBreakable = -1;
     int closestQuestionBlock = -1;
     int score = 0;
@@ -801,7 +838,15 @@ protected:
 
     sf::Text textScore;
     sf::Font font;
+    sf::Clock clock;
 
     sf::CircleShape circle;
+
+    //tu bylem domingo
+    sf::Texture texColumn;
+    sf::Texture texWaterfall;
+    sf::Sprite tempColumn;
+    sf::Sprite tempWaterfall;
+    std::vector <sf::Sprite> vecWaterfall;
 };
 #endif //mario
