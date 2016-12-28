@@ -5,6 +5,7 @@
 #include "../include/AnimatedSprite.hpp"
 #include "../include/Collision.hpp"
 #include "../include/Utils.hpp"
+#include "../include/Common.hpp"
 
 #include <string>
 #include <vector>
@@ -62,10 +63,10 @@ public:
     class Wave {
     public:
 
-        Wave(double t, int e) {
+        Wave(float t, int e) {
             time = t; maxEnemies = e;
         }
-        double time;
+        float time;
         int maxEnemies;
     };
 
@@ -143,7 +144,7 @@ public:
         Bullet() {
 
         }
-        Bullet(sf::Vector2f p, double speed) {
+        Bullet(sf::Vector2f p, float speed) {
             setPosition(p);
             v = speed;
         }
@@ -152,7 +153,7 @@ public:
             move(velocity);
             setRotation(atan2(velocity.y, velocity.x)*180/M_PI);
         }
-        void create(sf::Vector2f p, sf::Vector2f d, double speed) {
+        void create(sf::Vector2f p, sf::Vector2f d, float speed) {
             setPosition(p);
             v = speed;
             velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*speed;
@@ -162,12 +163,12 @@ public:
             velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
             velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
         }
-        double damage = 100;
-        double knockback = -2;
+        float damage = 100;
+        float knockback = -2;
         bool penetrating = false;
         bool bouncy = false;
         bool friendly = true;
-        double v = 5;
+        float v = 5;
     };
 
     class Weapon {
@@ -182,16 +183,16 @@ public:
         }
         MovingEntity* parent;
         std::string name;
-        double reloadTime = 1;
-        double fireTime = 1;
+        float reloadTime = 1;
+        float fireTime = 1;
         unsigned int magSize = 30;
         unsigned int magAmount = 3;
         unsigned int maxMagAmount = 3;
         unsigned int ammo;
         unsigned int mags;
         int damage = 100;
-        double knockback = -2;
-        double velocity = 5;
+        float knockback = -2;
+        float velocity = 5;
         bool automatic = true;
         sf::Texture texture;
         Bullet bullet;
@@ -213,12 +214,12 @@ public:
             hitbox.setPosition(getPosition());
         }
         lightSource ls = lightSource(getPosition());
-        double health = 100;
+        float health = 100;
         sf::Clock sinceHit;
         sf::Time invincibilityTime = sf::seconds(1);
-        double maxSpeed = 10;
-        double angle;
-        double speed;
+        float maxSpeed = 10;
+        float angle;
+        float speed;
         Bullet playerBullet;
         std::vector <Weapon> weapons;
         int currentWeapon = 0;
@@ -270,11 +271,11 @@ public:
         void getDestination() {
 
         }
-        double health = 100;
-        double maxSpeed = 5;
-        double damage = 10;
-        double speed = 1;
-        double angle;
+        float health = 100;
+        float maxSpeed = 5;
+        float damage = 10;
+        float speed = 1;
+        float angle;
         MovingEntity* target;
         sf::Vector2f destination;
         sf::RectangleShape healthBar;
@@ -287,10 +288,10 @@ public:
         sf::Vector2f p2;
         sf::Vector2f rp = e.getPosition();
         int furthestObject = -1;
-        double rMag;
-        double sMag;
-        double T1Min=999999;
-        double T1, T2;
+        float rMag;
+        float sMag;
+        float T1Min=999999;
+        float T1, T2;
 
         for (unsigned int i=0; i<vecWalls.size()-1; i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -312,13 +313,13 @@ public:
             return;
         }
         else {
-            double rayAngle = getAngle(e.getPosition(), e.target->hitbox.getPosition());
-            double maxAngle = -20;
-            double minAngle = 20;
+            float rayAngle = getAngle(e.getPosition(), e.target->hitbox.getPosition());
+            float maxAngle = -20;
+            float minAngle = 20;
             int pLeft = -1;
             int pRight = -1;
             for (unsigned int i=0; i<vecWalls[furthestObject].points.size(); i++) {
-                double tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
+                float tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
                 tmpAngle-=rayAngle;
                 if (tmpAngle<-M_PI) tmpAngle +=2*M_PI;
                 if (tmpAngle>=M_PI) tmpAngle -=2*M_PI;
@@ -343,7 +344,7 @@ public:
         return atan2(p2.y-p1.y, p2.x-p1.x);
     }
 
-    double getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
+    float getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
         return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
     }
 
@@ -379,8 +380,8 @@ public:
         return a;
     }
 
-    sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, double d) {
-        double a = atan2(p.y-center.y, p.x-center.x);
+    sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
+        float a = atan2(p.y-center.y, p.x-center.x);
         sf::Vector2f r;
         r.x = p.x+d*sin(a);
         r.y = p.y-d*cos(a);
@@ -391,10 +392,10 @@ public:
         sf::Vector2f rd = {p2.x-rp.x, p2.y-rp.y};
         sf::Vector2f sp;
         sf::Vector2f sd;
-        double rMag;
-        double sMag;
-        double T1Min=1000;
-        double T1, T2;
+        float rMag;
+        float sMag;
+        float T1Min=1000;
+        float T1, T2;
 
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -413,10 +414,9 @@ public:
     }
 
     virtual void onSceneLoadToMemory() {
-        font.loadFromFile("files/28_Days_Later.ttf");
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
-        deathMessage.setFont(font);
+        deathMessage.setFont(Common::Font::Days_Later);
 
         texBullet1.loadFromFile("files/textures/shooter2D/bullet1.png");
         tmpBullet.setTexture(texBullet1);
@@ -474,7 +474,7 @@ public:
         hud.healthBar.setTexture(texHealthBar);
         hud.healthFrame.setTexture(texHealthFrame);
         hud.frame.setTexture(texHud);
-        hud.setFont(&font, sf::Color::Black);
+        hud.setFont(&Common::Font::Days_Later, sf::Color::Black);
 
         texCrosshair.loadFromFile("files/textures/shooter2D/crosshair.png");
         spCrosshair.setTexture(texCrosshair);
@@ -921,7 +921,6 @@ protected:
     sf::Sprite spCrosshair;
 
     sf::Image mapa;
-    sf::Font font;
     sf::Text deathMessage;
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
@@ -952,7 +951,7 @@ protected:
 
     std::vector <Wave> vecWaves;
 
-    double acceleration = 2;
+    float acceleration = 2;
     int tileSize = 20;
     int score = 0;
 

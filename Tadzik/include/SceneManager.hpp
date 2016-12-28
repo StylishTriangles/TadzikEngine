@@ -2,6 +2,8 @@
 #define SCENEMANAGER_HPP
 
 #include "Scene.hpp"
+#include "Utils.hpp"
+#include "Common.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -12,6 +14,10 @@ public:
     SceneManager(sf::RenderWindow* w)
     :window(w)
     {
+        fpsCounter.setFont(Common::Font::Comic_Sans);
+        fpsCounter.setOrigin(0, 40);
+        fpsCounter.setPosition(0, window->getSize().y);
+        fpsCounter.setColor(sf::Color::Green);
         //tadzikCMD = new TadzikCMD(this);
     }
 
@@ -53,13 +59,6 @@ public:
         actScene->deliverEvent(e);
     }
     void runSceneFrame(double delta){
-        actSecondCtr+=delta;
-        fpsCtr++;
-        if(actSecondCtr >= 1000.0f){
-            lastFrameFPS = fpsCtr;
-            fpsCtr=0;
-            actSecondCtr=0.0;
-        }
         actScene->draw(delta);
         if(cmdEnabled){
             ImGui::SetNextWindowPos(sf::Vector2f(0,0));
@@ -110,11 +109,28 @@ public:
                 return true;
             }
         }
+        if(v.size()==1 && v[0]=="fps") {
+            showFps=!showFps;
+        }
         return false;
     }
 
-    int getFPS(){
-        return lastFrameFPS;
+    void getFPS(double delta) {
+        if (showFps) {
+            FpsTimer+=delta;
+            if (FpsTimer>200) {
+                double fps = 1000.0d/delta;
+                if (fps>60)
+                    fpsCounter.setColor(sf::Color::Green);
+                else if (fps>30)
+                    fpsCounter.setColor(sf::Color::Yellow);
+                else
+                    fpsCounter.setColor(sf::Color::Red);
+                fpsCounter.setString(Utils::stringify((int)fps));
+                FpsTimer = 0;
+            }
+            window->draw(fpsCounter);
+        }
     }
 
 private:
@@ -123,9 +139,10 @@ private:
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
     char cmdBuffer[1024];
-    int fpsCtr=0;
-    int lastFrameFPS=0;
-    float actSecondCtr=0.0f;
+
+    sf::Text fpsCounter;
+    bool showFps = true;
+    double FpsTimer = 1000;
 };
 
 #endif // SCENEMANAGER_HPP

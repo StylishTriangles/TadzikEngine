@@ -282,10 +282,6 @@ public:
     };
 
     virtual void onSceneLoadToMemory() {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")) {
-            std::cout << "cannot load font\n";
-        }
-
         texBackground.loadFromFile("files/textures/mario/background.png");
 
         texFloorTile.loadFromFile("files/textures/mario/floor1.png"), FloorTile.setTexture(texFloorTile);
@@ -366,7 +362,7 @@ public:
     }
 
     virtual void onSceneActivate() {
-        textScore.setFont(font);
+        textScore.setFont(Common::Font::Comic_Sans);
         Background1.setTexture(texBackground);
         Background1.setScale(double(window->getSize().x)/double(Background1.getTextureRect().width),
                              double(window->getSize().y)/double(Background1.getTextureRect().height));
@@ -837,7 +833,6 @@ protected:
 
 
     sf::Text textScore;
-    sf::Font font;
     sf::Clock clock;
 
     sf::CircleShape circle;
