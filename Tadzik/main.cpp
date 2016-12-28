@@ -36,6 +36,8 @@ public:
 #include "levels/isayparty.hpp"
 
 int main(){
+    sf::Font globalFont;
+    globalFont.loadFromFile("files/Carnevalee_Freakshow.ttf");
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
@@ -45,7 +47,7 @@ int main(){
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
-    SceneManager sceneManager(&window);
+    SceneManager sceneManager(&window, &globalFont);
     //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     //sceneManager.registerScene<JUMPER>("JUMPER", &window);
@@ -87,13 +89,12 @@ int main(){
         }
         ImGui::SFML::Update(window, deltaClock.getElapsedTime());
 		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        deltaClock.restart();
+        //std::cout << "fps: " << (int)1000.d/deltaClock.getElapsedTime().asMilliseconds() << "\n";
+            sceneManager.updateFpsCounter(deltaClock.getElapsedTime().asMilliseconds());
 
         window.resetGLStates();
         ImGui::Render();
         window.display();
-
-        std::cout << "fps: " << sceneManager.getFPS() << "\n";
     }
     ImGui::SFML::Shutdown();
     return 0;

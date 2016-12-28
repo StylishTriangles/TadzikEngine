@@ -5,7 +5,7 @@
 #include <sstream>
 #include <ctime>
 
-const double M_PI = 3.1415926535897;
+//const double M_PI = 3.1415926535897;
 
 namespace Utils{
 
