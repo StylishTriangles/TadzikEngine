@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../include/Common.hpp"
+
 //******
 //temporary workaround
 namespace sf{
@@ -23,7 +25,6 @@ public:
 #define Keyboard KeyboardHacked
 //*****
 
-
 #include "include/SceneManager.hpp"
 #include "levels/trex.hpp"
 #include "levels/clicker.hpp"
@@ -36,18 +37,15 @@ public:
 #include "levels/isayparty.hpp"
 
 int main(){
-    sf::Font globalFont;
-    globalFont.loadFromFile("files/Carnevalee_Freakshow.ttf");
+    Common::loadFonts();
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
-    sf::Image screenshot;
-    screenshot.create(1280, 720);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
-    SceneManager sceneManager(&window, &globalFont);
+    SceneManager sceneManager(&window);
     //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     //sceneManager.registerScene<JUMPER>("JUMPER", &window);
@@ -73,14 +71,13 @@ int main(){
             ImGui::SFML::ProcessEvent(event);
             if(event.type == sf::Event::Closed )
                 window.close();
-            if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
                 window.close();
             }
-            if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
-                screenshot = window.capture();
-                screenshot.saveToFile("screenshots/"+Utils::getDate()+".png");
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
+                window.capture().saveToFile("screenshots/"+Utils::getDate()+".png");
             }
-            if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Tilde) {
+            else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Tilde) {
                 sceneManager.toogleCMD();
             }
             else{
@@ -89,9 +86,9 @@ int main(){
         }
         ImGui::SFML::Update(window, deltaClock.getElapsedTime());
 		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        //std::cout << "fps: " << (int)1000.d/deltaClock.getElapsedTime().asMilliseconds() << "\n";
-            sceneManager.updateFpsCounter(deltaClock.getElapsedTime().asMilliseconds());
+        sceneManager.getFPS(deltaClock.getElapsedTime().asMilliseconds());
 
+        deltaClock.restart();
         window.resetGLStates();
         ImGui::Render();
         window.display();

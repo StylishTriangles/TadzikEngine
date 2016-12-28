@@ -3,6 +3,7 @@
 
 #include "Scene.hpp"
 #include "Utils.hpp"
+#include "Common.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -10,10 +11,10 @@
 
 class SceneManager{
 public:
-    SceneManager(sf::RenderWindow* w, sf::Font* f)
+    SceneManager(sf::RenderWindow* w)
     :window(w)
     {
-        fpsCounter.setFont(*f);
+        fpsCounter.setFont(Common::Font::Comic_Sans);
         fpsCounter.setOrigin(0, 40);
         fpsCounter.setPosition(0, window->getSize().y);
         fpsCounter.setColor(sf::Color::Green);
@@ -114,13 +115,20 @@ public:
         return false;
     }
 
-    void updateFpsCounter(double delta) {
+    void getFPS(double delta) {
         if (showFps) {
-            if ((int)1000.0d/delta>100) fpsCounter.setColor(sf::Color::Green);
-            else if ((int)1000.0d/delta>60) fpsCounter.setColor(sf::Color::Yellow);
-            else if ((int)1000.0d/delta>30) fpsCounter.setColor(sf::Color::White);
-            else fpsCounter.setColor(sf::Color::Red);
-            fpsCounter.setString(Utils::stringify((int)1000.0d/delta));
+            FpsTimer+=delta;
+            if (FpsTimer>200) {
+                double fps = 1000.0d/delta;
+                if (fps>60)
+                    fpsCounter.setColor(sf::Color::Green);
+                else if (fps>30)
+                    fpsCounter.setColor(sf::Color::Yellow);
+                else
+                    fpsCounter.setColor(sf::Color::Red);
+                fpsCounter.setString(Utils::stringify((int)fps));
+                FpsTimer = 0;
+            }
             window->draw(fpsCounter);
         }
     }
@@ -131,8 +139,10 @@ private:
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
     char cmdBuffer[1024];
+
     sf::Text fpsCounter;
-    bool showFps = false;
+    bool showFps = true;
+    double FpsTimer = 1000;
 };
 
 #endif // SCENEMANAGER_HPP
