@@ -19,6 +19,7 @@ public:
     SHOOTER2D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
+    friend class Powerup;
 
     class HUD: public sf::RenderTexture {
     public:
@@ -281,6 +282,36 @@ public:
         sf::RectangleShape healthBar;
     };
 
+    class PUP: public sf::Sprite {
+    public:
+        PUP(SHOOTER2D* p) {
+            parent = p;
+        }
+        SHOOTER2D* parent;
+        std::string name;
+        float duration;
+        float time;
+        virtual void onPickup() {
+
+        }
+    };
+
+    class PUPGiveHealth: public PUP {
+    public:
+        PUPGiveHealth(SHOOTER2D* p) : PUP(p) {};
+        void onPickup() {
+            parent->spTadzik.health = 100;
+        }
+    };
+
+    class PUPGiveAmmo: public PUP {
+    public:
+        PUPGiveAmmo(SHOOTER2D* p) : PUP(p) {};
+        void onPickup() {
+            parent->spTadzik.weapons[parent->spTadzik.currentWeapon].mags = parent->spTadzik.weapons[parent->spTadzik.currentWeapon].magAmount;
+        }
+    };
+
     void getEnemyPath(Enemy &e) {
         sf::Vector2f rd = e.target->hitbox.getPosition()-e.getPosition();
         sf::Vector2f sp;
@@ -431,7 +462,7 @@ public:
 
         texPlayer.loadFromFile("files/textures/shooter2D/player.png");
         spTadzik.setTexture(texPlayer);
-        spTadzik.setOrigin(spTadzik.getTextureRect().width/2, spTadzik.getTextureRect().height/2);
+        Utils::setOriginInCenter(spTadzik);
 
         texHealthBar.loadFromFile("files/textures/shooter2D/healthBar.png");
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
@@ -439,10 +470,7 @@ public:
         texShadow.loadFromFile("files/textures/shooter2D/shadow.png");
 
         spTadzik.ls.glow.setTexture(texShadow);
-        spTadzik.ls.glow.setOrigin(spTadzik.ls.glow.getTextureRect().width/2, spTadzik.ls.glow.getTextureRect().height/2);
-
-        spShadow.setTexture(texShadow);
-        spShadow.setOrigin(spShadow.getTextureRect().width/2, spShadow.getTextureRect().height/2);
+        Utils::setOriginInCenter(spTadzik.ls.glow);
 
         loadMap();
         loadWaves();
@@ -478,7 +506,7 @@ public:
 
         texCrosshair.loadFromFile("files/textures/shooter2D/crosshair.png");
         spCrosshair.setTexture(texCrosshair);
-        spCrosshair.setOrigin(spCrosshair.getTextureRect().width/2, spCrosshair.getTextureRect().height/2);
+        Utils::setOriginInCenter(spCrosshair);
 
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
 
@@ -488,6 +516,15 @@ public:
         spTadzik.addWeapon(vecWeapons[2]);
         spTadzik.addWeapon(vecWeapons[3]);
         spTadzik.currentWeapon = 0;
+
+
+        texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
+        tmpPUPGiveHealth.setTexture(texPUPGiveHealth);
+        Utils::setOriginInCenter(tmpPUPGiveHealth);
+
+        texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
+        tmpPUPGiveAmmo.setTexture(texPUPGiveAmmo);
+        Utils::setOriginInCenter(tmpPUPGiveAmmo);
     }
 
     virtual void onSceneActivate() {
@@ -650,6 +687,8 @@ public:
         if (event.type == sf::Event::MouseButtonPressed) {
             if (event.mouseButton.button == sf::Mouse::Left && !spTadzik.weapons[spTadzik.currentWeapon].automatic) {
                 shoot();
+
+
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
                 vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), &texCandle, &texShadow, Utils::randColor()));
@@ -698,8 +737,19 @@ public:
                     vecEnemies[i].onHit(vecBullets[j]);
                     vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
-                    if (vecEnemies[i].health<=0) vecEnemies.erase(vecEnemies.begin()+i), score++;
-                    break;
+                    if (vecEnemies[i].health<=0) {
+                        if (Utils::chance(0.33)) {
+                            tmpPUPGiveHealth.setPosition(vecEnemies[i].getPosition());
+                            vecPUPGiveHealth.push_back(tmpPUPGiveHealth);
+                        }
+                        else {
+                            tmpPUPGiveAmmo.setPosition(vecEnemies[i].getPosition());
+                            vecPUPGiveAmmo.push_back(tmpPUPGiveAmmo);
+                        }
+                        vecEnemies.erase(vecEnemies.begin()+i);
+                        score++;
+                        break;
+                    }
                 }
             }
         }
@@ -851,6 +901,22 @@ public:
             }
         }
 
+        /// OGARNIANIE POWERUPOW
+        for (int i=vecPUPGiveHealth.size()-1; i>=0; --i) {
+            window->draw(vecPUPGiveHealth[i]);
+            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveHealth[i])) {
+                vecPUPGiveHealth[i].onPickup();
+                vecPUPGiveHealth.erase(vecPUPGiveHealth.begin()+i);
+            }
+        }
+        for (int i=vecPUPGiveAmmo.size()-1; i>=0; --i) {
+            window->draw(vecPUPGiveAmmo[i]);
+            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveAmmo[i])) {
+                vecPUPGiveAmmo[i].onPickup();
+                vecPUPGiveAmmo.erase(vecPUPGiveAmmo.begin()+i);
+            }
+        }
+
         /// TEMPORARY LIGHTNING
         rTexture.clear(sf::Color(0, 0, 0, 255));
         rHelp.clear(sf::Color(0, 0, 0, 255));
@@ -917,6 +983,8 @@ protected:
     sf::Texture texCrosshair;
     sf::Texture texHud;
     sf::Texture texShadow;
+    sf::Texture texPUPGiveHealth;
+    sf::Texture texPUPGiveAmmo;
 
     sf::Sprite spCrosshair;
 
@@ -932,10 +1000,11 @@ protected:
 
     Player spTadzik;
     sf::Sprite spWall;
-    sf::Sprite spShadow;
 
     Bullet tmpBullet;
-    Enemy tmpEnemy = Enemy(sf::Vector2f(500, 500), &texEnemy1, &spTadzik);
+
+    PUPGiveHealth tmpPUPGiveHealth = PUPGiveHealth(this);
+    PUPGiveAmmo tmpPUPGiveAmmo = PUPGiveAmmo(this);
 
     std::vector <lightSource> vecLights;
 
@@ -950,6 +1019,9 @@ protected:
     std::vector <Weapon> vecWeapons;
 
     std::vector <Wave> vecWaves;
+
+    std::vector <PUPGiveHealth> vecPUPGiveHealth;
+    std::vector <PUPGiveAmmo> vecPUPGiveAmmo;
 
     float acceleration = 2;
     int tileSize = 20;

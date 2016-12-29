@@ -81,4 +81,12 @@ std::string getDate() {
     return s;
 }
 
+void setOriginInCenter(sf::Sprite& s) {
+    s.setOrigin(s.getTextureRect().width/2, s.getTextureRect().height/2);
+};
+
+bool chance(float c) {
+    return (randFloat(0, 1) <= c);
+}
+
 }

@@ -19,6 +19,8 @@ std::string stringify(int x);
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot);
 int sgn(double x);
 std::string getDate();
+void setOriginInCenter(sf::Sprite& s);
+bool chance(float c);
 
 }
 
