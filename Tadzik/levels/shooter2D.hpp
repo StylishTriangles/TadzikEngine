@@ -1,22 +1,75 @@
 #ifndef SHOOTER2D_HPP
 #define SHOOTER2D_HPP
 
-#include "Scene.hpp"
-#include "AnimatedSprite.hpp"
-#include "Collision.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/AnimatedSprite.hpp"
+#include "../include/Collision.hpp"
+#include "../include/Utils.hpp"
+#include "../include/Common.hpp"
 
 #include <string>
 #include <vector>
 #include <ctime>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 
 class SHOOTER2D: public Scene{
 public:
     SHOOTER2D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
+    friend class Powerup;
+
+    class HUD: public sf::RenderTexture {
+    public:
+        HUD() {
+            tAmmo.setPosition(1200, 690);
+            tAllAmmo.setPosition(1250, 690);
+            tScore.setPosition(1250, 0);
+            healthBar.setPosition(10, 5);
+            healthFrame.setPosition(10, 5);
+            activeWeapon.setPosition(1150, 600);
+            reloading.setSize(sf::Vector2f(30, 10));
+            reloading.setFillColor(sf::Color::Green);
+        }
+        sf::Sprite healthBar;
+        sf::Sprite healthFrame;
+        sf::Sprite frame;
+        sf::Sprite activeWeapon;
+        sf::RectangleShape reloading;
+        sf::Text tScore;
+        sf::Text tAmmo;
+        sf::Text tAllAmmo;
+        void update() {
+            draw(frame);
+            draw(healthFrame);
+            draw(healthBar);
+            draw(tScore);
+            draw(tAmmo);
+            draw(tAllAmmo);
+            draw(activeWeapon);
+            display();
+        }
+        void setFont(sf::Font* f, sf::Color c) {
+            tScore.setFont(*f);
+            tAmmo.setFont(*f);
+            tAllAmmo.setFont(*f);
+            tScore.setColor(c);
+            tAmmo.setColor(c);
+            tAllAmmo.setColor(c);
+        }
+    };
+
+    class Wave {
+    public:
+
+        Wave(float t, int e) {
+            time = t; maxEnemies = e;
+        }
+        float time;
+        int maxEnemies;
+    };
 
     class MovingEntity: public sf::Sprite {
     public:
@@ -36,7 +89,6 @@ public:
     class Object {
     public:
         std::vector <sf::Vector2f> points;
-        //std::vector <sf::Sprite> sprites;
     };
 
     class CrossingPoint{
@@ -53,62 +105,38 @@ public:
         double angle;
     };
 
-    class lightSource: public sf::Vector2f {
+    class lightSource: public sf::Vector2f{
     public:
-
         lightSource(){
-            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+
         }
-        lightSource(sf::Vector2f f) {
-            x=f.x, y=f.y;
-            color = sf::Color(Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255), Utils::randInt(0, 255));
+        lightSource(sf::Vector2f pos) {
+            x=pos.x, y=pos.y;
         }
-        lightSource(sf::Vector2f p, sf::Vector2f v, sf::Color c) {
-            x=p.x, y=p.y;
-            color = c;
-            velocity = v;
-        }
-        lightSource(sf::Vector2f p, sf::Vector2f v, sf::Color c, sf::Texture* t) {
-            x=p.x, y=p.y;
-            color = c;
-            velocity = v;
+        lightSource(sf::Vector2f pos, sf::Texture* t, sf::Texture* g, sf::Color color = sf::Color::White) {
+            x=pos.x, y=pos.y;
+            glow.setTexture(*g);
+            glow.setOrigin(glow.getTextureRect().width/2, glow.getTextureRect().height/2);
+            glow.setPosition(sf::Vector2f(x, y));
+            glow.setColor(color);
+
             sprite.setTexture(*t);
             sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height/2);
             sprite.setPosition(sf::Vector2f(x, y));
-        }
-        void operator= (sf::Vector2f v) {
-            x = v.x;
-            y = v.y;
-            sprite.setPosition(x, y);
+            //sprite.setColor(sf::Color(255-(255-color.r)/50, 255-(255-color.g)/50, 255-(255-color.b)/50));
+            sprite.setColor(color);
         }
         void update() {
-            x+=velocity.x;
-            y+=velocity.y;
-            velocity.x*=0.9;
-            velocity.y*=0.9;
             sortPoints();
+            sprite.setPosition(x, y);
+            glow.setPosition(x, y);
         }
         void sortPoints(){
             std::sort(points.begin(), points.end());
         }
         std::vector <CrossingPoint> points;
-        sf::Vector2f velocity;
-        sf::Vector2f acceleration;
         sf::VertexArray shadow = sf::VertexArray(sf::TrianglesFan, 0);
-        sf::Sprite sprite;
-        sf::Color color;
-    };
-
-    class Weapon {
-    public:
-        Weapon(MovingEntity* p): parent(p) {};
-        void shoot() {
-
-        }
-        MovingEntity* parent;
-        double reloadTime = 1;
-        unsigned int magSize = 30;
-        unsigned int maxAmmo = 90;
+        sf::Sprite glow;
         sf::Sprite sprite;
     };
 
@@ -117,31 +145,58 @@ public:
         Bullet() {
 
         }
-        Bullet(sf::Vector2f p, double v) {
+        Bullet(sf::Vector2f p, float speed) {
             setPosition(p);
-            speed = v;
+            v = speed;
         }
         sf::Vector2f velocity;
         void update() {
-
             move(velocity);
             setRotation(atan2(velocity.y, velocity.x)*180/M_PI);
         }
-        void create(sf::Vector2f p, sf::Vector2f d, double v) {
+        void create(sf::Vector2f p, sf::Vector2f d, float speed) {
             setPosition(p);
-            velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*v;
-            velocity.y = sin (atan2(d.y-p.y, d.x-p.x))*v;
+            v = speed;
+            velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*speed;
+            velocity.y = sin (atan2(d.y-p.y, d.x-p.x))*speed;
         }
         void setDirection(sf::Vector2f d) {
-            velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
-            velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*speed;
+            velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
+            velocity.y = sin (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
         }
-        double damage = 10;
-        double knockback = -2;
+        float damage = 100;
+        float knockback = -2;
         bool penetrating = false;
         bool bouncy = false;
         bool friendly = true;
-        double speed = 5;
+        float v = 5;
+    };
+
+    class Weapon {
+    public:
+        Weapon() {};
+        Weapon(MovingEntity* p): parent(p) {};
+        void setParent(MovingEntity* p) {parent = p;}
+        void setBullet() {
+            bullet.damage = damage;
+            bullet.knockback = knockback;
+            bullet.v = velocity;
+        }
+        MovingEntity* parent;
+        std::string name;
+        float reloadTime = 1;
+        float fireTime = 1;
+        unsigned int magSize = 30;
+        unsigned int magAmount = 3;
+        unsigned int maxMagAmount = 3;
+        unsigned int ammo;
+        unsigned int mags;
+        int damage = 100;
+        float knockback = -2;
+        float velocity = 5;
+        bool automatic = true;
+        sf::Texture texture;
+        Bullet bullet;
     };
 
     class Player: public MovingEntity {
@@ -154,18 +209,33 @@ public:
             speed = sqrt(velocity.x*velocity.x+velocity.y*velocity.y);
             sf::Vector2f m = {std::min(speed, maxSpeed)*cos(angle), std::min(speed, maxSpeed)*sin(angle)};
             move(m);
-            ls = getPosition();
+            ls.x = getPosition().x;
+            ls.y = getPosition().y;
+            ls.update();
             hitbox.setPosition(getPosition());
         }
-        lightSource ls = lightSource(getPosition(), {0, 0}, sf::Color(255, 255, 255, 100));
-        double health = 100;
+        lightSource ls = lightSource(getPosition());
+        float health = 100;
         sf::Clock sinceHit;
         sf::Time invincibilityTime = sf::seconds(1);
-        double maxSpeed = 10;
-        double angle;
-        double speed;
+        float maxSpeed = 10;
+        float angle;
+        float speed;
         Bullet playerBullet;
         std::vector <Weapon> weapons;
+        int currentWeapon = 0;
+        void nextWeapon() {
+            currentWeapon++;
+            if (currentWeapon==weapons.size()) currentWeapon = 0;
+        }
+        void prevWeapon() {
+            currentWeapon--;
+            if (currentWeapon==-1) currentWeapon = weapons.size()-1;
+        }
+        void addWeapon(Weapon w) {
+            w.setParent(this);
+            weapons.push_back(w);
+        }
     };
 
     class Enemy: public MovingEntity {
@@ -181,8 +251,8 @@ public:
             healthBar.setSize(sf::Vector2f(getGlobalBounds().width, 5));
         }
         void update() {
-            //speed = sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
+            setRotation(angle*180/M_PI);
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
             move(velocity);
@@ -202,27 +272,57 @@ public:
         void getDestination() {
 
         }
-        double health = 100;
-        double maxSpeed = 5;
-        double damage = 10;
-        double speed = 1;
-        double angle;
+        float health = 100;
+        float maxSpeed = 5;
+        float damage = 10;
+        float speed = 1;
+        float angle;
         MovingEntity* target;
         sf::Vector2f destination;
         sf::RectangleShape healthBar;
     };
 
-    void getEnemyDestination(Enemy &e) {
+    class PUP: public sf::Sprite {
+    public:
+        PUP(SHOOTER2D* p) {
+            parent = p;
+        }
+        SHOOTER2D* parent;
+        std::string name;
+        float duration;
+        float time;
+        virtual void onPickup() {
+
+        }
+    };
+
+    class PUPGiveHealth: public PUP {
+    public:
+        PUPGiveHealth(SHOOTER2D* p) : PUP(p) {};
+        void onPickup() {
+            parent->spTadzik.health = 100;
+        }
+    };
+
+    class PUPGiveAmmo: public PUP {
+    public:
+        PUPGiveAmmo(SHOOTER2D* p) : PUP(p) {};
+        void onPickup() {
+            parent->spTadzik.weapons[parent->spTadzik.currentWeapon].mags = parent->spTadzik.weapons[parent->spTadzik.currentWeapon].magAmount;
+        }
+    };
+
+    void getEnemyPath(Enemy &e) {
         sf::Vector2f rd = e.target->hitbox.getPosition()-e.getPosition();
         sf::Vector2f sp;
         sf::Vector2f sd;
         sf::Vector2f p2;
         sf::Vector2f rp = e.getPosition();
         int furthestObject = -1;
-        double rMag;
-        double sMag;
-        double T1Min=999999;
-        double T1, T2;
+        float rMag;
+        float sMag;
+        float T1Min=999999;
+        float T1, T2;
 
         for (unsigned int i=0; i<vecWalls.size()-1; i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -236,59 +336,49 @@ public:
                 if (T1<T1Min && T1>0 && T1<1 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag) {
                     T1Min=T1;
                     furthestObject = i;
-                    //std::cout << i << "     " << T1 << std::endl;
                 }
             }
         }
-        //std::cout << furthestObject << std::endl;
         if (furthestObject == -1) {
             e.destination = e.target->hitbox.getPosition();
             return;
         }
         else {
-            double rayAngle = 0.5*(atan2(vecWalls[furthestObject].points[0].y-e.getPosition().y, vecWalls[furthestObject].points[0].x-e.getPosition().x) +
-                                   atan2(vecWalls[furthestObject].points[1].y-e.getPosition().y, vecWalls[furthestObject].points[1].x-e.getPosition().x));
-            double maxAngle = 0;
-            double minAngle = 20;
-            double tmpMaxAngle;
-            double tmpMinAngle;
+            float rayAngle = getAngle(e.getPosition(), e.target->hitbox.getPosition());
+            float maxAngle = -20;
+            float minAngle = 20;
             int pLeft = -1;
             int pRight = -1;
-            for (int i=0; i<vecWalls[furthestObject].points.size(); i++) {
-                double tmpAngle = atan2(vecWalls[furthestObject].points[i].y-e.getPosition().y, vecWalls[furthestObject].points[i].x-e.getPosition().x);
-                tmpMaxAngle = tmpAngle - rayAngle; tmpMinAngle = tmpAngle-rayAngle;
-                if (tmpMaxAngle<-M_PI) tmpMaxAngle +=M_PI;
-                if (tmpMaxAngle>=M_PI) tmpMaxAngle -=M_PI;
-                if (tmpMinAngle<-M_PI) tmpMaxAngle +=M_PI;
-                if (tmpMinAngle>=M_PI) tmpMaxAngle -=M_PI;
-                if (tmpMaxAngle>maxAngle) {
+            for (unsigned int i=0; i<vecWalls[furthestObject].points.size(); i++) {
+                float tmpAngle = getAngle(e.getPosition(), vecWalls[furthestObject].points[i]);
+                tmpAngle-=rayAngle;
+                if (tmpAngle<-M_PI) tmpAngle +=2*M_PI;
+                if (tmpAngle>=M_PI) tmpAngle -=2*M_PI;
+                if (tmpAngle>maxAngle) {
                     pRight = i;
-                    maxAngle = tmpMaxAngle;
+                    maxAngle = tmpAngle;
                 }
-                if (tmpMinAngle<minAngle) {
+                if (tmpAngle<minAngle) {
                     pLeft = i;
-                    minAngle = tmpMinAngle;
+                    minAngle = tmpAngle;
                 }
             }
-            //std::cout << pLeft << " " << pRight << std::endl;
-            if ((e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pLeft].x)+
-                (e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pLeft].y) <
-                (e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)*(e.target->getPosition().x-vecWalls[furthestObject].points[pRight].x)+
-                (e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y)*(e.target->getPosition().y-vecWalls[furthestObject].points[pRight].y))
+            if (getMagnitude(e.target->getPosition(), vecWalls[furthestObject].points[pLeft]) < getMagnitude(e.target->getPosition(), vecWalls[furthestObject].points[pRight]))
             {
-                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.target->hitbox.getPosition(), -20);
+                e.destination = rotatedPoint(vecWalls[furthestObject].points[pLeft], e.getPosition(), 20);
             }
-            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.target->hitbox.getPosition(), 20);
+            else e.destination = rotatedPoint(vecWalls[furthestObject].points[pRight], e.getPosition(), -20);
         }
-
     }
 
-    void AStar (Enemy& e){
-        sf::Vector2i p1 = sf::Vector2i(e.getPosition().x / tileSize, e.getPosition().y / tileSize);
-        sf::Vector2i p2 = sf::Vector2i(e.target->hitbox.getPosition().x / tileSize, e.target->hitbox.getPosition().y / tileSize);
-        std::vector <sf::Vector2f> path;
-
+    double getAngle (sf::Vector2f p1, sf::Vector2f p2) {
+        return atan2(p2.y-p1.y, p2.x-p1.x);
     }
+
+    float getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
+        return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
+    }
+
     void updateShadow(lightSource& ls) {
         ls.points.clear();
         for (unsigned int i=0; i<vecWalls.size(); i++) {
@@ -306,23 +396,23 @@ public:
         }
         ls.sortPoints();
         ls.shadow.clear();
-        ls.shadow.append(sf::Vertex(ls, ls.color));
-        for (int i=0; i<ls.points.size(); i++) {
-            ls.shadow.append(sf::Vertex(ls.points[i].point, ls.color));
+        sf::Color c = sf::Color(0, 0, 0, 0);
+        ls.shadow.append(sf::Vertex(ls, c));
+        for (unsigned int i=0; i<ls.points.size(); i++) {
+            ls.shadow.append(sf::Vertex(ls.points[i].point, c));
         }
-        ls.shadow.append(sf::Vertex(ls.points[0].point, ls.color));
+        ls.shadow.append(sf::Vertex(ls.points[0].point, c));
     }
 
-    void drawLine(sf::Vector2f p1, sf::Vector2f p2) {
+    sf::VertexArray getLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color c = sf::Color::White) {
         sf::VertexArray a (sf::Lines, 2);
         a[0]=p1;
         a[1]=p2;
-        window->draw(a);
+        return a;
     }
 
-    sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, double d) {
-        double a = atan2(p.y-center.y, p.x-center.x);
-        double l = sqrt((p.y-center.y)*(p.y-center.y)+(p.x-center.x)*(p.x-center.x));
+    sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
+        float a = atan2(p.y-center.y, p.x-center.x);
         sf::Vector2f r;
         r.x = p.x+d*sin(a);
         r.y = p.y-d*cos(a);
@@ -333,10 +423,10 @@ public:
         sf::Vector2f rd = {p2.x-rp.x, p2.y-rp.y};
         sf::Vector2f sp;
         sf::Vector2f sd;
-        double rMag;
-        double sMag;
-        double T1Min=1000;
-        double T1, T2;
+        float rMag;
+        float sMag;
+        float T1Min=1000;
+        float T1, T2;
 
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
@@ -345,8 +435,8 @@ public:
                 sd ={p2.x-sp.x, p2.y-sp.y};
                 T2 = (rd.x*(sp.y-rp.y) + rd.y*(rp.x-sp.x))/(sd.x*rd.y - sd.y*rd.x);
                 T1 = (sp.x+sd.x*T2-rp.x)/rd.x;
-                rMag = sqrt(rd.x*rd.x+rd.y*rd.y);
-                sMag = sqrt(sd.x*sd.x+sd.y*sd.y);
+                rMag = rd.x*rd.x+rd.y*rd.y;
+                sMag = sd.x*sd.x+sd.y*sd.y;
                 if (T1<T1Min && T1>0 && T2>0 && T2<1 && rd.x/rMag!=sd.x/sMag && rd.y/rMag!=sd.y/sMag)
                     T1Min=T1;
             }
@@ -355,8 +445,9 @@ public:
     }
 
     virtual void onSceneLoadToMemory() {
-        font.loadFromFile("files/Carnevalee_Freakshow.ttf");
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
+
+        deathMessage.setFont(Common::Font::Days_Later);
 
         texBullet1.loadFromFile("files/textures/shooter2D/bullet1.png");
         tmpBullet.setTexture(texBullet1);
@@ -371,23 +462,24 @@ public:
 
         texPlayer.loadFromFile("files/textures/shooter2D/player.png");
         spTadzik.setTexture(texPlayer);
-        spTadzik.setOrigin(spTadzik.getTextureRect().width/2, spTadzik.getTextureRect().height/2);
+        Utils::setOriginInCenter(spTadzik);
 
         texHealthBar.loadFromFile("files/textures/shooter2D/healthBar.png");
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
-        spHealthBar.setTexture(texHealthBar);
-        spHealthFrame.setTexture(texHealthFrame);
+
+        texShadow.loadFromFile("files/textures/shooter2D/shadow.png");
+
+        spTadzik.ls.glow.setTexture(texShadow);
+        Utils::setOriginInCenter(spTadzik.ls.glow);
 
         loadMap();
-
-        spBullet.setFillColor(sf::Color::White);
-        spBullet.setRadius(3);
-        spBullet.setOrigin(3, 3);
+        loadWaves();
 
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
-
-        texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
+        rLines.create(window->getSize().x, window->getSize().y);
+        rShadows.create(window->getSize().x, window->getSize().y);
+        rHelp.create(window->getSize().x, window->getSize().y);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
@@ -397,10 +489,46 @@ public:
 
         vecWalls.push_back(tmpObject);
 
+        rLines.clear(sf::Color(0, 0, 0, 0));
+        for (unsigned int i=0; i<vecWalls.size(); i++) {
+            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
+                rLines.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]));
+            }
+        }
+        rLines.display();
+
+        texHud.loadFromFile("files/textures/shooter2D/hud.png");
+        hud.create(window->getSize().x, window->getSize().y);
+        hud.healthBar.setTexture(texHealthBar);
+        hud.healthFrame.setTexture(texHealthFrame);
+        hud.frame.setTexture(texHud);
+        hud.setFont(&Common::Font::Days_Later, sf::Color::Black);
+
+        texCrosshair.loadFromFile("files/textures/shooter2D/crosshair.png");
+        spCrosshair.setTexture(texCrosshair);
+        Utils::setOriginInCenter(spCrosshair);
+
+        texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
+
+        loadWeapons();
+        spTadzik.addWeapon(vecWeapons[0]);
+        spTadzik.addWeapon(vecWeapons[1]);
+        spTadzik.addWeapon(vecWeapons[2]);
+        spTadzik.addWeapon(vecWeapons[3]);
+        spTadzik.currentWeapon = 0;
+
+
+        texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
+        tmpPUPGiveHealth.setTexture(texPUPGiveHealth);
+        Utils::setOriginInCenter(tmpPUPGiveHealth);
+
+        texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
+        tmpPUPGiveAmmo.setTexture(texPUPGiveAmmo);
+        Utils::setOriginInCenter(tmpPUPGiveAmmo);
     }
 
     virtual void onSceneActivate() {
-
+        window->setMouseCursorVisible(false);
     }
 
     void loadMap() {
@@ -482,6 +610,42 @@ public:
         }
     }
 
+    void loadWeapons() {
+        std::ifstream file;
+        std::string texDir;
+        Weapon tmpWeapon;
+        tmpWeapon.bullet.setTexture(texBullet1);
+        tmpWeapon.bullet.setScale(0.2, 0.2);
+        tmpWeapon.bullet.setOrigin(tmpWeapon.bullet.getTextureRect().width/2, tmpWeapon.bullet.getTextureRect().height/2);
+        file.open("files/resource/shooter2D/weapons.dat");
+        while (!file.eof()) {
+            file >> tmpWeapon.name;
+            file >> texDir;
+            tmpWeapon.texture.loadFromFile(texDir);
+            file >> tmpWeapon.damage;
+            file >> tmpWeapon.magSize; tmpWeapon.ammo = tmpWeapon.magSize;
+            file >> tmpWeapon.magAmount; tmpWeapon.mags = tmpWeapon.magAmount;
+            file >> tmpWeapon.automatic;
+            file >> tmpWeapon.reloadTime;
+            file >> tmpWeapon.fireTime;
+            file >> tmpWeapon.velocity;
+            file >> tmpWeapon.knockback;
+            tmpWeapon.setBullet();
+            vecWeapons.push_back(tmpWeapon);
+        }
+    }
+
+    void loadWaves() {
+        std::ifstream file;
+        file.open("files/resource/shooter2D/waves.dat");
+        Wave tmpWave(0, 0);
+        while (!file.eof()) {
+            file >> tmpWave.time;
+            file >> tmpWave.maxEnemies;
+            vecWaves.push_back(tmpWave);
+        }
+    }
+
     void handleCollision(MovingEntity& s1, std::vector <sf::Sprite>& walls) {
         for (unsigned int i=0; i<walls.size(); ++i) {
             sf::FloatRect intersection;
@@ -515,31 +679,53 @@ public:
     }
 
     void gameOver() {
-
+        isDead = true;
+        deathMessage.setString("YOU SUCK");
     }
 
     void deliverEvent(sf::Event& event){
         if (event.type == sf::Event::MouseButtonPressed) {
-            if (event.mouseButton.button == sf::Mouse::Left) {
+            if (event.mouseButton.button == sf::Mouse::Left && !spTadzik.weapons[spTadzik.currentWeapon].automatic) {
                 shoot();
+
+
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
-                vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), sf::Vector2f(0, 0), sf::Color(255, 255, 0, 100), &texCandle));
+                vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), &texCandle, &texShadow, Utils::randColor()));
                 updateShadow(vecLights[vecLights.size()-1]);
             }
+        }
+        if (event.type == sf::Event::MouseWheelMoved) {
+            spTadzik.currentWeapon-=event.mouseWheel.delta;
+            while (spTadzik.currentWeapon<0) spTadzik.currentWeapon += spTadzik.weapons.size();
+            spTadzik.currentWeapon = spTadzik.currentWeapon%spTadzik.weapons.size();
+            isReloading = false;
+            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
+        }
+    }
+
+    void reload() {
+        if (spTadzik.weapons[spTadzik.currentWeapon].ammo < spTadzik.weapons[spTadzik.currentWeapon].magSize && !isReloading && spTadzik.weapons[spTadzik.currentWeapon].mags > 0) {
+            isReloading = true;
+            reloadFor.restart();
         }
     }
 
     void shoot() {
-        tmpBullet = spTadzik.playerBullet;
-        tmpBullet.setPosition(spTadzik.getPosition());
-        tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
-        vecBullets.push_back(tmpBullet);
+        if (lastShot.getElapsedTime().asMilliseconds() > spTadzik.weapons[spTadzik.currentWeapon].fireTime && spTadzik.weapons[spTadzik.currentWeapon].ammo>0 && !isReloading) {
+            lastShot.restart();
+            spTadzik.weapons[spTadzik.currentWeapon].ammo--;
+            tmpBullet = spTadzik.weapons[spTadzik.currentWeapon].bullet;
+            tmpBullet.setPosition(spTadzik.getPosition());
+            tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
+            vecBullets.push_back(tmpBullet);
+            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
+        }
     }
 
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
-            getEnemyDestination(vecEnemies[i]);
+            getEnemyPath(vecEnemies[i]);
             sf::VertexArray a (sf::LinesStrip, 3);
             a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
             a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
@@ -551,46 +737,122 @@ public:
                     vecEnemies[i].onHit(vecBullets[j]);
                     vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
-                    if (vecEnemies[i].health<=0) vecEnemies.erase(vecEnemies.begin()+i);
+                    if (vecEnemies[i].health<=0) {
+                        if (Utils::chance(0.33)) {
+                            tmpPUPGiveHealth.setPosition(vecEnemies[i].getPosition());
+                            vecPUPGiveHealth.push_back(tmpPUPGiveHealth);
+                        }
+                        else {
+                            tmpPUPGiveAmmo.setPosition(vecEnemies[i].getPosition());
+                            vecPUPGiveAmmo.push_back(tmpPUPGiveAmmo);
+                        }
+                        vecEnemies.erase(vecEnemies.begin()+i);
+                        score++;
+                        break;
+                    }
                 }
             }
         }
-        for (int i=0; i+1<vecEnemies.size(); i++) {
-            for (int j=i+1; j<vecEnemies.size(); j++) {
+        for (unsigned int i=0; i+1<vecEnemies.size(); i++) {
+            for (unsigned int j=i+1; j<vecEnemies.size(); j++) {
                 handleEntityCollision(vecEnemies[i], vecEnemies[j], 0.02);
             }
         }
-        if (vecEnemies.size()<1) {
-            //sf::Image img = sf::Sprite(rTexture.getTexture());
-            //do {
-            //    tmpEnemy.setPosition(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)));
-            //}
-            //while (rTexture.)
-            vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+        if (clock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
+            sf::Image img;
+            img = rHelp.getTexture().copyToImage();
+            for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
+                sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
+                if (img.getPixel(t.x, t.y) == sf::Color::Black)
+                    vecEnemies.push_back(Enemy(sf::Vector2f(t), &texEnemy1, &spTadzik));
+            }
+            clock.restart();
+            currentWave++;
+            currentWave=currentWave%vecWaves.size();
         }
     }
 
-    virtual void draw(double deltaTime) {
-        //input z klawiatury
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed) {
+    void updateHUD() {
+        hud.tScore.setString(Utils::stringify(score));
+        hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
+        hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
+        hud.healthBar.setScale(spTadzik.health/100, 1);
+        hud.activeWeapon.setTexture(spTadzik.weapons[spTadzik.currentWeapon].texture);
+        hud.clear(sf::Color(0, 0, 0, 0));
+        if (isReloading) {
+            hud.reloading.setScale(1-reloadFor.getElapsedTime().asMilliseconds()/spTadzik.weapons[spTadzik.currentWeapon].reloadTime, 1);
+            hud.reloading.setPosition(spTadzik.getGlobalBounds().left, spTadzik.getPosition().y);
+            hud.draw(hud.reloading);
+        }
+        hud.update();
+    }
+
+    virtual bool onConsoleUpdate(std::vector<std::string> args){
+        if (args[0] == "debug") {
+            debug = !debug;
+        }
+        else if (args[0] == "gib") {
+            for (unsigned int i=0; i<spTadzik.weapons.size(); i++) {
+                spTadzik.weapons[i].ammo = spTadzik.weapons[i].magSize;
+                spTadzik.weapons[i].mags = spTadzik.weapons[i].magAmount;
+                spTadzik.health = 100;
+            }
+        }
+        else if (args.size()==2 && args[0] == "spawn") {
+            for (int i=0; i<atoi(args[1].c_str()); i++)
+                vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+        }
+        else if (args[0] == "killall") {
+            vecEnemies.clear();
+        }
+        else if (args[0] == "stopspawning") {
+            vecEnemies.clear();
+            currentWave = 0;
+            vecWaves[0].time = 1000000;
+        }
+        else if (args[0] == "lightsoff") {
+            vecLights.clear();
+        }
+        else
+            return false;
+        return true;
+    }
+
+    virtual void getKeyboardStuff() {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed)
             spTadzik.velocity.x -= acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed)
             spTadzik.velocity.y -= acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed)
             spTadzik.velocity.y += acceleration;
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed)
             spTadzik.velocity.x += acceleration;
-        }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) spTadzik.health-=10;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) reload();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             vecEnemies.push_back(Enemy(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texEnemy1, &spTadzik));
+    }
+
+    virtual void draw(double deltaTime) {
+        /// INPUT MYSZK¥
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
+            shoot();
         }
 
-        updateEnemies();
-        for (unsigned i=0; i<vecEnemies.size(); i++) {
+        /// INPUT Z KLAWIATURY
+        getKeyboardStuff();
+
+        /// RELOADING
+        if (isReloading) {
+            if (reloadFor.getElapsedTime().asMilliseconds()>spTadzik.weapons[spTadzik.currentWeapon].reloadTime) {
+                isReloading = false;
+                spTadzik.weapons[spTadzik.currentWeapon].ammo = spTadzik.weapons[spTadzik.currentWeapon].magSize;
+                spTadzik.weapons[spTadzik.currentWeapon].mags--;
+            }
+        }
+
+        /// OGARNIANIE KOLIZJI
+        for (unsigned int i=0; i<vecEnemies.size(); i++) {
             if (Collision::PixelPerfectTest(spTadzik, vecEnemies[i])) {
                 handleEntityCollision(spTadzik, vecEnemies[i], 0.5);
                 if (spTadzik.sinceHit.getElapsedTime() > spTadzik.invincibilityTime) {
@@ -611,61 +873,102 @@ public:
         spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
 
         updateShadow(spTadzik.ls);
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            updateShadow(vecLights[i]);
 
-        window->clear(sf::Color(0, 0, 255));
+        window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+                                255, 255));
 
-        for (unsigned int i=0; i<vecSprites.size(); i++)
-            window->draw(vecSprites[i]);
 
+        /// OGARNIANIE PRZECIWNIKÓW
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
-            window->draw(vecEnemies[i].hitbox);
+            rDebug.draw(vecEnemies[i].hitbox);
             window->draw(vecEnemies[i]);
             window->draw(vecEnemies[i].healthBar);
         }
-        //std::cout << vecEnemies.size();
+        updateEnemies();
 
-        rTexture.clear(sf::Color(0, 0, 0, 255));
-        for (int i=0; i<spTadzik.ls.points.size(); i++) {
-            sf::CircleShape c(2);
-            c.setOrigin(1, 1);
-            c.setFillColor(sf::Color::Green);
-            c.setPosition(spTadzik.ls.points[i].point);
-            rDebug.draw(c);
-        }
-        for (unsigned int i=0; i<vecLights.size(); i++)
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
-        rTexture.display();
-        window->draw(sf::Sprite(rTexture.getTexture()));
-
-        for (unsigned int i=0; i<vecWalls.size(); i++) {
-            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
-                drawLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]);
-            }
-        }
-
+        /// OGARNIANIE POCISKÓW
         if (vecBullets.size()>0) {
             for (int i=vecBullets.size()-1; i>=0; i--) {
                 vecBullets[i].update();
                 window->draw(vecBullets[i]);
                 for (unsigned int j=0; j<vecSprites.size(); j++) {
-                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j]))
-                        if (vecBullets.size()!=0) vecBullets.erase(vecBullets.begin()+i);
+                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j])) {
+                        vecBullets.erase(vecBullets.begin()+i);
+                        break;
+                    }
                 }
             }
         }
 
-        rDebug.display();
-        if (debug) window->draw(sf::Sprite(rDebug.getTexture()));
+        /// OGARNIANIE POWERUPOW
+        for (int i=vecPUPGiveHealth.size()-1; i>=0; --i) {
+            window->draw(vecPUPGiveHealth[i]);
+            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveHealth[i])) {
+                vecPUPGiveHealth[i].onPickup();
+                vecPUPGiveHealth.erase(vecPUPGiveHealth.begin()+i);
+            }
+        }
+        for (int i=vecPUPGiveAmmo.size()-1; i>=0; --i) {
+            window->draw(vecPUPGiveAmmo[i]);
+            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveAmmo[i])) {
+                vecPUPGiveAmmo[i].onPickup();
+                vecPUPGiveAmmo.erase(vecPUPGiveAmmo.begin()+i);
+            }
+        }
+
+        /// TEMPORARY LIGHTNING
+        rTexture.clear(sf::Color(0, 0, 0, 255));
+        rHelp.clear(sf::Color(0, 0, 0, 255));
+        for (unsigned int i = 0; i<vecLights.size(); i++)
+            rHelp.draw(vecLights[i].sprite, sf::BlendAdd);
+
+        rShadows.clear(sf::Color(0, 0, 0));
+        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
+        rTexture.display();
+        rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
+        rShadows.draw(sf::Sprite(rTexture.getTexture()));
+        rShadows.display();
+        rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        for (unsigned int i=0; i<vecLights.size(); i++) {
+            rTexture.clear(sf::Color(0, 0, 0, 255));
+            rShadows.clear(sf::Color(0, 0, 0, 255));
+            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
+            rTexture.display();
+            rShadows.draw(vecLights[i].glow, sf::BlendAdd);
+            rShadows.draw(sf::Sprite(rTexture.getTexture()));
+            rShadows.display();
+            rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        }
+        rHelp.display();
+
+        window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
+        window->draw(sf::Sprite(rLines.getTexture()));
+
+        /// DEBUG
+        if (debug) {
+            for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
+                sf::CircleShape c(2);
+                c.setOrigin(1, 1);
+                c.setFillColor(sf::Color::Green);
+                c.setPosition(spTadzik.ls.points[i].point);
+                rDebug.draw(c);
+            }
+            rDebug.display();
+            window->draw(sf::Sprite(rDebug.getTexture()));
+        }
         rDebug.clear(sf::Color(0, 0, 0, 0));
-        for (unsigned int i = 0; i<vecLights.size(); i++) window->draw(vecLights[i].sprite);
+
+
         window->draw(spTadzik);
 
-        //std::cout << vecWalls[5].points.size();
-        //std::cout << vecLights.size();
+        updateHUD();
+        window->draw(sf::Sprite(hud.getTexture()));
+        spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+        window->draw(spCrosshair);
+        if (isDead) {
+            window->draw(deathMessage);
+        }
     }
 
 protected:
@@ -677,21 +980,31 @@ protected:
     sf::Texture texBullet1;
     sf::Texture texCandle;
     sf::Texture texEnemy1;
+    sf::Texture texCrosshair;
+    sf::Texture texHud;
+    sf::Texture texShadow;
+    sf::Texture texPUPGiveHealth;
+    sf::Texture texPUPGiveAmmo;
+
+    sf::Sprite spCrosshair;
 
     sf::Image mapa;
-    sf::Font font;
+    sf::Text deathMessage;
     sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
-    sf::BlendMode myBlendMode;
+    sf::RenderTexture rGUI;
+    sf::RenderTexture rLines;
+    sf::RenderTexture rShadows;
+    sf::RenderTexture rHelp;
+    HUD hud;
 
     Player spTadzik;
     sf::Sprite spWall;
-    sf::Sprite spHealthBar;
-    sf::Sprite spHealthFrame;
-    sf::CircleShape spBullet;
 
     Bullet tmpBullet;
-    Enemy tmpEnemy = Enemy(sf::Vector2f(500, 500), &texEnemy1, &spTadzik);
+
+    PUPGiveHealth tmpPUPGiveHealth = PUPGiveHealth(this);
+    PUPGiveAmmo tmpPUPGiveAmmo = PUPGiveAmmo(this);
 
     std::vector <lightSource> vecLights;
 
@@ -702,8 +1015,26 @@ protected:
     std::vector <Bullet> vecBullets;
 
     std::vector <sf::Sprite> vecSprites;
-    double acceleration = 2;
+
+    std::vector <Weapon> vecWeapons;
+
+    std::vector <Wave> vecWaves;
+
+    std::vector <PUPGiveHealth> vecPUPGiveHealth;
+    std::vector <PUPGiveAmmo> vecPUPGiveAmmo;
+
+    float acceleration = 2;
     int tileSize = 20;
+    int score = 0;
+
+    sf::Clock lastShot;
+    sf::Clock reloadFor;
+    sf::Clock clock;
+
+    int currentWave = 0;
+
+    bool isReloading = false;
+    bool isDead = false;
 
     bool debug = false;
 };

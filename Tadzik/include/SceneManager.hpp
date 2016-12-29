@@ -2,17 +2,25 @@
 #define SCENEMANAGER_HPP
 
 #include "Scene.hpp"
+#include "Utils.hpp"
+#include "Common.hpp"
 
 #include <unordered_map>
 #include <string>
 #include <iostream>
 
-
 class SceneManager{
 public:
-    SceneManager(sf::RenderWindow* w){
-        window = w;
+    SceneManager(sf::RenderWindow* w)
+    :window(w)
+    {
+        fpsCounter.setFont(Common::Font::Comic_Sans);
+        fpsCounter.setOrigin(0, 40);
+        fpsCounter.setPosition(0, window->getSize().y);
+        fpsCounter.setColor(sf::Color::Green);
+        //tadzikCMD = new TadzikCMD(this);
     }
+
     virtual ~SceneManager(){
         std::cout << "Destructor of SceneManager{\n";
         std::cout << scenes.size() << "\n";
@@ -43,6 +51,7 @@ public:
         actScene = scenes[nameId];
         actScene->onSceneActivate();
     }
+
     std::string getActiveSceneName(){
         return actScene->getName();
     }
@@ -51,12 +60,89 @@ public:
     }
     void runSceneFrame(double delta){
         actScene->draw(delta);
+        if(cmdEnabled){
+            ImGui::SetNextWindowPos(sf::Vector2f(0,0));
+            ImGui::Begin("Tadzik CMD");
+            ImGui::PushItemWidth(200);
+            bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::PopItemWidth();
+            ImGui::End();
+            if(textInputted){
+                std::vector<std::string> v = eval();
+                bool foundCommand = coreEval(v);
+                foundCommand |= actScene->onConsoleUpdate(v);
+                if(!foundCommand){
+                    //to be implemented...
+                }
+            }
+        }
+    }
+    void toogleCMD(){
+        cmdEnabled = !cmdEnabled;
+    }
+    std::vector<std::string> eval(){
+        std::string cmd = std::string(cmdBuffer);
+        std::string tmp="";
+        std::vector<std::string> vParsed;
+        for(unsigned int i = 0; i < cmd.size(); i++){
+            if(std::isspace(static_cast<unsigned char>(cmd[i]))){
+                if(tmp != "" )
+                    vParsed.push_back(tmp);
+                tmp="";
+            }
+            else{
+                tmp += cmd[i];
+            }
+        }
+        if(tmp != "" )
+            vParsed.push_back(tmp);
+
+        return vParsed;
+    }
+
+    bool coreEval(std::vector<std::string> v){
+        if(v.size()==0)
+            return false;
+        if(v.size()==2){
+            if(v[0]=="loadLvl" || v[0]=="ll"){
+                setActiveScene(v[1]);
+                return true;
+            }
+        }
+        if(v.size()==1 && v[0]=="fps") {
+            showFps=!showFps;
+        }
+        return false;
+    }
+
+    void getFPS(double delta) {
+        if (showFps) {
+            FpsTimer+=delta;
+            if (FpsTimer>200) {
+                double fps = 1000.0d/delta;
+                if (fps>60)
+                    fpsCounter.setColor(sf::Color::Green);
+                else if (fps>30)
+                    fpsCounter.setColor(sf::Color::Yellow);
+                else
+                    fpsCounter.setColor(sf::Color::Red);
+                fpsCounter.setString(Utils::stringify((int)fps));
+                FpsTimer = 0;
+            }
+            window->draw(fpsCounter);
+        }
     }
 
 private:
     std::unordered_map<std::string, Scene*> scenes;
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
+    bool cmdEnabled=false;
+    char cmdBuffer[1024];
+
+    sf::Text fpsCounter;
+    bool showFps = true;
+    double FpsTimer = 1000;
 };
 
 #endif // SCENEMANAGER_HPP

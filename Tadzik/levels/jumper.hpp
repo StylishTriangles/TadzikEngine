@@ -1,10 +1,10 @@
 #ifndef JUMPER_HPP
 #define JUMPER_HPP
 
-#include "Scene.hpp"
-#include "AnimatedSprite.hpp"
-#include "Collision.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/AnimatedSprite.hpp"
+#include "../include/Collision.hpp"
+#include "../include/Utils.hpp"
 
 #include <string>
 #include <vector>
@@ -165,13 +165,13 @@ public:
         }
         background1.move(0, scrolling);
         background2.move(0, scrolling);
-        for (int i=0; i<platforms.size(); ++i) {
+        for (unsigned int i=0; i<platforms.size(); ++i) {
             platforms[i].sprite.move(0, scrolling);
         }
-        for (int i=0; i<powerups.size(); i++) {
+        for (unsigned int i=0; i<powerups.size(); i++) {
             powerups[i].move(0, scrolling);
         }
-        for (int i=0; i<effects.size(); i++) {
+        for (unsigned int i=0; i<effects.size(); i++) {
             effects[i].move(0, scrolling);
         }
 
@@ -245,10 +245,10 @@ public:
                 else {
                     background1.move(0, -speedY);
                     background2.move(0, -speedY);
-                    for (int i=0; i<platforms.size(); ++i) {
+                    for (unsigned int i=0; i<platforms.size(); ++i) {
                         platforms[i].sprite.move(0, -speedY);
                     }
-                    for (int i=0; i<powerups.size(); i++) {
+                    for (unsigned int i=0; i<powerups.size(); i++) {
                         powerups[i].move(0, -speedY);
                     }
                 }
@@ -260,7 +260,7 @@ public:
         }
 
         //sprawdzanie czy stoi na jakiejs platformie
-        for (int i=0; i<platforms.size(); ++i) {
+        for (unsigned int i=0; i<platforms.size(); ++i) {
             if (platforms[i].isAbove(spTadzik.sprite)) {
                 if (platforms[i].testForStanding(spTadzik.sprite) && !isJumping) {
                     //std::cout << "standing on " << standingPlatformNumber << "\n";

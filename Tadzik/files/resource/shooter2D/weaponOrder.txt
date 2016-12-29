@@ -1,0 +1,10 @@
+//weapon name
+//texture directory
+//damage
+//magazine size
+//magazines amount
+//automatic?
+//reload time
+//shooting delay
+//velocity
+//knockback
