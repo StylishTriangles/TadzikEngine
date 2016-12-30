@@ -1,4 +1,7 @@
-#include "../glad/glad.h"
+//#include "../glad/glad.h"
+#define GLEW_STATIC
+#include "../GL/glew.h"
+
 
 #include "include/imgui/imgui.h"
 #include "include/imgui/imgui-SFML.h"
@@ -6,7 +9,8 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <ctime>
-
+#include <cstdlib>
+#include <iostream>
 
 //******
 //temporary workaround
@@ -37,10 +41,9 @@ public:
 #include "levels/isayparty.hpp"
 #include "levels/arrrr.hpp"
 
-#include <cstdlib>
-#include <iostream>
-
 int main(){
+    for(int i = 0; i < cube_Pos.size(); i++)
+        cube_Pos[i] *= 0.25;
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.depthBits = 24;
@@ -49,25 +52,17 @@ int main(){
     settings.majorVersion = 3;
     settings.minorVersion = 3;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
-    if(!gladLoadGL()){
-        std::cout << "Kurwa spock\n";
-    }
-    else{
-        int v1=31337, v2=1337;
-        glGetIntegerv(GL_MAJOR_VERSION, &v1);
-        glGetIntegerv(GL_MINOR_VERSION, &v2);
-        std::cout << "versions vol1: " << v1 << " " << v2 << "\n";
-        std::cout << "OpenGL Version: " << GLVersion.major << ", " << GLVersion.minor << "\n";
-    }
-
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
+
+    window.setActive();
+    glewExperimental=GL_TRUE;
+    if(glewInit() == GLEW_OK)
+        std::cout << "ok! " << "\n";
+
     ImGui::SFML::Init(window);
-    int v1=31337, v2=1337;
-    glGetIntegerv(GL_MAJOR_VERSION, &v1);
-    glGetIntegerv(GL_MINOR_VERSION, &v2);
-    std::cout << "versions (imGUI): " << v1 << " " << v2 << "\n";
-    std::cout << "OpenGL Version (imGUI): " << GLVersion.major << ", " << GLVersion.minor << "\n";
+    window.resetGLStates();
+    window.pushGLStates();
 
     SceneManager sceneManager(&window);
     sceneManager.registerScene<TREX>("TREX", &window);
@@ -80,13 +75,9 @@ int main(){
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     sceneManager.registerScene<ARRRR>("ARRRR", &window);
-    //sceneManager.setActiveScene("JUMPER");
-    //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
-    //sceneManager.setActiveScene("MARIO");
-    //sceneManager.setActiveScene("LEVELSELECT");
-    //sceneManager.setActiveScene("SHOOTER2D");
+
     sceneManager.setActiveScene("ARRRR");
+
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
@@ -105,15 +96,16 @@ int main(){
             }
         }
         ImGui::SFML::Update(window, deltaClock.getElapsedTime());
-		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
+        window.clear();
+        sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
         deltaClock.restart();
-
-        window.resetGLStates();
+        window.popGLStates();
         ImGui::Render();
-        window.display();
+        window.pushGLStates();
 
-        //std::cout << "fps: " << sceneManager.getFPS() << "\n";
+        window.display();
     }
+
     ImGui::SFML::Shutdown();
     return 0;
 }

@@ -1,7 +1,9 @@
 #ifndef SHADERPROGRAM_HPP
 #define SHADERPROGRAM_HPP
 
-#include "../glad/glad.h"
+//#include "../glad/glad.h"
+ #define GLEW_STATIC
+#include "../GL/glew.h"
 
 #include <vector>
 #include <initializer_list>

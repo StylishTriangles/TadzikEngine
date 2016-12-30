@@ -1,7 +1,9 @@
 #ifndef VERTEXARRAY_HPP
 #define VERTEXARRAY_HPP
 
-#include "../glad/glad.h"
+//#include "../glad/glad.h"
+#define GLEW_STATIC
+#include "../GL/glew.h"
 
 #include <vector>
 #include <iostream>

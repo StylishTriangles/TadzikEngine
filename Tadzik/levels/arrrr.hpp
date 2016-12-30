@@ -1,7 +1,8 @@
 #ifndef ARRRR_HPP
 #define ARRRR_HPP
 
-#include "glad/glad.h"
+//#include "../glad/glad.h"
+#include "../GL/glew.h"
 
 #include "../include/Scene.hpp"
 #include "../include/AnimatedSprite.hpp"
@@ -73,7 +74,7 @@ public:
     }
 
     void onSceneActivate(){
-        window->pushGLStates();
+
     }
 
     void onSceneDeactivate(){
@@ -81,25 +82,20 @@ public:
     }
 
     void draw(double deltaTime){
-        int v1=31337, v2=1337;
-        glGetIntegerv(GL_MAJOR_VERSION, &v1);
-        glGetIntegerv(GL_MINOR_VERSION, &v2);
-        std::cout << "versions: " << v1 << " " << v2 << "\n";
-
-        sh1->run();
-        std::cout << "lol1\n";
+        /*sh1->run();
         sh1->setUniform("uniColor", glm::vec4(1.0f, 0.0f, 0.5f, 1.0f));
-        std::cout << "lol2\n";
         sh1->setUniform("mx",glm::mat4());
-        std::cout << "lol3\n";
         vao->bind();
-        std::cout << "lol4\n";
-        if(vao == nullptr)
-            std::cout << "wtf\n";
         glDrawArrays(GL_TRIANGLES, 0, vao->countVertices());
-        std::cout << "lol5\n";
         vao->unbind();
-        std::cout << "lol6\n";
+        glUseProgram(0);*/
+        sh1->run();
+        sh1->setUniform("uniColor", glm::vec4(1.0f, 0.0f, 0.5f, 1.0f));
+        sh1->setUniform("mx",glm::mat4());
+        vao->bind();
+        glDrawArrays(GL_TRIANGLES, 0, vao->countVertices());
+        vao->unbind();
+        glUseProgram(0);
     }
     void deliverEvent(sf::Event&){}
 

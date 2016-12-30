@@ -386,7 +386,7 @@ public:
 
         rTexture.create(window->getSize().x, window->getSize().y);
         rDebug.create(window->getSize().x, window->getSize().y);
-
+        window->setActive();
         texEnemy1.loadFromFile("files/textures/shooter2D/enemy1.png");
 
         Object tmpObject;
