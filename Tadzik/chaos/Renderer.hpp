@@ -1,12 +1,13 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
+#include "Export.hpp"
+
 #include "Transform.hpp"
 #include "ShaderProgram.hpp"
 #include "VertexArray.hpp"
 #include "MeshPrefab.hpp"
-#include "Utils.hpp"
-#include "Window.hpp"
+#include "../include/Utils.hpp"
 
 #include <unordered_map>
 
@@ -14,8 +15,7 @@ namespace chaos{
 
 class CHAOS_EXPORT Renderer{
 public:
-    Renderer(Window* w){
-        setTargetWindow(w);
+    Renderer(){
         initEngineStuff();
     }
     virtual ~Renderer(){
@@ -248,7 +248,7 @@ public:
     }
 
     void addMeshVAO(MeshPrefab* mesh){
-        addVAO(3, 3, 2, 0, mesh->getVBOData(), "Mesh:Vao_Pos.Uv("+toString(mesh->getMeshId())+")");
+        addVAO(3, 3, 2, 0, mesh->getVBOData(), "Mesh:Vao_Pos.Uv("+Utils::stringify(mesh->getMeshId())+")");
     }
 
     glm::mat4 getCamCombined(){
@@ -259,19 +259,10 @@ public:
         camCombined = mx;
     }
 
-    void setTargetWindow(Window* _win){
-        win = _win;
-    }
-
-    Window* getTargetWindow(){
-        return win;
-    }
-
 private:
     std::unordered_map<std::string , ShaderProgram*> cacheShaders;
     std::unordered_map<std::string , VertexArray*> cacheVAO;
     glm::mat4 camCombined = glm::mat4();
-    Window* win = nullptr;
 };
 
 }

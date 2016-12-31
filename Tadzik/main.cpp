@@ -42,8 +42,6 @@ public:
 #include "levels/arrrr.hpp"
 
 int main(){
-    for(int i = 0; i < cube_Pos.size(); i++)
-        cube_Pos[i] *= 0.25;
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.depthBits = 24;
