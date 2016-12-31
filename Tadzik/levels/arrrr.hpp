@@ -12,6 +12,7 @@
 #include "../chaos/ShaderProgram.hpp"
 #include "../chaos/Transform.hpp"
 #include "../chaos/Camera.hpp"
+#include "../chaos/primitives.hpp"
 
 std::vector<GLfloat> cube_Pos = {
             -1.f, -1.f, -1.f,
@@ -76,10 +77,12 @@ public:
 
     void onSceneActivate(){
         vao = new chaos::VertexArray(3, 0, 0, 0, &cube_Pos);
-        sh1 = new chaos::ShaderProgram({std::make_pair("chaos/files/shaders/shader2.vs", GL_VERTEX_SHADER),
-                    std::make_pair("chaos/files/shaders/shader2.fs", GL_FRAGMENT_SHADER)});
+        sh1 = new chaos::ShaderProgram({std::make_pair("files/shaders/shader2.vs", GL_VERTEX_SHADER),
+                    std::make_pair("files/shaders/shader2.fs", GL_FRAGMENT_SHADER)});
         transformCube = new chaos::Transform();
         transformCube->setScale(0.25f, 0.25f, 0.25f);
+        circle = new chaos::Circle(renderer);
+        circle->setScale(0.3f,0.5f,0.3f);
         camera = new chaos::Camera(renderer, chaos::PERSPECTIVE, glm::perspective(glm::radians(45.0f), (GLfloat)window->getSize().x/window->getSize().y, 0.1f, 100.0f));;
         camera->moveZ(5.f);
 
@@ -131,6 +134,9 @@ public:
         vao->unbind();
         glUseProgram(0);
 
+        circle->setColor(fabs(transformCube->getX())/3.f,1.0f,0.2f,0.6f);
+        circle->draw();
+
         camera->update();
     }
     void deliverEvent(sf::Event&){}
@@ -141,6 +147,8 @@ protected:
     chaos::ShaderProgram* sh1 = nullptr;
     chaos::Transform* transformCube = nullptr;
     chaos::Camera* camera=nullptr;
+    chaos::Circle* circle;
+    int circR=0;
 
 };
 
