@@ -82,9 +82,12 @@ public:
         texRunLeft[0].loadFromFile("files/textures/rpg/runLeft0.png"), RunLeft.addFrame(AnimationFrame(&texRunLeft[0], 250));
         texRunLeft[1].loadFromFile("files/textures/rpg/runLeft1.png"), RunLeft.addFrame(AnimationFrame(&texRunLeft[1], 250));
 
-        texLeftAttack.loadFromFile("files/textures/rpg/attack.png"), spAttack.setTexture(texLeftAttack);
-        spAttack.setScale(5,5);
-        spAttack.setOrigin(spTadeusz.sprite.getTextureRect().width*0.5,spTadeusz.sprite.getTextureRect().height*0.5);
+        texJump.resize(3);
+        texJump[0].loadFromFile("files/textures/rpg/jump0.png"), Jump.addFrame(AnimationFrame(&texJump[0],200));
+        texJump[1].loadFromFile("files/textures/rpg/jump1.png"), Jump.addFrame(AnimationFrame(&texJump[1],200));
+        texJump[2].loadFromFile("files/textures/rpg/jump2.png"), Jump.addFrame(AnimationFrame(&texJump[2],200));
+
+
 
 ////////////////////////////////
 
@@ -108,7 +111,7 @@ public:
         texWaterfall.loadFromFile("files/textures/rpg/Waterfall.png");
         texWaterfall.setRepeated(true);
         spWaterfall.setTexture(texWaterfall);
-        //     spWaterfall.setScale(4,4);
+        spWaterfall.setScale(4,4);
 
 
         window->setMouseCursorVisible(0);
@@ -123,7 +126,8 @@ public:
         Attack.setRadius(50);
         Attack.setOrigin(Attack.getRadius(), Attack.getRadius());
 
-        attackTime = clock.getElapsedTime();
+        attackTime = -sf::seconds(1);
+
 
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
         loadMap();
@@ -145,15 +149,10 @@ public:
     virtual void draw(double deltaTime)
     {
         spTadeusz.update(deltaTime);
-        //  spWaterfall.setTextureRect(sf::IntRect(0, texWaterfall.getSize().y-2*tilesize-w, texWaterfall.getSize().x, tilesize*2 ));
-        //w++;
-        //if((texWaterfall.getSize().y-2*tilesize<w))
-        //  w=0;
 
         spWaterfall.setTextureRect(sf::IntRect(0, -w, texWaterfall.getSize().x, tilesize*2 ));
         w++;
-
-        spWaterfall.setColor(sf::Color(255,255,255,Utils::randInt(100,200)));
+        spWaterfall.setColor(sf::Color(255,255,255,Utils::randInt(200,255)));
 
 //MOVEMENT
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
@@ -171,7 +170,8 @@ public:
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
         {
             offset += sf::Vector2f(tilesize*0.1, 0);
-            spTadeusz.setAnimation(&RunLeft);
+            if(spTadeusz.getAnimation()!=&RunLeft)
+                spTadeusz.setAnimation(&RunLeft);
         }
 
 
@@ -221,11 +221,11 @@ public:
         {
 
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-{
-                spAttack.setPosition(spTadeusz.sprite.getPosition());
-                window->draw(spAttack);
+            {
+                spTadeusz.setAnimation(&Jump);
+
                 for(int i = spEnemy.size()-1; i>=0; i--)
-                    if(distance(spEnemy[i],spTadeusz.sprite)<=50)
+                    if(distance(spEnemy[i],spTadeusz.sprite)<=1000)
 
                         spEnemy.erase(spEnemy.begin()+i);
 
@@ -233,13 +233,16 @@ public:
                 std::cout << attackTime.asSeconds() <<std::endl;
             }
             else
-            {
-                spTadeusz.sprite.move(offset);
-                offset=sf::Vector2f(0, 0);
-                window->draw(spTadeusz.sprite);
-            }
+
+                spTadeusz.sprite.move(offset),  spTadeusz.setAnimation(&Idle);
+
+
+
+
         }
-        else window->draw(spAttack);
+        offset=sf::Vector2f(0, 0);
+        window->draw(spTadeusz.sprite);
+        window->draw(spWaterfall);
     }
 
 
@@ -257,9 +260,10 @@ protected:
     std::vector <sf::Texture> texIdle;
     Animation RunLeft;
     std::vector <sf::Texture> texRunLeft;
+    Animation Jump;
+    std::vector <sf::Texture> texJump;
 
-    sf::Sprite spAttack;
-    sf::Texture texLeftAttack;
+
 
     sf::Image mapa;
 
