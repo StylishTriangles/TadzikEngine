@@ -13,6 +13,10 @@
 #include "../chaos/Transform.hpp"
 #include "../chaos/Camera.hpp"
 #include "../chaos/primitives.hpp"
+#include "../chaos/Texture.hpp"
+#include "../chaos/Model.hpp"
+#include "../chaos/MeshPrefab.hpp"
+#include "../chaos/ResourceManager.hpp"
 #include "../chaos/Water.hpp"
 
 class ARRRR: public Scene{
@@ -27,10 +31,21 @@ public:
         delete water;
         delete camera;
         delete renderer;
+        delete shipModel;
+        delete sailsModel;
+
+        delete rscManager; //tego ziomeczka na koncu trzeba zniszczyc, to final boss jest
     }
 
     void onSceneLoadToMemory(){
         renderer = new chaos::Renderer();
+        rscManager = new chaos::ResourceManager();
+        shipPrefab = rscManager->loadResource<chaos::MeshPrefab>("files/models3d/GhostShip_ship.obj", "ghost_ship");
+        sailsPrefab = rscManager->loadResource<chaos::MeshPrefab>("files/models3d/GhostShip_sails.obj", "ghost_ship_sails");
+        shipTexture = rscManager->loadResource<chaos::Texture>("files/textures/arrrr/Ship_diff.jpg", "ghost_ship_texture");
+        sailsTexture = rscManager->loadResource<chaos::Texture>("files/textures/arrrr/Sails_diff.jpg", "ghost_ship_sails_texture");
+        renderer->addMeshVAO(shipPrefab);
+        renderer->addMeshVAO(sailsPrefab);
     }
 
     void onSceneActivate(){
@@ -45,6 +60,16 @@ public:
         camera = new chaos::Camera(renderer, chaos::PERSPECTIVE, glm::perspective(glm::radians(45.0f), (GLfloat)window->getSize().x/window->getSize().y, 0.1f, 100.0f));;
         camera->moveZ(5.f);
         camera->yaw -= 60;
+
+        shipModel = new chaos::Model(renderer, shipPrefab);
+        sailsModel = new chaos::Model(renderer, sailsPrefab);
+        shipModel->setColor(1.0,1.0,1.0,0.85);
+        sailsModel->setColor(1.0,1.0,1.0,0.6);
+        shipModel->setScale(0.1,0.1,0.1);
+        shipModel->moveX(2.0);
+        sailsModel->setParent(shipModel);
+        shipModel->translate(-3,-1,-3);
+        shipModel->rotateY(M_PI*1.2);
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
@@ -98,11 +123,26 @@ public:
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
             water->renderType = GL_TRIANGLES;
 
-        renderer->setCamCombined(camera->getProjectionMatrix()*camera->getViewMatrix());
+        using namespace std::chrono;
+        milliseconds ms = duration_cast< milliseconds >(
+        system_clock::now().time_since_epoch());
+        GLfloat t = ((ms.count()-renderer->startTime))/1000.0;
+        cubeTest->setY(-1.2+  0.2*sin(sqrt(cubeTest->getX()*cubeTest->getX()+cubeTest->getZ()*cubeTest->getZ())+t));
+        shipModel->setY(-1.2+ 0.2*sin(sqrt(shipModel->getX()*shipModel->getX()+shipModel->getZ()*shipModel->getZ())+t));
 
+        GLfloat rad = shipModel->getRotY()-M_PI/3.0;
+        GLfloat sp = 0.0005;
+        shipModel->translate(cos(rad)*deltaTime*sp, 0, sin(rad)*deltaTime*sp);
+
+        renderer->setCamCombined(camera->getProjectionMatrix()*camera->getViewMatrix());
+        window->clear(sf::Color(0.05,0.05,0.05,1.0));
         water->draw();
         camera->update();
         cubeTest->draw();
+        shipTexture->bind();
+        shipModel->draw();
+        sailsTexture->bind();
+        sailsModel->draw();
     }
     void deliverEvent(sf::Event& event){
         if (event.type == sf::Event::MouseMoved) {
@@ -132,10 +172,18 @@ public:
 
 protected:
     chaos::Renderer* renderer = nullptr;
+    chaos::ResourceManager* rscManager = nullptr;
     chaos::Transform* transformCube = nullptr;
     chaos::Camera* camera=nullptr;
     chaos::Water* water;
     chaos::Cube* cubeTest;
+    chaos::MeshPrefab* shipPrefab;
+    chaos::MeshPrefab* sailsPrefab;
+    chaos::Model* shipModel;
+    chaos::Model* sailsModel;
+    chaos::Texture* shipTexture;
+    chaos::Texture* sailsTexture;
+
     int circR=0;
 };
 

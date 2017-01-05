@@ -10,7 +10,7 @@
 namespace chaos{
 
 template <typename T>
-std::string CHAOS_EXPORT toString ( T Number )
+std::string CHAOS_EXPORT toString2 ( T Number )     //xd
 {
     std::ostringstream ss;
     ss << Number;
@@ -21,8 +21,8 @@ class Water: public DrawableGameObject
 {
 public:
     Water(Renderer* ren, int width, int height, GLfloat dx, GLfloat dy):DrawableGameObject(ren,"Cube:Vao_Pos","Shader_Pos"){
-        std::string vaoId = "Terrain:Vao_Pos#" + chaos::toString<GLint>(width)+"x"+chaos::toString<GLint>(height)
-                                       + "("+ chaos::toString<GLfloat>(dx)+"x"+chaos::toString<GLfloat>(dy)+")";
+        std::string vaoId = "Terrain:Vao_Pos#" + chaos::toString<GLint>(width)+"x"+chaos::toString2<GLint>(height)
+                                       + "("+ chaos::toString<GLfloat>(dx)+"x"+chaos::toString2<GLfloat>(dy)+")";
         std::cout << "id: " << vaoId << "\n";
         if(renderer->getVAO(vaoId) == nullptr){
             std::vector<GLfloat> vec;

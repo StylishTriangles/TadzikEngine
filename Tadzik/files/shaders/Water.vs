@@ -10,7 +10,7 @@ out vec3 pos;
 void main()
 {
 	//A*sin(dist(x,y,center)+time)
-	float h = 0.2*sin(length(position.xy)+time*1.3);
+	float h = 0.2*sin(length(position.xy)+time);
 	gl_Position = mx*vec4(position.x, position.y, h, 1.0);
 	pos = gl_Position.xyz;
 }
