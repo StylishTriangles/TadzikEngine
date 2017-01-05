@@ -19,7 +19,6 @@ public:
     SHOOTER2D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
-    friend class Powerup;
 
     class HUD: public sf::RenderTexture {
     public:
@@ -27,6 +26,8 @@ public:
             tAmmo.setPosition(1200, 690);
             tAllAmmo.setPosition(1250, 690);
             tScore.setPosition(1250, 0);
+            tLights.setPosition(1150, 695);
+            tLights.setScale(0.75, 0.75);
             healthBar.setPosition(10, 5);
             healthFrame.setPosition(10, 5);
             activeWeapon.setPosition(1150, 600);
@@ -41,6 +42,7 @@ public:
         sf::Text tScore;
         sf::Text tAmmo;
         sf::Text tAllAmmo;
+        sf::Text tLights;
         void update() {
             draw(frame);
             draw(healthFrame);
@@ -48,6 +50,7 @@ public:
             draw(tScore);
             draw(tAmmo);
             draw(tAllAmmo);
+            draw(tLights);
             draw(activeWeapon);
             display();
         }
@@ -55,9 +58,11 @@ public:
             tScore.setFont(*f);
             tAmmo.setFont(*f);
             tAllAmmo.setFont(*f);
+            tLights.setFont(*f);
             tScore.setColor(c);
             tAmmo.setColor(c);
             tAllAmmo.setColor(c);
+            tLights.setColor(c);
         }
     };
 
@@ -224,6 +229,7 @@ public:
         Bullet playerBullet;
         std::vector <Weapon> weapons;
         int currentWeapon = 0;
+        unsigned int lights = 30;
         void nextWeapon() {
             currentWeapon++;
             if (currentWeapon==weapons.size()) currentWeapon = 0;
@@ -234,7 +240,14 @@ public:
         }
         void addWeapon(Weapon w) {
             w.setParent(this);
-            weapons.push_back(w);
+            bool t=true;
+            for (unsigned int i=0; i<weapons.size(); i++) {
+                if (w.name == weapons[i].name) {
+                    t = false;
+                    weapons[i].mags = weapons[i].magAmount;
+                }
+            }
+            if (t) weapons.push_back(w);
         }
     };
 
@@ -261,10 +274,10 @@ public:
             velocity.y*=0.8;
             healthBar.setPosition(sf::Vector2f(getGlobalBounds().left, getGlobalBounds().top-10));
         }
-        void onHit (Bullet bullet) {
-            health-=bullet.damage;
-            velocity.x*=bullet.knockback;
-            velocity.y*=bullet.knockback;
+        void onHit (Bullet* bullet) {
+            health-=bullet->damage;
+            velocity.x*=bullet->knockback;
+            velocity.y*=bullet->knockback;
         }
         void trackEntity (MovingEntity* ME) {
             target = ME;
@@ -282,10 +295,15 @@ public:
         sf::RectangleShape healthBar;
     };
 
-    class PUP: public sf::Sprite {
+    class Powerup: public sf::Sprite {
     public:
-        PUP(SHOOTER2D* p) {
+        Powerup(SHOOTER2D* p) {
             parent = p;
+        }
+        Powerup(SHOOTER2D* p, sf::Texture* t, sf::Vector2f pos) {
+            parent = p;
+            setTexture(*t);
+            setPosition(pos);
         }
         SHOOTER2D* parent;
         std::string name;
@@ -296,19 +314,44 @@ public:
         }
     };
 
-    class PUPGiveHealth: public PUP {
+    class PUPGiveHealth: public Powerup {
     public:
-        PUPGiveHealth(SHOOTER2D* p) : PUP(p) {};
+        PUPGiveHealth(SHOOTER2D* p, sf::Texture* t, sf::Vector2f pos) : Powerup(p) {
+            setTexture(*t);
+            setPosition(pos);
+            Utils::setOriginInCenter(*this);
+        }
+        PUPGiveHealth(SHOOTER2D* p) : Powerup(p) {};
         void onPickup() {
             parent->spTadzik.health = 100;
         }
     };
 
-    class PUPGiveAmmo: public PUP {
+    class PUPGiveAmmo: public Powerup {
     public:
-        PUPGiveAmmo(SHOOTER2D* p) : PUP(p) {};
+        PUPGiveAmmo(SHOOTER2D* p) : Powerup(p) {};
+        PUPGiveAmmo(SHOOTER2D* p, sf::Texture* t, sf::Vector2f pos) : Powerup(p) {
+            setTexture(*t);
+            setPosition(pos);
+            Utils::setOriginInCenter(*this);
+        }
         void onPickup() {
             parent->spTadzik.weapons[parent->spTadzik.currentWeapon].mags = parent->spTadzik.weapons[parent->spTadzik.currentWeapon].magAmount;
+        }
+    };
+
+    class PUPGiveWeapon: public Powerup {
+        public:
+        PUPGiveWeapon(SHOOTER2D* p) : Powerup(p) {};
+        PUPGiveWeapon(SHOOTER2D* p, sf::Texture* t, sf::Vector2f pos, int id) : Powerup(p) {
+            setTexture(*t);
+            setPosition(pos);
+            Utils::setOriginInCenter(*this);
+            ID = id;
+        }
+        int ID = 1;
+        void onPickup() {
+            parent->spTadzik.addWeapon(parent->vecWeapons[ID]);
         }
     };
 
@@ -448,12 +491,17 @@ public:
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
         deathMessage.setFont(Common::Font::Days_Later);
+        deathMessage.setPosition(640, 360);
 
         texBullet1.loadFromFile("files/textures/shooter2D/bullet1.png");
         tmpBullet.setTexture(texBullet1);
         spTadzik.playerBullet.setTexture(texBullet1);
         tmpBullet.setScale(0.2, 0.2);
         spTadzik.playerBullet.setScale(0.2, 0.2);
+
+        texBlood.loadFromFile("files/textures/shooter2D/blood.png");
+        spBlood.setTexture(texBlood);
+        Utils::setOriginInCenter(spBlood);
 
         texWall.loadFromFile("files/textures/shooter2D/wall1.png");
         spWall.setTexture(texWall);
@@ -480,6 +528,7 @@ public:
         rLines.create(window->getSize().x, window->getSize().y);
         rShadows.create(window->getSize().x, window->getSize().y);
         rHelp.create(window->getSize().x, window->getSize().y);
+        rMisc.create(window->getSize().x, window->getSize().y);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
@@ -512,19 +561,14 @@ public:
 
         loadWeapons();
         spTadzik.addWeapon(vecWeapons[0]);
-        spTadzik.addWeapon(vecWeapons[1]);
-        spTadzik.addWeapon(vecWeapons[2]);
-        spTadzik.addWeapon(vecWeapons[3]);
+        //spTadzik.addWeapon(vecWeapons[1]);
+        //spTadzik.addWeapon(vecWeapons[2]);
+        //spTadzik.addWeapon(vecWeapons[3]);
         spTadzik.currentWeapon = 0;
 
 
         texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
-        tmpPUPGiveHealth.setTexture(texPUPGiveHealth);
-        Utils::setOriginInCenter(tmpPUPGiveHealth);
-
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
-        tmpPUPGiveAmmo.setTexture(texPUPGiveAmmo);
-        Utils::setOriginInCenter(tmpPUPGiveAmmo);
     }
 
     virtual void onSceneActivate() {
@@ -687,12 +731,11 @@ public:
         if (event.type == sf::Event::MouseButtonPressed) {
             if (event.mouseButton.button == sf::Mouse::Left && !spTadzik.weapons[spTadzik.currentWeapon].automatic) {
                 shoot();
-
-
             }
-            if (event.mouseButton.button == sf::Mouse::Right) {
-                vecLights.push_back(lightSource(sf::Vector2f(sf::Mouse::getPosition(*window)), &texCandle, &texShadow, Utils::randColor()));
+            if (event.mouseButton.button == sf::Mouse::Right && spTadzik.lights>0) {
+                vecLights.push_back(lightSource(spTadzik.getPosition(), &texCandle, &texShadow, Utils::randColor()));
                 updateShadow(vecLights[vecLights.size()-1]);
+                spTadzik.lights--;
             }
         }
         if (event.type == sf::Event::MouseWheelMoved) {
@@ -726,26 +769,33 @@ public:
     void updateEnemies() {
         for (int i=vecEnemies.size()-1; i>=0; i--) {
             getEnemyPath(vecEnemies[i]);
-            sf::VertexArray a (sf::LinesStrip, 3);
-            a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
-            a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
-            a[2]=sf::Vertex(vecEnemies[i].target->hitbox.getPosition(), sf::Color::Red);
-            rDebug.draw(a);
+            if (debug) {
+                sf::VertexArray a (sf::LinesStrip, 3);
+                a[0]=sf::Vertex(vecEnemies[i].getPosition(), sf::Color::Red);
+                a[1]=sf::Vertex(vecEnemies[i].destination, sf::Color::Red);
+                a[2]=sf::Vertex(vecEnemies[i].target->hitbox.getPosition(), sf::Color::Red);
+                rDebug.draw(a);
+            }
             handleCollision(vecEnemies[i], vecSprites);
             for (int j=vecBullets.size()-1; j>=0; j--) {
                 if (Collision::BoundingBoxTest(vecEnemies[i], vecBullets[j]) && vecBullets[j].friendly) {
-                    vecEnemies[i].onHit(vecBullets[j]);
+                    vecEnemies[i].onHit(&vecBullets[j]);
                     vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
                     if (vecEnemies[i].health<=0) {
-                        if (Utils::chance(0.33)) {
-                            tmpPUPGiveHealth.setPosition(vecEnemies[i].getPosition());
-                            vecPUPGiveHealth.push_back(tmpPUPGiveHealth);
+                        if (Utils::chance(0.1)) {
+                            vecPowerups.push_back(new PUPGiveHealth(this, &texPUPGiveHealth, vecEnemies[i].getPosition()));
                         }
-                        else {
-                            tmpPUPGiveAmmo.setPosition(vecEnemies[i].getPosition());
-                            vecPUPGiveAmmo.push_back(tmpPUPGiveAmmo);
+                        else if (Utils::chance(0.11)) {
+                            vecPowerups.push_back(new PUPGiveAmmo(this, &texPUPGiveAmmo, vecEnemies[i].getPosition()));
                         }
+                        else if (Utils::chance(0.5)) {
+                            vecPowerups.push_back(new PUPGiveWeapon(this, &vecWeapons[1].texture, vecEnemies[i].getPosition(), 1));
+                        }
+                        spBlood.setPosition(vecEnemies[i].getPosition());
+                        spBlood.setRotation(vecEnemies[i].getRotation());
+                        rMisc.draw(spBlood);
+                        rMisc.display();
                         vecEnemies.erase(vecEnemies.begin()+i);
                         score++;
                         break;
@@ -776,6 +826,7 @@ public:
         hud.tScore.setString(Utils::stringify(score));
         hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
         hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
+        hud.tLights.setString(Utils::stringify(spTadzik.lights));
         hud.healthBar.setScale(spTadzik.health/100, 1);
         hud.activeWeapon.setTexture(spTadzik.weapons[spTadzik.currentWeapon].texture);
         hud.clear(sf::Color(0, 0, 0, 0));
@@ -796,6 +847,7 @@ public:
                 spTadzik.weapons[i].ammo = spTadzik.weapons[i].magSize;
                 spTadzik.weapons[i].mags = spTadzik.weapons[i].magAmount;
                 spTadzik.health = 100;
+                spTadzik.lights = 30;
             }
         }
         else if (args.size()==2 && args[0] == "spawn") {
@@ -834,7 +886,7 @@ public:
     }
 
     virtual void draw(double deltaTime) {
-        /// INPUT MYSZK¥
+        /// INPUT MYSZKI
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
             shoot();
         }
@@ -861,12 +913,12 @@ public:
                 }
             }
         }
+        handleCollision(spTadzik, vecSprites);
 
         if (spTadzik.health<0) gameOver();
 
         spTadzik.update();
         if (debug) spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
-        handleCollision(spTadzik, vecSprites);
 
         spTadzik.velocity.x*=0.8;
         spTadzik.velocity.y*=0.8;
@@ -874,14 +926,15 @@ public:
 
         updateShadow(spTadzik.ls);
 
-        window->clear(sf::Color(255-20*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
-                                255, 255));
+        window->clear(sf::Color(255,
+                                255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
+        window->draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
 
 
         /// OGARNIANIE PRZECIWNIKÓW
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
-            rDebug.draw(vecEnemies[i].hitbox);
+            if (debug) rDebug.draw(vecEnemies[i].hitbox);
             window->draw(vecEnemies[i]);
             window->draw(vecEnemies[i].healthBar);
         }
@@ -902,18 +955,12 @@ public:
         }
 
         /// OGARNIANIE POWERUPOW
-        for (int i=vecPUPGiveHealth.size()-1; i>=0; --i) {
-            window->draw(vecPUPGiveHealth[i]);
-            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveHealth[i])) {
-                vecPUPGiveHealth[i].onPickup();
-                vecPUPGiveHealth.erase(vecPUPGiveHealth.begin()+i);
-            }
-        }
-        for (int i=vecPUPGiveAmmo.size()-1; i>=0; --i) {
-            window->draw(vecPUPGiveAmmo[i]);
-            if (Collision::BoundingBoxTest(spTadzik, vecPUPGiveAmmo[i])) {
-                vecPUPGiveAmmo[i].onPickup();
-                vecPUPGiveAmmo.erase(vecPUPGiveAmmo.begin()+i);
+        for (int i=vecPowerups.size()-1; i>=0; --i) {
+            window->draw(*vecPowerups[i]);
+            if (Collision::BoundingBoxTest(spTadzik, *vecPowerups[i])) {
+                vecPowerups[i]->onPickup();
+                delete(vecPowerups[i]);
+                vecPowerups.erase(vecPowerups.begin()+i);
             }
         }
 
@@ -956,9 +1003,8 @@ public:
             }
             rDebug.display();
             window->draw(sf::Sprite(rDebug.getTexture()));
+            rDebug.clear(sf::Color(0, 0, 0, 0));
         }
-        rDebug.clear(sf::Color(0, 0, 0, 0));
-
 
         window->draw(spTadzik);
 
@@ -985,8 +1031,10 @@ protected:
     sf::Texture texShadow;
     sf::Texture texPUPGiveHealth;
     sf::Texture texPUPGiveAmmo;
+    sf::Texture texBlood;
 
     sf::Sprite spCrosshair;
+    sf::Sprite spBlood;
 
     sf::Image mapa;
     sf::Text deathMessage;
@@ -996,15 +1044,13 @@ protected:
     sf::RenderTexture rLines;
     sf::RenderTexture rShadows;
     sf::RenderTexture rHelp;
+    sf::RenderTexture rMisc;
     HUD hud;
 
     Player spTadzik;
     sf::Sprite spWall;
 
     Bullet tmpBullet;
-
-    PUPGiveHealth tmpPUPGiveHealth = PUPGiveHealth(this);
-    PUPGiveAmmo tmpPUPGiveAmmo = PUPGiveAmmo(this);
 
     std::vector <lightSource> vecLights;
 
@@ -1020,8 +1066,7 @@ protected:
 
     std::vector <Wave> vecWaves;
 
-    std::vector <PUPGiveHealth> vecPUPGiveHealth;
-    std::vector <PUPGiveAmmo> vecPUPGiveAmmo;
+    std::vector <Powerup*> vecPowerups;
 
     float acceleration = 2;
     int tileSize = 20;
