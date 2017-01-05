@@ -10,6 +10,7 @@
 #include "../include/Utils.hpp"
 
 #include <unordered_map>
+#include <chrono>
 
 namespace chaos{
 
@@ -17,6 +18,10 @@ class CHAOS_EXPORT Renderer{
 public:
     Renderer(){
         initEngineStuff();
+        using namespace std::chrono;
+        milliseconds ms = duration_cast< milliseconds >(
+        system_clock::now().time_since_epoch());
+        startTime = ms.count();
     }
     virtual ~Renderer(){
         std::cout << "Destructor of Renderer{\n";
@@ -259,10 +264,13 @@ public:
         camCombined = mx;
     }
 
+    long long int startTime=0;
+
 private:
     std::unordered_map<std::string , ShaderProgram*> cacheShaders;
     std::unordered_map<std::string , VertexArray*> cacheVAO;
     glm::mat4 camCombined = glm::mat4();
+
 };
 
 }
