@@ -82,10 +82,6 @@ public:
         texRunLeft[0].loadFromFile("files/textures/rpg/runLeft0.png"), RunLeft.addFrame(AnimationFrame(&texRunLeft[0], 250));
         texRunLeft[1].loadFromFile("files/textures/rpg/runLeft1.png"), RunLeft.addFrame(AnimationFrame(&texRunLeft[1], 250));
 
-        texJump.resize(3);
-        texJump[0].loadFromFile("files/textures/rpg/jump0.png"), Jump.addFrame(AnimationFrame(&texJump[0],200));
-        texJump[1].loadFromFile("files/textures/rpg/jump1.png"), Jump.addFrame(AnimationFrame(&texJump[1],200));
-        texJump[2].loadFromFile("files/textures/rpg/jump2.png"), Jump.addFrame(AnimationFrame(&texJump[2],200));
 
 
 
@@ -93,6 +89,10 @@ public:
 
         spTadeusz.sprite.setOrigin(spTadeusz.sprite.getTextureRect().width*0.5,spTadeusz.sprite.getTextureRect().height*0.5);
 
+        texSword.loadFromFile("files/textures/rpg/sword.png");
+        spSword.setTexture(texSword);
+        spSword.setOrigin(sf::Vector2f(3, spSword.getTextureRect().height));
+        spSword.setScale(5,5);
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -173,10 +173,20 @@ public:
             if(spTadeusz.getAnimation()!=&RunLeft)
                 spTadeusz.setAnimation(&RunLeft);
         }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::G))
+        {
+            spSword.setPosition(spTadeusz.sprite.getPosition());
+            spSword.setRotation(90+180/M_PI*atan2(sf::Mouse::getPosition(*window).y-spTadeusz.sprite.getPosition().y, sf::Mouse::getPosition(*window).x-spTadeusz.sprite.getPosition().x));
+            for(int i = 0 ; i<spEnemy.size(); i++)
+                if(Collision::BoundingBoxTest(spSword,spEnemy[i]))
+                        spEnemy.erase(spEnemy.begin()+i);
+
+
+            }
 
 
 //COLLISION
-        for(int i = 0; i<spEnemy.size(); i++)
+    for(int i = 0; i<spEnemy.size(); i++)
             if(Collision::BoundingBoxTest(spTadeusz.sprite,spEnemy[i]))
                 spTadeusz.sprite.move(-offset);
         for(int i = 0; i<spWall.size(); i++)
@@ -216,33 +226,16 @@ public:
         window->draw(spCrosshair);
 
 
-//ATTACK
+
         if((clock.getElapsedTime()-attackTime).asSeconds()>1)
-        {
+attackTime = clock.getElapsedTime();
 
-            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-            {
-                spTadeusz.setAnimation(&Jump);
-
-                for(int i = spEnemy.size()-1; i>=0; i--)
-                    if(distance(spEnemy[i],spTadeusz.sprite)<=1000)
-
-                        spEnemy.erase(spEnemy.begin()+i);
-
-                attackTime = clock.getElapsedTime();
-                std::cout << attackTime.asSeconds() <<std::endl;
-            }
-            else
-
-                spTadeusz.sprite.move(offset),  spTadeusz.setAnimation(&Idle);
-
-
-
-
-        }
-        offset=sf::Vector2f(0, 0);
+offset=sf::Vector2f(0, 0);
         window->draw(spTadeusz.sprite);
-        window->draw(spWaterfall);
+
+        window->draw(spSword);
+          window->draw(spWaterfall);
+
     }
 
 
@@ -260,10 +253,11 @@ protected:
     std::vector <sf::Texture> texIdle;
     Animation RunLeft;
     std::vector <sf::Texture> texRunLeft;
-    Animation Jump;
-    std::vector <sf::Texture> texJump;
 
 
+
+    sf::Sprite spSword;
+    sf::Texture texSword;
 
     sf::Image mapa;
 

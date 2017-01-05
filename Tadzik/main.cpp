@@ -62,7 +62,7 @@ int main(){
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
     //sceneManager.setActiveScene("SHOOTER2D");
-   sceneManager.setActiveScene("RPG");
+sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
 
     sf::Clock deltaClock;

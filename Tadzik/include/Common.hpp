@@ -3,7 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 
-const double M_PI = 3.1415926535897;
+//const double M_PI = 3.1415926535897;
 
 namespace Common {
     namespace Font {
