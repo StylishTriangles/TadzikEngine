@@ -61,9 +61,11 @@ public:
         int millis = (ms.count()-renderer->startTime);
         shader->setUniform("time",(GLfloat)(millis/1000.0));
         vao->bind();
-        glDrawArrays(GL_TRIANGLES, 0, vao->countVertices());
+        glDrawArrays(renderType, 0, vao->countVertices());
         vao->unbind();
     }
+
+    GLuint renderType = GL_LINES;
 };
 
 }

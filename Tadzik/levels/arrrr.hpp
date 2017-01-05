@@ -46,8 +46,6 @@ public:
         camera->moveZ(5.f);
         camera->yaw -= 60;
 
-
-
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glEnable(GL_BLEND);
@@ -94,6 +92,11 @@ public:
             camera->moveY(-0.002*deltaTime);
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             camera->moveY(0.002*deltaTime);
+
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+            water->renderType = GL_LINES;
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+            water->renderType = GL_TRIANGLES;
 
         renderer->setCamCombined(camera->getProjectionMatrix()*camera->getViewMatrix());
 
