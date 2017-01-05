@@ -161,7 +161,7 @@ public:
             glm::vec2 windowCenter(windowSize.x / 2, windowSize.y / 2);
 
             if (glm::length(mousePos - windowCenter) > maxMousePosRadius) {
-                sf::Mouse::setPosition(sf::Vector2i((int)windowCenter.x, (int)windowCenter.y));
+                sf::Mouse::setPosition(sf::Vector2i((int)windowCenter.x, (int)windowCenter.y), *window);
                 lastMousePos = windowCenter;
             }
             else {
