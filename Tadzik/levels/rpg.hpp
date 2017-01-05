@@ -90,6 +90,10 @@ public:
 
         spTadeusz.sprite.setOrigin(spTadeusz.sprite.getTextureRect().width*0.5,spTadeusz.sprite.getTextureRect().height*0.5);
 
+        texSword.loadFromFile("files/textures/rpg/sword.png");
+        spSword.setTexture(texSword);
+        spSword.setOrigin(sf::Vector2f(3, spSword.getTextureRect().height));
+        spSword.setScale(5,5);
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -173,10 +177,20 @@ public:
             offset += sf::Vector2f(tilesize*0.1, 0);
             spTadeusz.setAnimation(&RunLeft);
         }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::G))
+        {
+            spSword.setPosition(spTadeusz.sprite.getPosition());
+            spSword.setRotation(90+180/M_PI*atan2(sf::Mouse::getPosition(*window).y-spTadeusz.sprite.getPosition().y, sf::Mouse::getPosition(*window).x-spTadeusz.sprite.getPosition().x));
+            for(int i = 0 ; i<spEnemy.size(); i++)
+                if(Collision::BoundingBoxTest(spSword,spEnemy[i]))
+                        spEnemy.erase(spEnemy.begin()+i);
+
+
+            }
 
 
 //COLLISION
-        for(int i = 0; i<spEnemy.size(); i++)
+    for(int i = 0; i<spEnemy.size(); i++)
             if(Collision::BoundingBoxTest(spTadeusz.sprite,spEnemy[i]))
                 spTadeusz.sprite.move(-offset);
         for(int i = 0; i<spWall.size(); i++)
@@ -221,13 +235,13 @@ public:
         {
 
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-{
+            {
                 spAttack.setPosition(spTadeusz.sprite.getPosition());
                 window->draw(spAttack);
-                for(int i = spEnemy.size()-1; i>=0; i--)
-                    if(distance(spEnemy[i],spTadeusz.sprite)<=50)
+                //  for(int i = spEnemy.size()-1; i>=0; i--)
+                // if(distance(spEnemy[i],spTadeusz.sprite)<=50)
 
-                        spEnemy.erase(spEnemy.begin()+i);
+
 
                 attackTime = clock.getElapsedTime();
                 std::cout << attackTime.asSeconds() <<std::endl;
@@ -235,11 +249,14 @@ public:
             else
             {
                 spTadeusz.sprite.move(offset);
+                spSword.move(offset);
                 offset=sf::Vector2f(0, 0);
                 window->draw(spTadeusz.sprite);
             }
         }
         else window->draw(spAttack);
+
+        window->draw(spSword);
     }
 
 
@@ -260,6 +277,9 @@ protected:
 
     sf::Sprite spAttack;
     sf::Texture texLeftAttack;
+
+    sf::Sprite spSword;
+    sf::Texture texSword;
 
     sf::Image mapa;
 
