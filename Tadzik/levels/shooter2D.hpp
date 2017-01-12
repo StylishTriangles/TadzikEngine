@@ -171,8 +171,10 @@ public:
         }
         float damage = 100;
         float knockback = -2;
-        bool penetrating = false;
-        bool bouncy = false;
+        bool penetrating = true;
+        int maxPenetrating = 1;
+        bool bouncy = true;
+        int bounces = 2;
         bool friendly = true;
         float v = 5;
     };
@@ -563,12 +565,18 @@ public:
         spTadzik.addWeapon(vecWeapons[0]);
         //spTadzik.addWeapon(vecWeapons[1]);
         //spTadzik.addWeapon(vecWeapons[2]);
-        //spTadzik.addWeapon(vecWeapons[3]);
+        spTadzik.addWeapon(vecWeapons[3]);
         spTadzik.currentWeapon = 0;
 
 
         texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
+
+        spsExplosion.loadFromFile("files/textures/shooter2D/spsExplosion.png");
+        animExplosion.setSpriteSheet(&spsExplosion, 134, 50);
+        aExplosion.setAnimation(&animExplosion);
+        aExplosion.setLooped(false);
+        aExplosion.centerOrigin();
     }
 
     virtual void onSceneActivate() {
@@ -578,74 +586,70 @@ public:
     void loadMap() {
         bool t[mapa.getSize().x][mapa.getSize().y];
         sf::Color objectColor = sf::Color(255, 255, 255);
-        for (unsigned int i=0; i<mapa.getSize().x; i++) {
-            for (unsigned int j=0; j<mapa.getSize().y; j++) {
-                if (mapa.getPixel(i, j)==objectColor && t[i][j]==0) {
-                    Object tmpWall;
-                    sf::Vector2i pocz = {i, j};
-                    sf::Vector2i on = pocz;
-                    std::vector <sf::Vector2i> sprites;
-                    sprites.push_back(on);
-                    int d = 0;
-                    int dPrev = 3;
-                    bool did = false;
-                    do {
-                        bool repeated = false;
-                        if (mapa.getPixel(on.x, on.y) == objectColor) {
-                            for (unsigned int i=0; i<sprites.size(); i++)
-                                if (sprites[i]==on)
-                                    repeated = true;
-                            if (!repeated) sprites.push_back(on);
-                        }
-                        if (did) {
-                            dPrev = d;
-                            d=(d+3)%4;
-                            did = false;
-                        }
-                        if (d==0) {
-                            if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x, on.y-1) == objectColor) {
-                                if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
-                                on.x++;
-                                did = true;
-                                t[on.x][on.y] = 1;
-                            }
-                        }
-                        else if (d==1) {
-                            if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x-1, on.y) == objectColor) {
-                                if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
-                                on.y++;
-                                did = true;
-                                t[on.x][on.y] = 1;
-                            }
-                        }
-                        else if (d==2) {
-                            if (mapa.getPixel(on.x-1, on.y) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
-                                if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
-                                on.x--;
-                                did = true;
-                                t[on.x][on.y] = 1;
-                            }
-                        }
-                        else if (d==3) {
-                            if (mapa.getPixel(on.x, on.y-1) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
-                                if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
-                                on.y--;
-                                did = true;
-                                t[on.x][on.y] = 1;
-                            }
-                        }
-                        if (!did) d=(d+1)%4;
-                    }
-                    while (on!=pocz);
-                    for (auto a:sprites) {
-                        spWall.setPosition((a.x+0.5)*tileSize, (a.y+0.5)*tileSize);
-                        vecSprites.push_back(spWall);
-                    }
-                    vecWalls.push_back(tmpWall);
-                }
-                else if (mapa.getPixel(i, j) == sf::Color(0, 0, 0)) {
+        for (int i=0; i<mapa.getSize().x; i++)
+            for (int j=0; j<mapa.getSize().y; j++) {
+                t[i][j]=0;
+                if (mapa.getPixel(i, j) == objectColor || mapa.getPixel(i, j) == sf::Color(0, 0, 0)) {
                     spWall.setPosition((i+0.5)*tileSize, (j+0.5)*tileSize);
                     vecSprites.push_back(spWall);
+                }
+            }
+        for (unsigned int i=1; i<mapa.getSize().x-1; i++) {
+            for (unsigned int j=1; j<mapa.getSize().y-1; j++) {
+                if (mapa.getPixel(i, j)==objectColor && t[i][j]==0) {
+                    if (t[i-1][j]==1 || t[i][j-1]==1 || t[i+1][j]==1 || t[i][j+1]==1) {
+                        t[i][j]=1;
+                    }
+                    else {
+                        Object tmpWall;
+                        sf::Vector2i pocz = {i, j};
+                        sf::Vector2i on = pocz;
+                        int d = 0;
+                        int dPrev = 3;
+                        bool did = false;
+                        do {
+                            if (did) {
+                                dPrev = d;
+                                d=(d+3)%4;
+                                did = false;
+                            }
+                            if (d==0) {
+                                if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x, on.y-1) == objectColor) {
+                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    on.x++;
+                                    did = true;
+                                    t[on.x][on.y] = 1;
+                                }
+                            }
+                            else if (d==1) {
+                                if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x-1, on.y) == objectColor) {
+                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    on.y++;
+                                    did = true;
+                                    t[on.x][on.y] = 1;
+                                }
+                            }
+                            else if (d==2) {
+                                if (mapa.getPixel(on.x-1, on.y) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
+                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    on.x--;
+                                    did = true;
+                                    t[on.x][on.y] = 1;
+                                }
+                            }
+                            else if (d==3) {
+                                if (mapa.getPixel(on.x, on.y-1) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
+                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    on.y--;
+                                    did = true;
+                                    t[on.x][on.y] = 1;
+                                }
+                            }
+                            if (!did) d=(d+1)%4;
+                        }
+                        while (on!=pocz);
+                        vecWalls.push_back(tmpWall);
+                    }
                 }
                 else if (mapa.getPixel(i, j) == sf::Color(0, 0, 255)) {
                     spTadzik.setPosition(i*tileSize, j*tileSize);
@@ -780,9 +784,15 @@ public:
             for (int j=vecBullets.size()-1; j>=0; j--) {
                 if (Collision::BoundingBoxTest(vecEnemies[i], vecBullets[j]) && vecBullets[j].friendly) {
                     vecEnemies[i].onHit(&vecBullets[j]);
-                    vecBullets.erase(vecBullets.begin()+j);
+                    if (vecBullets[j].penetrating && vecBullets[j].maxPenetrating > 0) {
+                        vecBullets[j].maxPenetrating--;
+                    }
+                    else
+                        vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i].healthBar.setScale(vecEnemies[i].health/100.0, 1);
                     if (vecEnemies[i].health<=0) {
+                        aExplosion.setPosition(vecEnemies[i].getPosition());
+                        vecEffects.push_back(aExplosion);
                         if (Utils::chance(0.1)) {
                             vecPowerups.push_back(new PUPGiveHealth(this, &texPUPGiveHealth, vecEnemies[i].getPosition()));
                         }
@@ -790,7 +800,8 @@ public:
                             vecPowerups.push_back(new PUPGiveAmmo(this, &texPUPGiveAmmo, vecEnemies[i].getPosition()));
                         }
                         else if (Utils::chance(0.5)) {
-                            vecPowerups.push_back(new PUPGiveWeapon(this, &vecWeapons[1].texture, vecEnemies[i].getPosition(), 1));
+                            int t = Utils::randInt(1, 4);
+                            vecPowerups.push_back(new PUPGiveWeapon(this, &vecWeapons[t].texture, vecEnemies[i].getPosition(), t));
                         }
                         spBlood.setPosition(vecEnemies[i].getPosition());
                         spBlood.setRotation(vecEnemies[i].getRotation());
@@ -814,7 +825,8 @@ public:
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
                 sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
-                    vecEnemies.push_back(Enemy(sf::Vector2f(t), &texEnemy1, &spTadzik));
+                    if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255))
+                        vecEnemies.push_back(Enemy(sf::Vector2f(t), &texEnemy1, &spTadzik));
             }
             clock.restart();
             currentWave++;
@@ -864,6 +876,9 @@ public:
         }
         else if (args[0] == "lightsoff") {
             vecLights.clear();
+        }
+        else if (args[0] == "clear") {
+            rMisc.clear(sf::Color(0, 0, 0, 0));
         }
         else
             return false;
@@ -930,7 +945,6 @@ public:
                                 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
         window->draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
 
-
         /// OGARNIANIE PRZECIWNIKÓW
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i].update();
@@ -945,10 +959,24 @@ public:
             for (int i=vecBullets.size()-1; i>=0; i--) {
                 vecBullets[i].update();
                 window->draw(vecBullets[i]);
+                sf::FloatRect tmp;
                 for (unsigned int j=0; j<vecSprites.size(); j++) {
-                    if (Collision::BoundingBoxTest(vecBullets[i], vecSprites[j])) {
-                        vecBullets.erase(vecBullets.begin()+i);
-                        break;
+                    if (vecSprites[j].getGlobalBounds().intersects(vecBullets[i].getGlobalBounds(), tmp)) {
+                        if (vecBullets[i].bouncy && vecBullets[i].bounces > 0) {
+                            vecBullets[i].bounces--;
+                            if (tmp.height<tmp.width) {
+                                vecBullets[i].velocity.y = -vecBullets[i].velocity.y;
+                                vecBullets[i].move(0, -tmp.height*Utils::sgn(vecBullets[i].velocity.y));
+                            }
+                            else {
+                                vecBullets[i].velocity.x = -vecBullets[i].velocity.x;
+                                vecBullets[i].move(tmp.width*Utils::sgn(vecBullets[i].velocity.x), 0);
+                            }
+                        }
+                        else {
+                            vecBullets.erase(vecBullets.begin()+i);
+                            break;
+                        }
                     }
                 }
             }
@@ -992,6 +1020,18 @@ public:
         window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
         window->draw(sf::Sprite(rLines.getTexture()));
 
+
+        ///EFEKTY
+        for (int i=vecEffects.size()-1; i>=0; --i) {
+            vecEffects[i].update(deltaTime);
+            if (!vecEffects[i].shouldDestroy()) {
+                window->draw(vecEffects[i]);
+            }
+            else {
+                vecEffects.erase(vecEffects.begin()+i);
+            }
+        }
+
         /// DEBUG
         if (debug) {
             for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
@@ -1032,9 +1072,15 @@ protected:
     sf::Texture texPUPGiveHealth;
     sf::Texture texPUPGiveAmmo;
     sf::Texture texBlood;
+    sf::Texture spsExplosion;
 
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
+
+    ARO::Anim animExplosion;
+    ARO::AnimSprite aExplosion;
+
+    std::vector <ARO::AnimSprite> vecEffects;
 
     sf::Image mapa;
     sf::Text deathMessage;

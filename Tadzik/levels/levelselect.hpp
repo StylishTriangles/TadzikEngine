@@ -51,6 +51,13 @@ public:
         spriteMARIO.setScale(3, 3);
         //spriteSYNTH3D.setScale(3, 3);
         spriteTREX.setScale(3, 3);
+
+        spsExplosion.loadFromFile("files/textures/levelselect/explosion.png");
+
+        explosion.setSpriteSheet(&spsExplosion, 134, 50);
+
+        test.setAnimation(&explosion);
+        test.setVelocity(5, 5);
     }
 
     virtual void onSceneActivate() {
@@ -64,6 +71,7 @@ public:
     }
 
     virtual void draw(double deltaTime) {
+        test.update(deltaTime);
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) spTadzik.move(-5, 0);
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) spTadzik.move(5, 0);
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) spTadzik.move(0, -5);
@@ -82,6 +90,7 @@ public:
         window->draw(spriteMARIO);
         window->draw(spriteSYNTH3D);
         window->draw(spriteTREX);
+        if (!test.shouldDestroy()) window->draw(test);
 
         if (debug) {
             Utils::drawBoundingBox(spriteCLICKER, window);
@@ -100,6 +109,7 @@ protected:
     sf::Texture texPlayerRun2;
     sf::Texture texPlayerRun3;
     sf::Texture texPlayerRun4;
+    sf::Texture spsExplosion;
 
     sf::Texture texTREX;
     sf::Texture texJUMPER;
@@ -117,6 +127,9 @@ protected:
     sf::Sprite spriteCLICKER;
     sf::Sprite spriteMARIO;
     sf::Sprite spriteSYNTH3D;
+
+    ARO::Anim explosion;
+    ARO::AnimSprite test;
 
     bool debug;
 };

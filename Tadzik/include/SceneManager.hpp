@@ -117,18 +117,15 @@ public:
 
     void getFPS(double delta) {
         if (showFps) {
-            FpsTimer+=delta;
-            if (FpsTimer>200) {
-                double fps = 1000.0d/delta;
-                if (fps>60)
-                    fpsCounter.setColor(sf::Color::Green);
-                else if (fps>30)
-                    fpsCounter.setColor(sf::Color::Yellow);
-                else
-                    fpsCounter.setColor(sf::Color::Red);
-                fpsCounter.setString(Utils::stringify((int)fps));
-                FpsTimer = 0;
-            }
+            float smoothing = 0.95;
+            fps = (fps*smoothing)+(1000/delta*(1.0-smoothing));
+            if (fps>60)
+                fpsCounter.setColor(sf::Color::Green);
+            else if (fps>30)
+                fpsCounter.setColor(sf::Color::Yellow);
+            else
+                fpsCounter.setColor(sf::Color::Red);
+            fpsCounter.setString(Utils::stringify((int)fps));
             window->draw(fpsCounter);
         }
     }
@@ -142,7 +139,7 @@ private:
 
     sf::Text fpsCounter;
     bool showFps = true;
-    double FpsTimer = 1000;
+    float fps = 60;
 };
 
 #endif // SCENEMANAGER_HPP
