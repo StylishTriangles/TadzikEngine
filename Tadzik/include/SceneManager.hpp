@@ -115,10 +115,11 @@ public:
         return false;
     }
 
-    void getFPS(double delta) {
+    void getFPS(sf::Time delta) {
+        sf::Time second = sf::seconds(1);
         if (showFps) {
             float smoothing = 0.95;
-            fps = (fps*smoothing)+(1000/delta*(1.0-smoothing));
+            fps = (fps*smoothing)+(sf::seconds(1)/delta*(1.0-smoothing));
             if (fps>60)
                 fpsCounter.setColor(sf::Color::Green);
             else if (fps>30)
