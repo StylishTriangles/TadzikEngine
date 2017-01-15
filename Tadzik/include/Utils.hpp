@@ -19,6 +19,11 @@ std::string stringify(int x);
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot);
 int sgn(double x);
 std::string getDate();
+void setOriginInCenter(sf::Sprite& s);
+bool chance(float c);
+double getAngle (sf::Vector2f p1, sf::Vector2f p2);
+float getMagnitude(sf::Vector2f p1, sf::Vector2f p2);
+sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d);
 
 }
 
