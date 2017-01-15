@@ -970,7 +970,7 @@ int ImFormatString(char* buf, int buf_size, const char* fmt, ...)
     IM_ASSERT(buf_size > 0);
     va_list args;
     va_start(args, fmt);
-    int w = sprintf(buf, fmt, args);
+    int w = vsnprintf(buf, buf_size, fmt, args);
     va_end(args);
     if (w == -1 || w >= buf_size)
         w = buf_size - 1;
@@ -981,7 +981,7 @@ int ImFormatString(char* buf, int buf_size, const char* fmt, ...)
 int ImFormatStringV(char* buf, int buf_size, const char* fmt, va_list args)
 {
     IM_ASSERT(buf_size > 0);
-    int w = sprintf(buf, fmt, args);
+    int w = vsnprintf(buf, buf_size, fmt, args);
     if (w == -1 || w >= buf_size)
         w = buf_size - 1;
     buf[w] = 0;
@@ -1303,7 +1303,7 @@ FILE* ImFileOpen(const char* filename, const char* mode)
     buf.resize(filename_wsize + mode_wsize);
     ImTextStrFromUtf8(&buf[0], filename_wsize, filename, NULL);
     ImTextStrFromUtf8(&buf[filename_wsize], mode_wsize, mode, NULL);
-    return fopen((char*)&buf[0], (char*)&buf[filename_wsize]);
+    return _wfopen((wchar_t*)&buf[0], (wchar_t*)&buf[filename_wsize]);
 #else
     return fopen(filename, mode);
 #endif
@@ -1604,7 +1604,7 @@ void ImGuiTextBuffer::appendv(const char* fmt, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
 
-    int len = sprintf(NULL, fmt, args);         // FIXME-OPT: could do a first pass write attempt, likely successful on first pass.
+    int len = vsnprintf(NULL, 0, fmt, args);         // FIXME-OPT: could do a first pass write attempt, likely successful on first pass.
     if (len <= 0)
         return;
 
