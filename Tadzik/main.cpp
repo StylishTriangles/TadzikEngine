@@ -87,7 +87,7 @@ sceneManager.setActiveScene("RPG");
         }
         ImGui::SFML::Update(window, deltaClock.getElapsedTime());
 		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        sceneManager.getFPS(deltaClock.getElapsedTime().asMilliseconds());
+        sceneManager.getFPS(deltaClock.getElapsedTime());
 
         deltaClock.restart();
         window.resetGLStates();

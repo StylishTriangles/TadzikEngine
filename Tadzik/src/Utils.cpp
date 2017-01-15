@@ -89,4 +89,20 @@ bool chance(float c) {
     return (randFloat(0, 1) <= c);
 }
 
+double getAngle (sf::Vector2f p1, sf::Vector2f p2) {
+    return atan2(p2.y-p1.y, p2.x-p1.x);
+}
+
+float getMagnitude(sf::Vector2f p1, sf::Vector2f p2) {
+    return (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y);
+}
+
+sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
+    float a = atan2(p.y-center.y, p.x-center.x);
+    sf::Vector2f r;
+    r.x = p.x+d*sin(a);
+    r.y = p.y-d*cos(a);
+    return r;
+}
+
 }

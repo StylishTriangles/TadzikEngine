@@ -87,5 +87,92 @@ protected:
     int countReplays=0;
 };
 
+namespace ARO {
+    class Anim {
+    public:
+        Anim () {};
+        Anim (sf::Texture* SpriteSheet, int frameWidth, int dur) {
+            spriteSheet = SpriteSheet;
+            width = frameWidth;
+            frames = spriteSheet->getSize().x/width;
+            height = spriteSheet->getSize().y;
+            duration = sf::milliseconds(dur);
+        }
+        sf::Texture* spriteSheet;
+        sf::Time duration = sf::seconds(2);
+        int frames;
+        int width;
+        int height;
+        void setSpriteSheet (sf::Texture* t, int frameWidth, int dur) {
+            spriteSheet = t;
+            width = frameWidth;
+            frames = spriteSheet->getSize().x/width;
+            height = spriteSheet->getSize().y;
+            duration = sf::milliseconds(dur);
+        }
+    };
+
+    class AnimSprite: public sf::Sprite {
+    public:
+        AnimSprite() {};
+        AnimSprite(Anim* anim, bool looped = true, sf::Vector2f vel = sf::Vector2f(0, 0)) {
+            setAnimation(anim);
+            m_looped = looped;
+            velocity = vel;
+        }
+        bool isLooped() {return m_looped;};
+        bool shouldDestroy() {return m_destroy;};
+        int currentSprite = 0;
+        void update (double delta) {
+            runTime+=delta;
+            move(velocity);
+            if (runTime*playSpeed>animation->duration.asMilliseconds()) {
+                runTime = 0;
+                currentSprite++;
+                if (currentSprite>=animation->frames) {
+                    loops++;
+                    currentSprite = 0;
+                    if (!m_looped)
+                        m_destroy = true;
+                }
+                setTextureRect(sf::IntRect(currentSprite*animation->width, 0, animation->width, animation->height));
+            }
+        }
+        void setAnimation(Anim* a) {
+            animation = a;
+            currentSprite = 0;
+            runTime = 0;
+            setTexture(*(animation->spriteSheet));
+            setTextureRect(sf::IntRect(0, 0, animation->width, animation->height));
+        }
+        void setVelocity(sf::Vector2f vel) {
+            velocity = vel;
+        }
+        void setVelocity(float vx, float vy) {
+            velocity = sf::Vector2f(vx, vy);
+        }
+        void setLooped (bool t) {
+            m_looped = t;
+        }
+        int getLoops () {
+            return loops;
+        }
+        void setPlaySpeed (float speed) {
+            playSpeed = speed;
+        }
+        void centerOrigin() {
+            setOrigin(getTextureRect().width/2, getTextureRect().height/2);
+        }
+    protected:
+        bool m_destroy = false;
+        bool m_looped = true;
+        Anim* animation;
+        double runTime = 0;
+        int loops = 0;
+        sf::Vector2f velocity = sf::Vector2f(0, 0);
+        float playSpeed = 1;
+    };
+}
+
 
 #endif // ANIMATED_SPRITE_H
