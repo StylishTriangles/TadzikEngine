@@ -97,20 +97,6 @@ public:
         std::vector <sf::Vector2f> points;
     };
 
-    class CrossingPoint{
-    public:
-        CrossingPoint(sf::Vector2f v, double a)
-        :point(v), angle(a)
-        {}
-
-        bool operator<(const CrossingPoint& p) const {
-            return angle > p.angle;
-        }
-
-        sf::Vector2f point;
-        double angle;
-    };
-
     class lightSource: public sf::Vector2f{
     public:
         lightSource(SHOOTER2D* g){
@@ -141,12 +127,25 @@ public:
             glow.setPosition(x, y);
         }
         void sortPoints(){
-            std::sort(points.begin(), points.end());
+            std::sort(points.begin(), points.end(), [this] (sf::Vector2f a, sf::Vector2f b) {
+                return atan2(a.y-this->y, a.x-this->x) < atan2(b.y-this->y, b.x-this->x);
+            });
         }
-        std::vector <CrossingPoint> points;
+        void getShadowSprite() {
+            game->rTexture.clear(sf::Color(0, 0, 0, 255));
+            game->rShadows.clear(sf::Color(0, 0, 0, 255));
+            game->rTexture.draw(shadow, sf::BlendNone);
+            game->rTexture.display();
+            game->rShadows.draw(glow, sf::BlendAdd);
+            game->rShadows.draw(sf::Sprite(game->rTexture.getTexture()));
+            game->rShadows.display();
+            drawableShadow = game->rShadows.getTexture();
+        }
+        std::vector <sf::Vector2f> points;
         sf::VertexArray shadow = sf::VertexArray(sf::TrianglesFan, 0);
         sf::Sprite glow;
         sf::Sprite sprite;
+        sf::Texture drawableShadow;
         SHOOTER2D* game;
     };
 
@@ -501,9 +500,9 @@ public:
         sf::Color c = sf::Color(0, 0, 0, 0);
         ls.shadow.append(sf::Vertex(ls, c));
         for (unsigned int i=0; i<ls.points.size(); i++) {
-            ls.shadow.append(sf::Vertex(ls.points[i].point, c));
+            ls.shadow.append(sf::Vertex(ls.points[i], c));
         }
-        ls.shadow.append(sf::Vertex(ls.points[0].point, c));
+        ls.shadow.append(sf::Vertex(ls.points[0], c));
     }
 
     sf::VertexArray getLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color c = sf::Color::White) {
@@ -513,7 +512,7 @@ public:
         return a;
     }
 
-    CrossingPoint getIntersection (sf::Vector2f rp, sf::Vector2f p2) {
+    sf::Vector2f getIntersection (sf::Vector2f rp, sf::Vector2f p2) {
         sf::Vector2f rd = {p2.x-rp.x, p2.y-rp.y};
         sf::Vector2f sp;
         sf::Vector2f sd;
@@ -535,10 +534,10 @@ public:
                     T1Min=T1;
             }
         }
-        return CrossingPoint(sf::Vector2f(rp.x+rd.x*T1Min, rp.y+rd.y*T1Min), atan2(rd.y, rd.x));
+        return sf::Vector2f(rp.x+rd.x*T1Min, rp.y+rd.y*T1Min);
     }
 
-    virtual void onSceneLoadToMemory() {
+    void onSceneLoadToMemory() {
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
         deathMessage.setFont(Common::Font::Days_Later);
@@ -629,8 +628,19 @@ public:
         aExplosion.centerOrigin();
     }
 
-    virtual void onSceneActivate() {
+    void onSceneActivate() {
         window->setMouseCursorVisible(false);
+    }
+
+    void onSceneDeactivate() {
+        for (unsigned int i=vecEnemies.size()-1; i>=0; i--) {
+            delete vecEnemies[i];
+            vecEnemies.erase(vecEnemies.begin()+i);
+        }
+        for (unsigned int i=vecPowerups.size()-1; i>=0; i--) {
+            delete vecPowerups[i];
+            vecPowerups.erase(vecPowerups.begin()+i);
+        }
     }
 
     void loadMap() {
@@ -789,6 +799,7 @@ public:
             if (event.mouseButton.button == sf::Mouse::Right && spTadzik.lights>0) {
                 vecLights.push_back(lightSource(spTadzik.getPosition(), &texCandle, &texShadow, this, Utils::randColor()));
                 updateShadow(vecLights[vecLights.size()-1]);
+                vecLights[vecLights.size()-1].getShadowSprite();
                 spTadzik.lights--;
             }
         }
@@ -1042,7 +1053,6 @@ public:
         rHelp.clear(sf::Color(0, 0, 0, 255));
         for (unsigned int i = 0; i<vecLights.size(); i++)
             rHelp.draw(vecLights[i].sprite, sf::BlendAdd);
-
         rShadows.clear(sf::Color(0, 0, 0));
         rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
         rTexture.display();
@@ -1050,16 +1060,8 @@ public:
         rShadows.draw(sf::Sprite(rTexture.getTexture()));
         rShadows.display();
         rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
-        for (unsigned int i=0; i<vecLights.size(); i++) {
-            rTexture.clear(sf::Color(0, 0, 0, 255));
-            rShadows.clear(sf::Color(0, 0, 0, 255));
-            rTexture.draw(vecLights[i].shadow, sf::BlendNone);
-            rTexture.display();
-            rShadows.draw(vecLights[i].glow, sf::BlendAdd);
-            rShadows.draw(sf::Sprite(rTexture.getTexture()));
-            rShadows.display();
-            rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
-        }
+        for (unsigned int i=0; i<vecLights.size(); i++)
+            rHelp.draw(sf::Sprite(vecLights[i].drawableShadow), sf::BlendAdd);
         rHelp.display();
 
         window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
@@ -1083,7 +1085,7 @@ public:
                 sf::CircleShape c(2);
                 c.setOrigin(1, 1);
                 c.setFillColor(sf::Color::Green);
-                c.setPosition(spTadzik.ls.points[i].point);
+                c.setPosition(spTadzik.ls.points[i]);
                 rDebug.draw(c);
             }
             rDebug.display();
