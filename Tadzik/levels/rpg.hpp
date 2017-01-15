@@ -51,6 +51,19 @@ public:
 
     };
 
+
+class Player: public AnimatedSprite
+    {public:
+        AnimatedSprite Body;
+        AnimatedSprite Legs;
+
+        void draw(sf::RenderWindow* w)
+        {
+            w->draw(Body.sprite);
+            w->draw(Legs.sprite);
+            }
+
+    };
     void loadMap()
     {
         for (int i=0; i<mapa.getSize().y; i++)
