@@ -52,7 +52,7 @@ int main(){
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     //sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    sceneManager.registerScene<RPG>("RPG", &window);
+   sceneManager.registerScene<RPG>("RPG", &window);
     //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("TREX");
@@ -61,7 +61,7 @@ int main(){
     //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
-    //sceneManager.setActiveScene("SHOOTER2D");
+   // sceneManager.setActiveScene("SHOOTER2D");
 sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
 

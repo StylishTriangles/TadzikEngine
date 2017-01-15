@@ -18,8 +18,9 @@ public:
     RPG(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name, mgr, w)
     {}
-  class Weapon: public sf::Sprite
-    { public:
+    class Weapon: public sf::Sprite
+    {
+    public:
         Weapon(sf::RenderWindow* w)
         {
             window = w;
@@ -30,12 +31,12 @@ public:
 
         void update(double delta)
         {
-         // setPosition(spTadeusz.getPosition());
+            // setPosition(spTadeusz.getPosition());
             timeElapsed += delta;
             setRotation(-angleRotate+0.5*timeElapsed+90+angleStart);
 
         }
-          void startRotating()
+        void startRotating()
         {
             shouldRotate = true;
             timeElapsed = 0;
@@ -51,17 +52,49 @@ public:
 
     };
 
+    class AnimDomin: public ARO::Anim
+    {
+    public:
+        std::vector <sf::Vector2f> pointOrigin;
+        void setPoints()
+        {
+            sf::Image img = spriteSheet->copyToImage();
 
-class Player: public AnimatedSprite
-    {public:
-        AnimatedSprite Body;
-        AnimatedSprite Legs;
+            for(int i = 0; i<frames ; i++)
+                for(int x = 0; x<width; x++)
+                    for(int y=0; y<height; y++)
+                        if (img.getPixel(x+i*width, y)==sf::Color(1, 1, 1, 1))
+                            pointOrigin.push_back(sf::Vector2f(x,y));
+        }
+    };
+
+    class Player
+    {
+    public:
+        ARO::AnimSprite Body;
+        ARO::AnimSprite Legs;
+
+        void move(sf::Vector2f offset)
+        {
+            Body.move(offset);
+            Legs.move(offset);
+        }
+
+        void move(double y, double x)
+        {
+            Body.move(sf::Vector2f(y,x));
+            Legs.move(sf::Vector2f(y,x));
+
+        }
 
         void draw(sf::RenderWindow* w)
         {
-            w->draw(Body.sprite);
-            w->draw(Legs.sprite);
-            }
+            w->draw(Legs);
+            w->draw(Body);
+
+        }
+
+
 
     };
     void loadMap()
@@ -88,7 +121,7 @@ class Player: public AnimatedSprite
 
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 255))
                 {
-                    spTadeusz.sprite.setPosition(i*tilesize,j*tilesize);
+                    Tadeusz.Legs.setPosition(i*tilesize,j*tilesize);
                 }
 
                 if (mapa.getPixel(i, j)==sf::Color(255, 0, 0))
@@ -118,33 +151,18 @@ class Player: public AnimatedSprite
             std::cout << "cannot load font\n";
 
         }
-//PLAYER ANIMATION
-        spTadeusz.sprite.setScale(5,5);
-
-        texIdle.resize(2);
-        texIdle[0].loadFromFile("files/textures/rpg/idle0.png"), Idle.addFrame(AnimationFrame(&texIdle[0],500));
-        texIdle[1].loadFromFile("files/textures/rpg/idle1.png"), Idle.addFrame(AnimationFrame(&texIdle[1],500));
-        spTadeusz.setAnimation(&Idle);
-
-        texRun.resize(2);
-        texRun[0].loadFromFile("files/textures/rpg/Run0.png"), Run.addFrame(AnimationFrame(&texRun[0], 250));
-        texRun[1].loadFromFile("files/textures/rpg/Run1.png"), Run.addFrame(AnimationFrame(&texRun[1], 250));
-
-
-
-
-////////////////////////////////
-
-        spTadeusz.sprite.setOrigin(spTadeusz.sprite.getTextureRect().width*0.5,spTadeusz.sprite.getTextureRect().height*0.5);
-
-        texSword.loadFromFile("files/textures/rpg/sword.png");
-        spSword.setTexture(texSword);
-        spSword.setOrigin(sf::Vector2f(3, spSword.getTextureRect().height));
-        spSword.setScale(5,5);
-
-        Blade.setTexture(texSword);
-        Blade.setScale(5,5);
-        Blade.setOrigin(sf::Vector2f(3, Blade.getTextureRect().height));
+        ///ANIMDOMIN
+        texBody.loadFromFile("files/textures/rpg/test/body.png");
+        texLegs.loadFromFile("files/textures/rpg/test/idle.png");
+        testBody.setSpriteSheet(&texBody, 15, 500);
+        testLegs.setSpriteSheet(&texLegs, 15, 150);
+        testBody.setPoints();
+        testLegs.setPoints();
+        Tadeusz.Body.setAnimation(&testBody);
+        Tadeusz.Legs.setAnimation(&testLegs);
+         Tadeusz.Body.setScale(5,5);
+          Tadeusz.Legs.setScale(5,5);
+        ///
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -171,13 +189,6 @@ class Player: public AnimatedSprite
         spCrosshair.setTexture(texCrosshair);
         spCrosshair.setOrigin(spCrosshair.getTextureRect().height*0.5, spCrosshair.getTextureRect().width*0.5);
 
-//attackcircle
-        Attack.setFillColor(sf::Color(0, 0, 0, 0));
-        Attack.setOutlineThickness(2);
-        Attack.setOutlineColor(sf::Color(250, 150, 100));
-        Attack.setRadius(50);
-        Attack.setOrigin(Attack.getRadius(), Attack.getRadius());
-
         idleTime = -sf::seconds(1);
 
 
@@ -200,52 +211,43 @@ class Player: public AnimatedSprite
 
     virtual void draw(double deltaTime)
     {
-        spTadeusz.update(deltaTime);
-
+        Tadeusz.Body.update(deltaTime);
+        Tadeusz.Legs.update(deltaTime);
 
 
 //MOVEMENT
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
-        {
-            offset += sf::Vector2f(-tilesize*0.1, 0);
-            if(spTadeusz.getAnimation()!=&Run)
-                spTadeusz.setAnimation(&Run);
-            idleTime = clock.getElapsedTime();
-        }
+        /*   if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+           {
+               offset += sf::Vector2f(-tilesize*0.1, 0);
+               if(spTadeusz.getAnimation()!=&Run)
+                   spTadeusz.setAnimation(&Run);
+               idleTime = clock.getElapsedTime();
+           }
+           */
+
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
-            offset += sf::Vector2f(0, -tilesize*0.1);
-            if(spTadeusz.getAnimation()!=&Run)
-                spTadeusz.setAnimation(&Run);
-            idleTime = clock.getElapsedTime();
+            Tadeusz.Legs.move(0,-10);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
         {
-            offset += sf::Vector2f(0, tilesize*0.1);
-            if(spTadeusz.getAnimation()!=&Run)
-                spTadeusz.setAnimation(&Run);
-            idleTime = clock.getElapsedTime();
+            Tadeusz.Legs.move(0,10);
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
+        {
+            Tadeusz.Legs.move(-10,0);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
         {
-            offset += sf::Vector2f(tilesize*0.1, 0);
-            if(spTadeusz.getAnimation()!=&Run)
-                spTadeusz.setAnimation(&Run);
-            idleTime = clock.getElapsedTime();
+            Tadeusz.Legs.move(10,0);
         }
 
-        if((clock.getElapsedTime()-idleTime).asSeconds()>0.2)
-            if(spTadeusz.getAnimation()!=&Idle)
-                spTadeusz.setAnimation(&Idle);
+        /*     if((clock.getElapsedTime()-idleTime).asSeconds()>0.2)
+                 if(spTadeusz.getAnimation()!=&Idle)
+                     spTadeusz.setAnimation(&Idle); */
 
 
-//COLLISION
-        for(int i = 0; i<spEnemy.size(); i++)
-            if(Collision::BoundingBoxTest(spTadeusz.sprite,spEnemy[i]))
-                spTadeusz.sprite.move(-offset);
-        for(int i = 0; i<spWall.size(); i++)
-            if(Collision::BoundingBoxTest(spTadeusz.sprite,spWall[i]))
-                spTadeusz.sprite.move(-offset);
+///Kolizja !!!
 
 
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
@@ -263,20 +265,20 @@ class Player: public AnimatedSprite
             spEnemy[i].move(sf::Vector2f(Utils::randInt(-50,50)*tilesize*0.001,Utils::randInt(-50,50)*tilesize*0.001));
 
 
-//DOORS
-        for(int i=0; i<spDoor.size(); i++)
-            if(Collision::BoundingBoxTest(spTadeusz.sprite,spDoor[i]))
-                spDoor[i].setTexture(texDoorOpen);
-            else spDoor[i].setTexture(texDoor);
-
+///DOORS
+        /*      for(int i=0; i<spDoor.size(); i++)
+                  if(Collision::BoundingBoxTest(spTadeusz.sprite,spDoor[i]))
+                      spDoor[i].setTexture(texDoorOpen);
+                  else spDoor[i].setTexture(texDoor);
+        */
 //DRAW STARTS
         window->clear(sf::Color());
         for(int i = 0; i < spGrass.size(); i++)
             window->draw(spGrass[i]);
         for(int i = 0; i < spWall.size(); i++)
             window->draw(spWall[i]);
-        for(int i = 0; i < spDoor.size(); i++)
-            window->draw(spDoor[i]);
+        //  for(int i = 0; i < spDoor.size(); i++)
+        //      window->draw(spDoor[i]);
         for(int i = 0; i < spEnemy.size(); i++)
             window->draw(spEnemy[i]);
 
@@ -285,31 +287,12 @@ class Player: public AnimatedSprite
         window->draw(spCrosshair);
 
 
+        Tadeusz.Body.setPosition(
+Tadeusz.Legs.getPosition()+testLegs.pointOrigin[Tadeusz.Legs.currentFrame]*Tadeusz.Legs.getScale().x-Tadeusz.Body.getScale().x*testBody.pointOrigin[Tadeusz.Body.currentFrame]+sf::Vector2f(0,Tadeusz.Body.getScale().x));
+        Tadeusz.draw(window);
 
 
-        spTadeusz.sprite.move(offset);
-        offset=sf::Vector2f(0, 0);
-        window->draw(spTadeusz.sprite);
 
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::H))
-        {
-            Blade.setPosition(spTadeusz.sprite.getPosition());
-            Blade.startRotating();
-            Blade.shouldDraw=1;
-            Blade.shouldRotate=1;
-            Blade.angleRotate=30;
-            attackTime=clock.getElapsedTime();
-        }
-        if((attackTime-clock.getElapsedTime()).asSeconds()>1)
-            Blade.shouldRotate=0, Blade.shouldDraw = 0;
-
-            if(Blade.shouldDraw)
-            window->draw(Blade);
-        window->draw(spWaterfall);
-
-        if(Blade.shouldRotate)
-            Blade.update(deltaTime);
 
 
     }
@@ -322,22 +305,14 @@ protected:
     sf::Time idleTime;
     sf::Time attackTime;
 
-    Weapon Blade=Weapon(window);
-
     sf::Texture tempTex;
 
-    sf::Texture texTadeusz;
-    AnimatedSprite spTadeusz;
+    Player Tadeusz;
 
-    Animation Idle;
-    std::vector <sf::Texture> texIdle;
-    Animation Run;
-    std::vector <sf::Texture> texRun;
-
-
-
-    sf::Sprite spSword;
-    sf::Texture texSword;
+    AnimDomin testLegs;
+    AnimDomin testBody;
+    sf::Texture texLegs;
+    sf::Texture texBody;
 
     sf::Image mapa;
 
@@ -346,8 +321,6 @@ protected:
     sf::Sprite tempWall;
 
     int tilesize = 30;
-
-    sf::Vector2f offset;
 
     sf::Texture texEnemy;
     std::vector <sf::Sprite> spEnemy;
@@ -367,7 +340,5 @@ protected:
 
     sf::Texture texCrosshair;
     sf::Sprite spCrosshair;
-
-    sf::CircleShape Attack;
 };
 #endif //RPG
