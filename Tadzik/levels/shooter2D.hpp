@@ -960,13 +960,23 @@ public:
 
     virtual void draw(double deltaTime) {
         sf::Vector2i pos = rGame.mapCoordsToPixel(spTadzik.getPosition(), gameView);
-        sf::Vector2f viewOffset = gameView.getCenter()-gameView.getSize()/2.0f;
         int scrollArea = 200;
         if (pos.y > 720-scrollArea && viewOffset.y+720<1280) {
             gameView.move(0, pos.y-720+scrollArea);
+            viewOffset.y+=pos.y-720+scrollArea;
+            if (viewOffset.y+720>1280) {
+                gameView.move(0, -viewOffset.y-720+1280);
+                viewOffset.y=1280-720;
+            }
         }
-        if (pos.y < scrollArea && viewOffset.y>0)
+        if (pos.y < scrollArea && viewOffset.y>0) {
             gameView.move(0, pos.y-scrollArea);
+            viewOffset.y+=pos.y-scrollArea;
+            if (viewOffset.y<0) {
+                gameView.move(0, -viewOffset.y);
+                viewOffset.y=0;
+            }
+        }
 
         rGame.setView(gameView);
 
@@ -1195,7 +1205,7 @@ protected:
 
     bool debug = false;
 
-    sf::FloatRect tmp = sf::FloatRect(0, 0, 1280, 1280);
+    sf::Vector2f viewOffset = {0, 0};
 };
 
 #endif //SHOOTER2D
