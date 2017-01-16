@@ -556,6 +556,8 @@ public:
     void onSceneLoadToMemory() {
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
+        gameView.reset(sf::FloatRect(0, 0, mapa.getSize().x*tileSize, mapa.getSize().y*tileSize));
+
         deathMessage.setFont(Common::Font::Days_Later);
         deathMessage.setPosition(640, 360);
 
@@ -840,7 +842,7 @@ public:
             spTadzik.weapons[spTadzik.currentWeapon].ammo--;
             tmpBullet = spTadzik.weapons[spTadzik.currentWeapon].bullet;
             tmpBullet.setPosition(spTadzik.getPosition());
-            tmpBullet.setDirection(sf::Vector2f(sf::Mouse::getPosition(*window)));
+            tmpBullet.setDirection(sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))));
             vecBullets.push_back(tmpBullet);
             if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
         }
@@ -957,8 +959,17 @@ public:
     }
 
     virtual void draw(double deltaTime) {
-        //rGame.setView(sf::View(tmp));
-        //tmp.top++;
+        sf::Vector2i pos = rGame.mapCoordsToPixel(spTadzik.getPosition(), gameView);
+        sf::Vector2f viewOffset = gameView.getCenter()-gameView.getSize()/2.0f;
+        int scrollArea = 200;
+        if (pos.y > 720-scrollArea && viewOffset.y+720<1280) {
+            gameView.move(0, pos.y-720+scrollArea);
+        }
+        if (pos.y < scrollArea && viewOffset.y>0)
+            gameView.move(0, pos.y-scrollArea);
+
+        rGame.setView(gameView);
+
         /// INPUT MYSZKI
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
             shoot();
@@ -995,24 +1006,22 @@ public:
 
         spTadzik.velocity.x*=0.8;
         spTadzik.velocity.y*=0.8;
-        spTadzik.setRotation(atan2(sf::Mouse::getPosition(*window).y-spTadzik.getPosition().y, sf::Mouse::getPosition(*window).x-spTadzik.getPosition().x)*180/M_PI);
+        sf::Vector2f tmpPos = sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))) - spTadzik.getPosition();
+        spTadzik.setRotation(atan2(tmpPos.y, tmpPos.x)*180/M_PI);
 
         updateShadow(spTadzik.ls);
 
         rGame.clear(sf::Color(255,
                               255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
-        //window->clear(sf::Color(255,
-        //                        255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
-        //window->draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
+
         rGame.draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
 
         /// OGARNIANIE PRZECIWNIKÓW
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
             vecEnemies[i]->update();
-            if (debug) rDebug.draw(vecEnemies[i]->hitbox);
-            //window->draw(*vecEnemies[i]);
+            if (debug)
+                rDebug.draw(vecEnemies[i]->hitbox);
             rGame.draw(*vecEnemies[i]);
-            //window->draw(vecEnemies[i]->healthBar);
             rGame.draw(vecEnemies[i]->healthBar);
         }
         updateEnemies();
@@ -1021,7 +1030,6 @@ public:
         if (vecBullets.size()>0) {
             for (int i=vecBullets.size()-1; i>=0; i--) {
                 vecBullets[i].update();
-                //window->draw(vecBullets[i]);
                 rGame.draw(vecBullets[i]);
                 sf::FloatRect tmp;
                 for (unsigned int j=0; j<vecSprites.size(); j++) {
@@ -1048,7 +1056,6 @@ public:
 
         /// OGARNIANIE POWERUPOW
         for (int i=vecPowerups.size()-1; i>=0; --i) {
-            //window->draw(*vecPowerups[i]);
             rGame.draw(*vecPowerups[i]);
             if (Collision::BoundingBoxTest(spTadzik, *vecPowerups[i])) {
                 vecPowerups[i]->onPickup();
@@ -1074,15 +1081,12 @@ public:
         rTextureTmp.display();
 
         rGame.draw(sf::Sprite(rTextureTmp.getTexture()), sf::BlendMultiply);
-        //window->draw(sf::Sprite(rLines.getTexture()));
         rGame.draw(sf::Sprite(texLines));
-
 
         ///EFEKTY
         for (int i=vecEffects.size()-1; i>=0; --i) {
             vecEffects[i].update(deltaTime);
             if (!vecEffects[i].shouldDestroy()) {
-                //window->draw(vecEffects[i]);
                 rGame.draw(vecEffects[i]);
             }
             else {
@@ -1100,23 +1104,21 @@ public:
                 rDebug.draw(c);
             }
             rDebug.display();
-            //window->draw(sf::Sprite(rDebug.getTexture()));
             rGame.draw(sf::Sprite(rDebug.getTexture()));
             rDebug.clear(sf::Color(0, 0, 0, 0));
         }
 
-        //window->draw(spTadzik);
         rGame.draw(spTadzik);
 
-        window->draw(sf::Sprite(rGame.getTexture()));
+        rGame.display();
 
+        window->draw(sf::Sprite(rGame.getTexture()));
         hud.update();
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         window->draw(spCrosshair);
         if (isDead) {
             window->draw(deathMessage);
         }
-        rGame.display();
     }
 
 protected:
@@ -1145,8 +1147,6 @@ protected:
     ARO::Anim animExplosion;
     ARO::AnimSprite aExplosion;
 
-    std::vector <ARO::AnimSprite> vecEffects;
-
     sf::Image mapa;
     sf::Text deathMessage;
     sf::RenderTexture rDebug;
@@ -1155,11 +1155,14 @@ protected:
     sf::RenderTexture rGame;
     sf::RenderTexture rTextureTmp;
     HUD hud = HUD(this);
+    sf::View gameView;
 
     Player spTadzik = Player(this);
     sf::Sprite spWall;
 
     Bullet tmpBullet;
+
+    std::vector <ARO::AnimSprite> vecEffects;
 
     std::vector <lightSource> vecLights;
 
