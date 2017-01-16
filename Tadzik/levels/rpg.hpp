@@ -73,6 +73,16 @@ public:
     public:
         ARO::AnimSprite Body;
         ARO::AnimSprite Legs;
+        std::vector <sf::Vector2f> pointBody;
+        std::vector <sf::Vector2f> pointLegs;
+
+        void setAnimDomin(AnimDomin* a, bool b)
+        {
+            if(b)
+                Body.setAnimation(a), pointBody = a->pointOrigin;
+            else
+                Legs.setAnimation(a), pointLegs = a->pointOrigin;
+        }
 
         void move(sf::Vector2f offset)
         {
@@ -144,6 +154,23 @@ public:
 
 
 
+    void handleCollision(Player* s1, std::vector <sf::Sprite>& walls) {
+        for (unsigned int i=0; i<walls.size(); ++i) {
+            sf::FloatRect intersection;
+            if (Collision::PixelPerfectTest(walls[i], s1->Legs) && s1->Legs.getGlobalBounds().intersects(walls[i].getGlobalBounds(), intersection)) {
+                sf::Vector2f direction = walls[i].getPosition() - s1->Legs.getPosition();
+                sf::Vector2f offset;
+                // X collision
+                if (abs(direction.x) > abs(direction.y))
+                    offset.x = ((direction.x<0)?-1:1)*intersection.width;
+                // Y collision
+                if (abs(direction.x) < abs(direction.y))
+                    offset.y = ((direction.y<0)?-1:1)*intersection.height;
+                s1->move(offset);
+            }
+        }
+    }
+
     virtual void onSceneLoadToMemory()
     {
         if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf"))
@@ -158,10 +185,15 @@ public:
         testLegs.setSpriteSheet(&texLegs, 15, 150);
         testBody.setPoints();
         testLegs.setPoints();
-        Tadeusz.Body.setAnimation(&testBody);
-        Tadeusz.Legs.setAnimation(&testLegs);
-         Tadeusz.Body.setScale(5,5);
-          Tadeusz.Legs.setScale(5,5);
+        Tadeusz.setAnimDomin(&testBody,1);
+        Tadeusz.setAnimDomin(&testLegs,0);
+        Tadeusz.Body.setScale(5,5);
+        Tadeusz.Legs.setScale(5,5);
+
+
+        texAttack.loadFromFile("files/textures/rpg/test/attack.png");
+        Attack.setSpriteSheet(&texAttack,30,250);
+        Attack.setPoints();
         ///
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
@@ -228,6 +260,7 @@ public:
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
             Tadeusz.Legs.move(0,-10);
+
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
         {
@@ -241,11 +274,15 @@ public:
         {
             Tadeusz.Legs.move(10,0);
         }
-
+handleCollision(&Tadeusz, spWall);
+handleCollision(&Tadeusz, spEnemy);
         /*     if((clock.getElapsedTime()-idleTime).asSeconds()>0.2)
                  if(spTadeusz.getAnimation()!=&Idle)
                      spTadeusz.setAnimation(&Idle); */
-
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::H) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
+        {
+            Tadeusz.setAnimDomin(&Attack,1);
+        }
 
 ///Kolizja !!!
 
@@ -288,7 +325,7 @@ public:
 
 
         Tadeusz.Body.setPosition(
-Tadeusz.Legs.getPosition()+testLegs.pointOrigin[Tadeusz.Legs.currentFrame]*Tadeusz.Legs.getScale().x-Tadeusz.Body.getScale().x*testBody.pointOrigin[Tadeusz.Body.currentFrame]+sf::Vector2f(0,Tadeusz.Body.getScale().x));
+            Tadeusz.Legs.getPosition()+Tadeusz.pointLegs[Tadeusz.Legs.currentFrame]*Tadeusz.Legs.getScale().x-Tadeusz.Body.getScale().x*Tadeusz.pointBody[Tadeusz.Body.currentFrame]+sf::Vector2f(0,Tadeusz.Body.getScale().x));
         Tadeusz.draw(window);
 
 
@@ -313,6 +350,9 @@ protected:
     AnimDomin testBody;
     sf::Texture texLegs;
     sf::Texture texBody;
+
+    AnimDomin Attack;
+    sf::Texture texAttack;
 
     sf::Image mapa;
 
