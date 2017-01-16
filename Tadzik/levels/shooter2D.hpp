@@ -21,9 +21,10 @@ public:
         :Scene(_name, mgr, w)
     {}
 
-    class HUD: public sf::RenderTexture {
+    class HUD {
     public:
-        HUD() {
+        HUD(SHOOTER2D* g) {
+            game = g;
             tAmmo.setPosition(1200, 690);
             tAllAmmo.setPosition(1250, 690);
             tScore.setPosition(1250, 0);
@@ -45,15 +46,29 @@ public:
         sf::Text tAllAmmo;
         sf::Text tLights;
         void update() {
-            draw(frame);
-            draw(healthFrame);
-            draw(healthBar);
-            draw(tScore);
-            draw(tAmmo);
-            draw(tAllAmmo);
-            draw(tLights);
-            draw(activeWeapon);
-            display();
+            tScore.setString(Utils::stringify(game->score));
+            tAmmo.setString(Utils::stringify(game->spTadzik.weapons[game->spTadzik.currentWeapon].ammo));
+            tAllAmmo.setString(Utils::stringify(game->spTadzik.weapons[game->spTadzik.currentWeapon].mags));
+            tLights.setString(Utils::stringify(game->spTadzik.lights));
+            healthBar.setTextureRect(sf::IntRect(0, 0, game->spTadzik.health/100*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
+            activeWeapon.setTexture(game->spTadzik.weapons[game->spTadzik.currentWeapon].texture);
+            if (game->isReloading) {
+                reloading.setScale(1-game->reloadFor.getElapsedTime().asMilliseconds()/game->spTadzik.weapons[game->spTadzik.currentWeapon].reloadTime, 1);
+                reloading.setPosition(game->spTadzik.getGlobalBounds().left, game->spTadzik.getPosition().y);
+            }
+            draw();
+        }
+        void draw() {
+            if (game->isReloading)
+                game->window->draw(reloading);
+            game->window->draw(frame);
+            game->window->draw(healthFrame);
+            game->window->draw(healthBar);
+            game->window->draw(tScore);
+            game->window->draw(tAmmo);
+            game->window->draw(tAllAmmo);
+            game->window->draw(tLights);
+            game->window->draw(activeWeapon);
         }
         void setFont(sf::Font* f, sf::Color c) {
             tScore.setFont(*f);
@@ -65,6 +80,7 @@ public:
             tAllAmmo.setColor(c);
             tLights.setColor(c);
         }
+        SHOOTER2D* game;
     };
 
     class Wave {
@@ -132,12 +148,12 @@ public:
             });
         }
         void getShadowSprite() {
-            game->rTexture.clear(sf::Color(0, 0, 0, 255));
+            game->rTextureTmp.clear(sf::Color(0, 0, 0, 255));
             game->rShadows.clear(sf::Color(0, 0, 0, 255));
-            game->rTexture.draw(shadow, sf::BlendNone);
-            game->rTexture.display();
+            game->rTextureTmp.draw(shadow, sf::BlendNone);
+            game->rTextureTmp.display();
             game->rShadows.draw(glow, sf::BlendAdd);
-            game->rShadows.draw(sf::Sprite(game->rTexture.getTexture()));
+            game->rShadows.draw(sf::Sprite(game->rTextureTmp.getTexture()));
             game->rShadows.display();
             drawableShadow = game->rShadows.getTexture();
         }
@@ -538,7 +554,7 @@ public:
     }
 
     void onSceneLoadToMemory() {
-        mapa.loadFromFile("files/maps/shooter2D/map10.png");
+        mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
         deathMessage.setFont(Common::Font::Days_Later);
         deathMessage.setPosition(640, 360);
@@ -573,13 +589,11 @@ public:
         loadMap();
         loadWaves();
 
-        rTexture.create(window->getSize().x, window->getSize().y);
-        rDebug.create(window->getSize().x, window->getSize().y);
-        rLines.create(window->getSize().x, window->getSize().y);
-        rShadows.create(window->getSize().x, window->getSize().y);
-        rHelp.create(window->getSize().x, window->getSize().y);
-        rMisc.create(window->getSize().x, window->getSize().y);
+        rDebug.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
+        rShadows.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
+        rMisc.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
         rGame.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
+        rTextureTmp.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
@@ -589,16 +603,16 @@ public:
 
         vecWalls.push_back(tmpObject);
 
-        rLines.clear(sf::Color(0, 0, 0, 0));
+        rTextureTmp.clear(sf::Color(0, 0, 0, 0));
         for (unsigned int i=0; i<vecWalls.size(); i++) {
             for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
-                rLines.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]));
+                rTextureTmp.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]));
             }
         }
-        rLines.display();
+        rTextureTmp.display();
+        texLines = rTextureTmp.getTexture();
 
         texHud.loadFromFile("files/textures/shooter2D/hud.png");
-        hud.create(window->getSize().x, window->getSize().y);
         hud.healthBar.setTexture(texHealthBar);
         hud.healthFrame.setTexture(texHealthFrame);
         hud.frame.setTexture(texHud);
@@ -870,7 +884,7 @@ public:
         }
         if (clock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
             sf::Image img;
-            img = rHelp.getTexture().copyToImage();
+            img = rTextureTmp.getTexture().copyToImage();
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
                 sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
@@ -887,25 +901,10 @@ public:
         }
     }
 
-    void updateHUD() {
-        hud.tScore.setString(Utils::stringify(score));
-        hud.tAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].ammo));
-        hud.tAllAmmo.setString(Utils::stringify(spTadzik.weapons[spTadzik.currentWeapon].mags));
-        hud.tLights.setString(Utils::stringify(spTadzik.lights));
-        hud.healthBar.setTextureRect(sf::IntRect(0, 0, spTadzik.health/100*texHealthBar.getSize().x, hud.healthBar.getTextureRect().height));
-        hud.activeWeapon.setTexture(spTadzik.weapons[spTadzik.currentWeapon].texture);
-        hud.clear(sf::Color(0, 0, 0, 0));
-        if (isReloading) {
-            hud.reloading.setScale(1-reloadFor.getElapsedTime().asMilliseconds()/spTadzik.weapons[spTadzik.currentWeapon].reloadTime, 1);
-            hud.reloading.setPosition(spTadzik.getGlobalBounds().left, spTadzik.getPosition().y);
-            hud.draw(hud.reloading);
-        }
-        hud.update();
-    }
-
     virtual bool onConsoleUpdate(std::vector<std::string> args){
         if (args[0] == "debug") {
             debug = !debug;
+            rDebug.setActive(debug);
         }
         else if (args[0] == "gib") {
             for (unsigned int i=0; i<spTadzik.weapons.size(); i++) {
@@ -1059,25 +1058,24 @@ public:
         }
 
         /// TEMPORARY LIGHTNING
-        rTexture.clear(sf::Color(0, 0, 0, 255));
-        rHelp.clear(sf::Color(0, 0, 0, 255));
-        for (unsigned int i = 0; i<vecLights.size(); i++)
-            rHelp.draw(vecLights[i].sprite, sf::BlendAdd);
+        rTextureTmp.clear(sf::Color(0, 0, 0, 255));
         rShadows.clear(sf::Color(0, 0, 0));
-        rTexture.draw(spTadzik.ls.shadow, sf::BlendNone);
-        rTexture.display();
+        rTextureTmp.draw(spTadzik.ls.shadow, sf::BlendNone);
+        rTextureTmp.display();
         rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
-        rShadows.draw(sf::Sprite(rTexture.getTexture()));
+        rShadows.draw(sf::Sprite(rTextureTmp.getTexture()));
         rShadows.display();
-        rHelp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
+        rTextureTmp.clear(sf::Color(0, 0, 0, 0));
+        for (unsigned int i = 0; i<vecLights.size(); i++)
+            rTextureTmp.draw(vecLights[i].sprite, sf::BlendAdd);
+        rTextureTmp.draw(sf::Sprite(rShadows.getTexture()), sf::BlendAdd);
         for (unsigned int i=0; i<vecLights.size(); i++)
-            rHelp.draw(sf::Sprite(vecLights[i].drawableShadow), sf::BlendAdd);
-        rHelp.display();
+            rTextureTmp.draw(sf::Sprite(vecLights[i].drawableShadow), sf::BlendAdd);
+        rTextureTmp.display();
 
-        //window->draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
-        rGame.draw(sf::Sprite(rHelp.getTexture()), sf::BlendMultiply);
+        rGame.draw(sf::Sprite(rTextureTmp.getTexture()), sf::BlendMultiply);
         //window->draw(sf::Sprite(rLines.getTexture()));
-        rGame.draw(sf::Sprite(rLines.getTexture()));
+        rGame.draw(sf::Sprite(texLines));
 
 
         ///EFEKTY
@@ -1112,11 +1110,8 @@ public:
 
         window->draw(sf::Sprite(rGame.getTexture()));
 
-        updateHUD();
-        //window->draw(sf::Sprite(hud.getTexture()));
-        window->draw(sf::Sprite(hud.getTexture()));
+        hud.update();
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
-        //window->draw(spCrosshair);
         window->draw(spCrosshair);
         if (isDead) {
             window->draw(deathMessage);
@@ -1142,6 +1137,8 @@ protected:
     sf::Texture texBlood;
     sf::Texture spsExplosion;
 
+    sf::Texture texLines;
+
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
 
@@ -1152,15 +1149,12 @@ protected:
 
     sf::Image mapa;
     sf::Text deathMessage;
-    sf::RenderTexture rTexture;
     sf::RenderTexture rDebug;
-    sf::RenderTexture rGUI;
-    sf::RenderTexture rLines;
     sf::RenderTexture rShadows;
-    sf::RenderTexture rHelp;
     sf::RenderTexture rMisc;
     sf::RenderTexture rGame;
-    HUD hud;
+    sf::RenderTexture rTextureTmp;
+    HUD hud = HUD(this);
 
     Player spTadzik = Player(this);
     sf::Sprite spWall;

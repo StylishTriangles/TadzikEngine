@@ -136,7 +136,7 @@ private:
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
-    char cmdBuffer[1024];
+    char cmdBuffer[1024]={};
 
     sf::Text fpsCounter;
     bool showFps = true;
