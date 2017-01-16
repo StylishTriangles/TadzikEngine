@@ -33,34 +33,26 @@ public:
             healthBar.setPosition(10, 5);
             healthFrame.setPosition(10, 5);
             activeWeapon.setPosition(1150, 600);
-            reloading.setSize(sf::Vector2f(30, 10));
-            reloading.setFillColor(sf::Color::Green);
         }
         sf::Sprite healthBar;
         sf::Sprite healthFrame;
         sf::Sprite frame;
         sf::Sprite activeWeapon;
-        sf::RectangleShape reloading;
         sf::Text tScore;
         sf::Text tAmmo;
         sf::Text tAllAmmo;
         sf::Text tLights;
         void update() {
             tScore.setString(Utils::stringify(game->score));
-            tAmmo.setString(Utils::stringify(game->spTadzik.weapons[game->spTadzik.currentWeapon].ammo));
-            tAllAmmo.setString(Utils::stringify(game->spTadzik.weapons[game->spTadzik.currentWeapon].mags));
-            tLights.setString(Utils::stringify(game->spTadzik.lights));
-            healthBar.setTextureRect(sf::IntRect(0, 0, game->spTadzik.health/100*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
-            activeWeapon.setTexture(game->spTadzik.weapons[game->spTadzik.currentWeapon].texture);
-            if (game->isReloading) {
-                reloading.setScale(1-game->reloadFor.getElapsedTime().asMilliseconds()/game->spTadzik.weapons[game->spTadzik.currentWeapon].reloadTime, 1);
-                reloading.setPosition(game->spTadzik.getGlobalBounds().left, game->spTadzik.getPosition().y);
-            }
+            tAmmo.setString(Utils::stringify(game->TADZIK.weapons[game->TADZIK.currentWeapon].ammo));
+            tAllAmmo.setString(Utils::stringify(game->TADZIK.weapons[game->TADZIK.currentWeapon].mags));
+            tLights.setString(Utils::stringify(game->TADZIK.lights));
+            healthBar.setTextureRect(sf::IntRect(0, 0, game->TADZIK.health/100*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
+            activeWeapon.setTexture(game->TADZIK.weapons[game->TADZIK.currentWeapon].texture);
+
             draw();
         }
         void draw() {
-            if (game->isReloading)
-                game->window->draw(reloading);
             game->window->draw(frame);
             game->window->draw(healthFrame);
             game->window->draw(healthBar);
@@ -191,9 +183,9 @@ public:
         }
         float damage = 100;
         float knockback = -2;
-        bool penetrating = true;
+        bool penetrating = false;
         int maxPenetrating = 1;
-        bool bouncy = true;
+        bool bouncy = false;
         int bounces = 2;
         bool friendly = true;
         float v = 5;
@@ -230,6 +222,8 @@ public:
     public:
         Player(SHOOTER2D* g) {
             game = g;
+            reloadBar.setSize(sf::Vector2f(30, 10));
+            reloadBar.setFillColor(sf::Color::Green);
         }
         void update() {
             angle = atan2(velocity.y, velocity.x);
@@ -240,18 +234,17 @@ public:
             ls.y = getPosition().y;
             ls.update();
             hitbox.setPosition(getPosition());
+            if (isReloading) {
+                reloadBar.setScale(1-reloadFor.getElapsedTime().asMilliseconds()/weapons[currentWeapon].reloadTime, 1);
+                reloadBar.setPosition(getGlobalBounds().left, getPosition().y);
+                if (reloadFor.getElapsedTime().asMilliseconds()>weapons[currentWeapon].reloadTime) {
+                    isReloading = false;
+                    weapons[currentWeapon].ammo = weapons[currentWeapon].magSize;
+                    weapons[currentWeapon].mags--;
+                }
+            }
+            velocity*=0.8f;
         }
-        lightSource ls = lightSource(getPosition(), game);
-        float health = 100;
-        sf::Clock sinceHit;
-        sf::Time invincibilityTime = sf::seconds(1);
-        float maxSpeed = 10;
-        float angle;
-        float speed;
-        Bullet playerBullet;
-        std::vector <Weapon> weapons;
-        int currentWeapon = 0;
-        unsigned int lights = 30;
         void nextWeapon() {
             currentWeapon++;
             if (currentWeapon==weapons.size()) currentWeapon = 0;
@@ -271,6 +264,40 @@ public:
             }
             if (t) weapons.push_back(w);
         }
+        void reload() {
+            if (weapons[currentWeapon].ammo < weapons[currentWeapon].magSize && !isReloading && weapons[currentWeapon].mags > 0) {
+                isReloading = true;
+                reloadFor.restart();
+            }
+        }
+        void shoot() {
+            if (lastShot.getElapsedTime().asMilliseconds() > weapons[currentWeapon].fireTime && weapons[currentWeapon].ammo>0 && !isReloading) {
+                lastShot.restart();
+                weapons[currentWeapon].ammo--;
+                game->tmpBullet = weapons[currentWeapon].bullet;
+                game->tmpBullet.setPosition(getPosition());
+                game->tmpBullet.setDirection(sf::Vector2f(game->rGame.mapPixelToCoords(sf::Mouse::getPosition(*game->window))));
+                game->vecBullets.push_back(game->tmpBullet);
+                if (weapons[currentWeapon].ammo == 0)
+                    reload();
+                }
+        }
+        lightSource ls = lightSource(getPosition(), game);
+        float health = 100;
+        sf::Clock sinceHit;
+        sf::Time invincibilityTime = sf::seconds(1);
+        sf::RectangleShape reloadBar;
+        sf::Clock reloadFor;
+        sf::Clock lastShot;
+        float maxSpeed = 10;
+        float angle;
+        float speed;
+        Bullet playerBullet;
+        std::vector <Weapon> weapons;
+        int currentWeapon = 0;
+        unsigned int lights = 30;
+        bool isReloading;
+        bool isDead = false;
         SHOOTER2D* game;
     };
 
@@ -464,7 +491,7 @@ public:
         }
         PUPGiveHealth(SHOOTER2D* p) : Powerup(p) {};
         void onPickup() {
-            parent->spTadzik.health = 100;
+            parent->TADZIK.health = 100;
         }
     };
 
@@ -477,7 +504,7 @@ public:
             Utils::setOriginInCenter(*this);
         }
         void onPickup() {
-            parent->spTadzik.weapons[parent->spTadzik.currentWeapon].mags = parent->spTadzik.weapons[parent->spTadzik.currentWeapon].magAmount;
+            parent->TADZIK.weapons[parent->TADZIK.currentWeapon].mags = parent->TADZIK.weapons[parent->TADZIK.currentWeapon].magAmount;
         }
     };
 
@@ -492,7 +519,7 @@ public:
         }
         int ID = 1;
         void onPickup() {
-            parent->spTadzik.addWeapon(parent->vecWeapons[ID]);
+            parent->TADZIK.addWeapon(parent->vecWeapons[ID]);
         }
     };
 
@@ -556,16 +583,18 @@ public:
     void onSceneLoadToMemory() {
         mapa.loadFromFile("files/maps/shooter2D/map1.png");
 
-        gameView.reset(sf::FloatRect(0, 0, mapa.getSize().x*tileSize, mapa.getSize().y*tileSize));
+        mapSize = {mapa.getSize().x*tileSize, mapa.getSize().y*tileSize};
+
+        gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
 
         deathMessage.setFont(Common::Font::Days_Later);
         deathMessage.setPosition(640, 360);
 
         texBullet1.loadFromFile("files/textures/shooter2D/bullet1.png");
         tmpBullet.setTexture(texBullet1);
-        spTadzik.playerBullet.setTexture(texBullet1);
+        TADZIK.playerBullet.setTexture(texBullet1);
         tmpBullet.setScale(0.2, 0.2);
-        spTadzik.playerBullet.setScale(0.2, 0.2);
+        TADZIK.playerBullet.setScale(0.2, 0.2);
 
         texBlood.loadFromFile("files/textures/shooter2D/blood.png");
         spBlood.setTexture(texBlood);
@@ -577,31 +606,31 @@ public:
         texCandle.loadFromFile("files/textures/shooter2D/candle.png");
 
         texPlayer.loadFromFile("files/textures/shooter2D/player.png");
-        spTadzik.setTexture(texPlayer);
-        Utils::setOriginInCenter(spTadzik);
+        TADZIK.setTexture(texPlayer);
+        Utils::setOriginInCenter(TADZIK);
 
         texHealthBar.loadFromFile("files/textures/shooter2D/healthBar.png");
         texHealthFrame.loadFromFile("files/textures/shooter2D/healthFrame.png");
 
         texShadow.loadFromFile("files/textures/shooter2D/shadow.png");
 
-        spTadzik.ls.glow.setTexture(texShadow);
-        Utils::setOriginInCenter(spTadzik.ls.glow);
+        TADZIK.ls.glow.setTexture(texShadow);
+        Utils::setOriginInCenter(TADZIK.ls.glow);
 
         loadMap();
         loadWaves();
 
-        rDebug.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
-        rShadows.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
-        rMisc.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
-        rGame.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
-        rTextureTmp.create(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
+        rDebug.create(mapSize.x, mapSize.y);
+        rShadows.create(mapSize.x, mapSize.y);
+        rMisc.create(mapSize.x, mapSize.y);
+        rGame.create(mapSize.x, mapSize.y);
+        rTextureTmp.create(mapSize.x, mapSize.y);
 
         Object tmpObject;
         tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(rGame.getSize().x-tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(rGame.getSize().x-tileSize, rGame.getSize().y-tileSize));
-        tmpObject.points.push_back(sf::Vector2f(tileSize, rGame.getSize().y-tileSize));
+        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, mapSize.y-tileSize));
+        tmpObject.points.push_back(sf::Vector2f(tileSize, mapSize.y-tileSize));
 
         vecWalls.push_back(tmpObject);
 
@@ -628,11 +657,11 @@ public:
         texGhost.loadFromFile("files/textures/shooter2D/ghost.png");
 
         loadWeapons();
-        spTadzik.addWeapon(vecWeapons[0]);
-        //spTadzik.addWeapon(vecWeapons[1]);
-        //spTadzik.addWeapon(vecWeapons[2]);
-        spTadzik.addWeapon(vecWeapons[3]);
-        spTadzik.currentWeapon = 0;
+        TADZIK.addWeapon(vecWeapons[0]);
+        //TADZIK.addWeapon(vecWeapons[1]);
+        //TADZIK.addWeapon(vecWeapons[2]);
+        TADZIK.addWeapon(vecWeapons[3]);
+        TADZIK.currentWeapon = 0;
 
 
         texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
@@ -729,7 +758,7 @@ public:
                     }
                 }
                 else if (mapa.getPixel(i, j) == sf::Color(0, 0, 255)) {
-                    spTadzik.setPosition(i*tileSize, j*tileSize);
+                    TADZIK.setPosition(i*tileSize, j*tileSize);
                 }
             }
         }
@@ -804,47 +833,28 @@ public:
     }
 
     void gameOver() {
-        isDead = true;
+        TADZIK.isDead = true;
         deathMessage.setString("YOU SUCK");
     }
 
     void deliverEvent(sf::Event& event){
         if (event.type == sf::Event::MouseButtonPressed) {
-            if (event.mouseButton.button == sf::Mouse::Left && !spTadzik.weapons[spTadzik.currentWeapon].automatic) {
-                shoot();
+            if (event.mouseButton.button == sf::Mouse::Left && !TADZIK.weapons[TADZIK.currentWeapon].automatic) {
+                TADZIK.shoot();
             }
-            if (event.mouseButton.button == sf::Mouse::Right && spTadzik.lights>0) {
-                vecLights.push_back(lightSource(spTadzik.getPosition(), &texCandle, &texShadow, this, Utils::randColor()));
+            if (event.mouseButton.button == sf::Mouse::Right && TADZIK.lights>0) {
+                vecLights.push_back(lightSource(TADZIK.getPosition(), &texCandle, &texShadow, this, Utils::randColor()));
                 updateShadow(vecLights[vecLights.size()-1]);
                 vecLights[vecLights.size()-1].getShadowSprite();
-                spTadzik.lights--;
+                TADZIK.lights--;
             }
         }
         if (event.type == sf::Event::MouseWheelMoved) {
-            spTadzik.currentWeapon-=event.mouseWheel.delta;
-            while (spTadzik.currentWeapon<0) spTadzik.currentWeapon += spTadzik.weapons.size();
-            spTadzik.currentWeapon = spTadzik.currentWeapon%spTadzik.weapons.size();
-            isReloading = false;
-            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
-        }
-    }
-
-    void reload() {
-        if (spTadzik.weapons[spTadzik.currentWeapon].ammo < spTadzik.weapons[spTadzik.currentWeapon].magSize && !isReloading && spTadzik.weapons[spTadzik.currentWeapon].mags > 0) {
-            isReloading = true;
-            reloadFor.restart();
-        }
-    }
-
-    void shoot() {
-        if (lastShot.getElapsedTime().asMilliseconds() > spTadzik.weapons[spTadzik.currentWeapon].fireTime && spTadzik.weapons[spTadzik.currentWeapon].ammo>0 && !isReloading) {
-            lastShot.restart();
-            spTadzik.weapons[spTadzik.currentWeapon].ammo--;
-            tmpBullet = spTadzik.weapons[spTadzik.currentWeapon].bullet;
-            tmpBullet.setPosition(spTadzik.getPosition());
-            tmpBullet.setDirection(sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))));
-            vecBullets.push_back(tmpBullet);
-            if (spTadzik.weapons[spTadzik.currentWeapon].ammo == 0) reload();
+            TADZIK.currentWeapon-=event.mouseWheel.delta;
+            while (TADZIK.currentWeapon<0) TADZIK.currentWeapon += TADZIK.weapons.size();
+            TADZIK.currentWeapon = TADZIK.currentWeapon%TADZIK.weapons.size();
+            TADZIK.isReloading = false;
+            if (TADZIK.weapons[TADZIK.currentWeapon].ammo == 0) TADZIK.reload();
         }
     }
 
@@ -892,9 +902,9 @@ public:
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
                     if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255)) {
                         if (Utils::chance(0.75))
-                            vecEnemies.push_back(new AIZombie(sf::Vector2f(t), &texZombie, &spTadzik, this));
+                            vecEnemies.push_back(new AIZombie(sf::Vector2f(t), &texZombie, &TADZIK, this));
                         else
-                            vecEnemies.push_back(new AIGhost(sf::Vector2f(t), &texGhost, &spTadzik, this));
+                            vecEnemies.push_back(new AIGhost(sf::Vector2f(t), &texGhost, &TADZIK, this));
                     }
             }
             clock.restart();
@@ -909,16 +919,16 @@ public:
             rDebug.setActive(debug);
         }
         else if (args[0] == "gib") {
-            for (unsigned int i=0; i<spTadzik.weapons.size(); i++) {
-                spTadzik.weapons[i].ammo = spTadzik.weapons[i].magSize;
-                spTadzik.weapons[i].mags = spTadzik.weapons[i].magAmount;
-                spTadzik.health = 100;
-                spTadzik.lights = 30;
+            for (unsigned int i=0; i<TADZIK.weapons.size(); i++) {
+                TADZIK.weapons[i].ammo = TADZIK.weapons[i].magSize;
+                TADZIK.weapons[i].mags = TADZIK.weapons[i].magAmount;
+                TADZIK.health = 100;
+                TADZIK.lights = 30;
             }
         }
         else if (args.size()==2 && args[0] == "spawn") {
             for (int i=0; i<atoi(args[1].c_str()); i++)
-                vecEnemies.push_back(new AIZombie(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texZombie, &spTadzik, this));
+                vecEnemies.push_back(new AIZombie(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texZombie, &TADZIK, this));
         }
         else if (args[0] == "killall") {
             for (unsigned int i = 0; i<vecEnemies.size(); i++)
@@ -944,32 +954,33 @@ public:
     }
 
     virtual void getKeyboardStuff() {
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -spTadzik.velocity.x < spTadzik.maxSpeed)
-            spTadzik.velocity.x -= acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -spTadzik.velocity.y < spTadzik.maxSpeed)
-            spTadzik.velocity.y -= acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && spTadzik.velocity.y < spTadzik.maxSpeed)
-            spTadzik.velocity.y += acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && spTadzik.velocity.x < spTadzik.maxSpeed)
-            spTadzik.velocity.x += acceleration;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) spTadzik.health-=10;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) reload();
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -TADZIK.velocity.x < TADZIK.maxSpeed)
+            TADZIK.velocity.x -= acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -TADZIK.velocity.y < TADZIK.maxSpeed)
+            TADZIK.velocity.y -= acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && TADZIK.velocity.y < TADZIK.maxSpeed)
+            TADZIK.velocity.y += acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && TADZIK.velocity.x < TADZIK.maxSpeed)
+            TADZIK.velocity.x += acceleration;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) TADZIK.health-=10;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) TADZIK.reload();
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texGhost, &spTadzik, this));
+            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texGhost, &TADZIK, this));
     }
 
     virtual void draw(double deltaTime) {
-        sf::Vector2i pos = rGame.mapCoordsToPixel(spTadzik.getPosition(), gameView);
+        ///VIEW HANDLING
+        sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
         int scrollArea = 200;
-        if (pos.y > 720-scrollArea && viewOffset.y+720<1280) {
-            gameView.move(0, pos.y-720+scrollArea);
-            viewOffset.y+=pos.y-720+scrollArea;
-            if (viewOffset.y+720>1280) {
-                gameView.move(0, -viewOffset.y-720+1280);
-                viewOffset.y=1280-720;
+        if (pos.y > windowSize.y-scrollArea && viewOffset.y+windowSize.y<mapSize.y) {
+            gameView.move(0, pos.y-windowSize.y+scrollArea);
+            viewOffset.y+=pos.y-windowSize.y+scrollArea;
+            if (viewOffset.y+windowSize.y>mapSize.y) {
+                gameView.move(0, -viewOffset.y-windowSize.y+mapSize.y);
+                viewOffset.y=mapSize.y-windowSize.y;
             }
         }
-        if (pos.y < scrollArea && viewOffset.y>0) {
+        else if (pos.y < scrollArea && viewOffset.y>0) {
             gameView.move(0, pos.y-scrollArea);
             viewOffset.y+=pos.y-scrollArea;
             if (viewOffset.y<0) {
@@ -977,49 +988,36 @@ public:
                 viewOffset.y=0;
             }
         }
-
         rGame.setView(gameView);
 
         /// INPUT MYSZKI
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && spTadzik.weapons[spTadzik.currentWeapon].automatic) {
-            shoot();
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && TADZIK.weapons[TADZIK.currentWeapon].automatic) {
+            TADZIK.shoot();
         }
 
         /// INPUT Z KLAWIATURY
         getKeyboardStuff();
 
-        /// RELOADING
-        if (isReloading) {
-            if (reloadFor.getElapsedTime().asMilliseconds()>spTadzik.weapons[spTadzik.currentWeapon].reloadTime) {
-                isReloading = false;
-                spTadzik.weapons[spTadzik.currentWeapon].ammo = spTadzik.weapons[spTadzik.currentWeapon].magSize;
-                spTadzik.weapons[spTadzik.currentWeapon].mags--;
-            }
-        }
-
         /// OGARNIANIE KOLIZJI
         for (unsigned int i=0; i<vecEnemies.size(); i++) {
-            if (Collision::PixelPerfectTest(spTadzik, *vecEnemies[i])) {
-                handleEntityCollision(spTadzik, *vecEnemies[i], 0.5);
-                if (spTadzik.sinceHit.getElapsedTime() > spTadzik.invincibilityTime) {
-                    spTadzik.health-=vecEnemies[i]->damage;
-                    spTadzik.sinceHit.restart();
+            if (Collision::PixelPerfectTest(TADZIK, *vecEnemies[i])) {
+                handleEntityCollision(TADZIK, *vecEnemies[i], 0.5);
+                if (TADZIK.sinceHit.getElapsedTime() > TADZIK.invincibilityTime) {
+                    TADZIK.health-=vecEnemies[i]->damage;
+                    TADZIK.sinceHit.restart();
                 }
             }
         }
-        handleCollision(spTadzik, vecSprites);
+        handleCollision(TADZIK, vecSprites);
 
-        if (spTadzik.health<0) gameOver();
+        if (TADZIK.health<0) gameOver();
 
-        spTadzik.update();
-        if (debug) spTadzik.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
+        TADZIK.update();
+        updateShadow(TADZIK.ls);
+        if (debug) TADZIK.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
 
-        spTadzik.velocity.x*=0.8;
-        spTadzik.velocity.y*=0.8;
-        sf::Vector2f tmpPos = sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))) - spTadzik.getPosition();
-        spTadzik.setRotation(atan2(tmpPos.y, tmpPos.x)*180/M_PI);
-
-        updateShadow(spTadzik.ls);
+        sf::Vector2f tmpDirect = sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))) - TADZIK.getPosition();
+        TADZIK.setRotation(atan2(tmpDirect.y, tmpDirect.x)*180/M_PI);
 
         rGame.clear(sf::Color(255,
                               255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
@@ -1067,19 +1065,19 @@ public:
         /// OGARNIANIE POWERUPOW
         for (int i=vecPowerups.size()-1; i>=0; --i) {
             rGame.draw(*vecPowerups[i]);
-            if (Collision::BoundingBoxTest(spTadzik, *vecPowerups[i])) {
+            if (Collision::BoundingBoxTest(TADZIK, *vecPowerups[i])) {
                 vecPowerups[i]->onPickup();
                 delete(vecPowerups[i]);
                 vecPowerups.erase(vecPowerups.begin()+i);
             }
         }
 
-        /// TEMPORARY LIGHTNING
+        /// W SUMIE NIE TAKI TEMPORARY LIGHTNING
         rTextureTmp.clear(sf::Color(0, 0, 0, 255));
         rShadows.clear(sf::Color(0, 0, 0));
-        rTextureTmp.draw(spTadzik.ls.shadow, sf::BlendNone);
+        rTextureTmp.draw(TADZIK.ls.shadow, sf::BlendNone);
         rTextureTmp.display();
-        rShadows.draw(spTadzik.ls.glow, sf::BlendAdd);
+        rShadows.draw(TADZIK.ls.glow, sf::BlendAdd);
         rShadows.draw(sf::Sprite(rTextureTmp.getTexture()));
         rShadows.display();
         rTextureTmp.clear(sf::Color(0, 0, 0, 0));
@@ -1106,11 +1104,11 @@ public:
 
         /// DEBUG
         if (debug) {
-            for (unsigned int i=0; i<spTadzik.ls.points.size(); i++) {
+            for (unsigned int i=0; i<TADZIK.ls.points.size(); i++) {
                 sf::CircleShape c(2);
                 c.setOrigin(1, 1);
                 c.setFillColor(sf::Color::Green);
-                c.setPosition(spTadzik.ls.points[i]);
+                c.setPosition(TADZIK.ls.points[i]);
                 rDebug.draw(c);
             }
             rDebug.display();
@@ -1118,7 +1116,9 @@ public:
             rDebug.clear(sf::Color(0, 0, 0, 0));
         }
 
-        rGame.draw(spTadzik);
+        rGame.draw(TADZIK);
+        if (TADZIK.isReloading)
+            rGame.draw(TADZIK.reloadBar);
 
         rGame.display();
 
@@ -1126,7 +1126,7 @@ public:
         hud.update();
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         window->draw(spCrosshair);
-        if (isDead) {
+        if (TADZIK.isDead) {
             window->draw(deathMessage);
         }
     }
@@ -1167,7 +1167,7 @@ protected:
     HUD hud = HUD(this);
     sf::View gameView;
 
-    Player spTadzik = Player(this);
+    Player TADZIK = Player(this);
     sf::Sprite spWall;
 
     Bullet tmpBullet;
@@ -1194,18 +1194,16 @@ protected:
     int tileSize = 20;
     int score = 0;
 
-    sf::Clock lastShot;
-    sf::Clock reloadFor;
     sf::Clock clock;
 
     int currentWave = 0;
 
-    bool isReloading = false;
-    bool isDead = false;
-
     bool debug = false;
 
     sf::Vector2f viewOffset = {0, 0};
+
+    sf::Vector2f mapSize;
+    sf::Vector2f windowSize = {1280, 720};
 };
 
 #endif //SHOOTER2D
