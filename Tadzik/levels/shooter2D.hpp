@@ -174,8 +174,8 @@ public:
         void create(sf::Vector2f p, sf::Vector2f d, float speed) {
             setPosition(p);
             v = speed;
-            velocity.x = cos (atan2(d.y-p.y, d.x-p.x))*speed;
-            velocity.y = sin (atan2(d.y-p.y, d.x-p.x))*speed;
+            Utils::normalize(d);
+            velocity = d*speed;
         }
         void setDirection(sf::Vector2f d) {
             velocity.x = cos (atan2(d.y-getPosition().y, d.x-getPosition().x))*v;
@@ -187,6 +187,7 @@ public:
         int maxPenetrating = 1;
         bool bouncy = false;
         int bounces = 2;
+        bool exploding = true;
         bool friendly = true;
         float v = 5;
     };
@@ -255,7 +256,7 @@ public:
         }
         void addWeapon(Weapon w) {
             w.setParent(this);
-            bool t=true;
+            bool t = true;
             for (unsigned int i=0; i<weapons.size(); i++) {
                 if (w.name == weapons[i].name) {
                     t = false;
@@ -296,7 +297,7 @@ public:
         std::vector <Weapon> weapons;
         int currentWeapon = 0;
         unsigned int lights = 30;
-        bool isReloading;
+        bool isReloading = false;
         bool isDead = false;
         SHOOTER2D* game;
     };
@@ -320,8 +321,8 @@ public:
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
             move(velocity);
-            velocity.x*=0.8;
-            velocity.y*=0.8;
+            Utils::normalize(velocity);
+            velocity *= speed;
             fixElements();
             if (!m_flying)
                 findPath();
@@ -335,9 +336,6 @@ public:
         }
         void setTarget (MovingEntity* ME) {
             target = ME;
-        }
-        void getDestination() {
-
         }
         void fixElements() {
             hitbox.setPosition(getPosition());
@@ -439,7 +437,7 @@ public:
     class AIZombie: public Enemy {
     public:
         AIZombie(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
-            speed = 0.75;
+            speed = 2;
         };
         void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
@@ -447,8 +445,8 @@ public:
             velocity.x += speed* cos(angle);
             velocity.y += speed* sin(angle);
             move(velocity);
-            velocity.x*=0.8;
-            velocity.y*=0.8;
+            Utils::normalize(velocity);
+            velocity *= speed;
             fixElements();
             findPath();
         }
@@ -458,9 +456,29 @@ public:
     class AIGhost: public Enemy {
     public:
         AIGhost(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
-            speed = 0.5;
+            speed = 1;
             m_flying = true;
         };
+    };
+
+    class AIRunner: public Enemy {
+    public:
+        AIRunner(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
+            speed = 4;
+            health = 10;
+        };
+        void update() {
+            angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
+            setRotation(angle*180/M_PI);
+            velocity.x += speed* cos(angle);
+            velocity.y += speed* sin(angle);
+            move(velocity);
+            Utils::normalize(velocity);
+            velocity *= speed;
+            fixElements();
+            findPath();
+        }
+
     };
 
     class Powerup: public sf::Sprite {
@@ -653,8 +671,9 @@ public:
         spCrosshair.setTexture(texCrosshair);
         Utils::setOriginInCenter(spCrosshair);
 
-        texZombie.loadFromFile("files/textures/shooter2D/zombie.png");
-        texGhost.loadFromFile("files/textures/shooter2D/ghost.png");
+        texZombie.loadFromFile("files/textures/shooter2D/nmeZombie.png");
+        texGhost.loadFromFile("files/textures/shooter2D/nmeGhost.png");
+        texRunner.loadFromFile("files/textures/shooter2D/nmeRunner.png");
 
         loadWeapons();
         TADZIK.addWeapon(vecWeapons[0]);
@@ -668,7 +687,7 @@ public:
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
 
         spsExplosion.loadFromFile("files/textures/shooter2D/spsExplosion.png");
-        animExplosion.setSpriteSheet(&spsExplosion, 134, 50);
+        animExplosion.setSpriteSheet(&spsExplosion, 134, 10);
         aExplosion.setAnimation(&animExplosion);
         aExplosion.setLooped(false);
         aExplosion.centerOrigin();
@@ -676,6 +695,7 @@ public:
 
     void onSceneActivate() {
         window->setMouseCursorVisible(false);
+        waveClock.restart();
     }
 
     void onSceneDeactivate() {
@@ -871,11 +891,13 @@ public:
                         vecBullets[j].maxPenetrating--;
                     }
                     else
+                        if (vecBullets[i].exploding) {
+                            aExplosion.setPosition(vecBullets[i].getPosition());
+                            vecEffects.push_back(aExplosion);
+                        }
                         vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i]->healthBar.setScale(vecEnemies[i]->health/100.0, 1);
                     if (vecEnemies[i]->health<=0) {
-                        aExplosion.setPosition(vecEnemies[i]->getPosition());
-                        vecEffects.push_back(aExplosion);
                         vecEnemies[i]->onDrop();
                         spBlood.setPosition(vecEnemies[i]->getPosition());
                         spBlood.setRotation(vecEnemies[i]->getRotation());
@@ -894,7 +916,7 @@ public:
                 handleEntityCollision(*vecEnemies[i], *vecEnemies[j], 0.02);
             }
         }
-        if (clock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
+        if (waveClock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
             sf::Image img;
             img = rTextureTmp.getTexture().copyToImage();
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
@@ -903,11 +925,13 @@ public:
                     if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255)) {
                         if (Utils::chance(0.75))
                             vecEnemies.push_back(new AIZombie(sf::Vector2f(t), &texZombie, &TADZIK, this));
-                        else
+                        else if (Utils::chance(0.33))
                             vecEnemies.push_back(new AIGhost(sf::Vector2f(t), &texGhost, &TADZIK, this));
+                        else
+                            vecEnemies.push_back(new AIRunner(sf::Vector2f(t), &texRunner, &TADZIK, this));
                     }
             }
-            clock.restart();
+            waveClock.restart();
             currentWave++;
             currentWave=currentWave%vecWaves.size();
         }
@@ -1020,7 +1044,8 @@ public:
         TADZIK.setRotation(atan2(tmpDirect.y, tmpDirect.x)*180/M_PI);
 
         rGame.clear(sf::Color(255,
-                              255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time), 255-100*(clock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
+                              255-100*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+                              255-100*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
 
         rGame.draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
 
@@ -1054,6 +1079,10 @@ public:
                             }
                         }
                         else {
+                            if (vecBullets[i].exploding) {
+                                aExplosion.setPosition(vecBullets[i].getPosition());
+                                vecEffects.push_back(aExplosion);
+                            }
                             vecBullets.erase(vecBullets.begin()+i);
                             break;
                         }
@@ -1116,6 +1145,7 @@ public:
             rDebug.clear(sf::Color(0, 0, 0, 0));
         }
 
+        ///RYSOWANIE RESZTY
         rGame.draw(TADZIK);
         if (TADZIK.isReloading)
             rGame.draw(TADZIK.reloadBar);
@@ -1141,6 +1171,7 @@ protected:
     sf::Texture texCandle;
     sf::Texture texZombie;
     sf::Texture texGhost;
+    sf::Texture texRunner;
     sf::Texture texCrosshair;
     sf::Texture texHud;
     sf::Texture texShadow;
@@ -1153,22 +1184,27 @@ protected:
 
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
+    sf::Sprite spWall;
 
     ARO::Anim animExplosion;
     ARO::AnimSprite aExplosion;
 
-    sf::Image mapa;
-    sf::Text deathMessage;
     sf::RenderTexture rDebug;
     sf::RenderTexture rShadows;
     sf::RenderTexture rMisc;
     sf::RenderTexture rGame;
     sf::RenderTexture rTextureTmp;
-    HUD hud = HUD(this);
     sf::View gameView;
+    sf::Image mapa;
+    sf::Text deathMessage;
+
+    sf::Vector2f viewOffset = {0, 0};
+    sf::Vector2f mapSize;
+    sf::Vector2f windowSize = {1280, 720};
+
+    HUD hud = HUD(this);
 
     Player TADZIK = Player(this);
-    sf::Sprite spWall;
 
     Bullet tmpBullet;
 
@@ -1194,16 +1230,12 @@ protected:
     int tileSize = 20;
     int score = 0;
 
-    sf::Clock clock;
+    sf::Clock waveClock;
 
     int currentWave = 0;
 
     bool debug = false;
 
-    sf::Vector2f viewOffset = {0, 0};
-
-    sf::Vector2f mapSize;
-    sf::Vector2f windowSize = {1280, 720};
 };
 
 #endif //SHOOTER2D
