@@ -105,4 +105,9 @@ sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
     return r;
 }
 
+void normalize(sf::Vector2f &v) {
+    float length = sqrt(v.x*v.x+v.y*v.y);
+    v = sf::Vector2f(v.x/length, v.y/length);
+}
+
 }
