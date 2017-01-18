@@ -55,6 +55,7 @@ public:
     class AnimDomin: public ARO::Anim
     {
     public:
+
         std::vector <sf::Vector2f> pointOrigin;
         void setPoints()
         {
@@ -75,6 +76,8 @@ public:
         ARO::AnimSprite Legs;
         std::vector <sf::Vector2f> pointBody;
         std::vector <sf::Vector2f> pointLegs;
+        sf::Vector2f offset;
+        float speed = 10;
 
         void setAnimDomin(AnimDomin* a, bool b)
         {
@@ -84,10 +87,13 @@ public:
                 Legs.setAnimation(a), pointLegs = a->pointOrigin;
         }
 
-        void move(sf::Vector2f offset)
+        void move(sf::Vector2f a)
         {
-            Body.move(offset);
-            Legs.move(offset);
+            if(!(a.x == 0 || a.y == 0))
+                a*=(float)0.70710678118, std ::cout << "arek\n";
+            Body.move(a*speed);
+            Legs.move(a*speed);
+offset = sf::Vector2f(0,0);
         }
 
         void move(double y, double x)
@@ -109,19 +115,14 @@ public:
     };
     void loadMap()
     {
-        for (int i=0; i<mapa.getSize().y; i++)
+        for (int i=0; i<mapa.getSize().x; i++)
         {
-            for (int j=0; j<mapa.getSize().x; j++)
+            for (int j=0; j<mapa.getSize().y; j++)
             {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0))
                 {
                     tempWall.setPosition(i*tilesize,j*tilesize);
                     spWall.push_back(tempWall);
-                }
-                else if(mapa.getPixel(i,j)==sf::Color(128,32,0))
-                {
-                    tempDoor.setPosition(i*tilesize,j*tilesize);
-                    spDoor.push_back(tempDoor);
                 }
                 else
                 {
@@ -139,12 +140,13 @@ public:
                     tempEnemy.setPosition(i*tilesize,j*tilesize);
                     spEnemy.push_back(tempEnemy);
                 }
-                if(mapa.getPixel(i, j)==sf::Color(0, 0, 255))
+                if(0)
                 {
                     spWaterfall.setPosition(i*tilesize, j*tilesize);
                 }
             }
         }
+        std::cout << "success";
     }
 
     float distance(sf::Sprite spA, sf::Sprite spB)
@@ -154,10 +156,13 @@ public:
 
 
 
-    void handleCollision(Player* s1, std::vector <sf::Sprite>& walls) {
-        for (unsigned int i=0; i<walls.size(); ++i) {
+    void handleCollision(Player* s1, std::vector <sf::Sprite>& walls)
+    {
+        for (unsigned int i=0; i<walls.size(); ++i)
+        {
             sf::FloatRect intersection;
-            if (Collision::PixelPerfectTest(walls[i], s1->Legs) && s1->Legs.getGlobalBounds().intersects(walls[i].getGlobalBounds(), intersection)) {
+            if (Collision::PixelPerfectTest(walls[i], s1->Legs) && s1->Legs.getGlobalBounds().intersects(walls[i].getGlobalBounds(), intersection))
+            {
                 sf::Vector2f direction = walls[i].getPosition() - s1->Legs.getPosition();
                 sf::Vector2f offset;
                 // X collision
@@ -181,8 +186,8 @@ public:
         ///ANIMDOMIN
         texBody.loadFromFile("files/textures/rpg/test/body.png");
         texLegs.loadFromFile("files/textures/rpg/test/idle.png");
-        testBody.setSpriteSheet(&texBody, 15, 500);
-        testLegs.setSpriteSheet(&texLegs, 15, 150);
+        testBody.setSpriteSheet(&texBody, 15, 150);
+        testLegs.setSpriteSheet(&texLegs, 15, 300);
         testBody.setPoints();
         testLegs.setPoints();
         Tadeusz.setAnimDomin(&testBody,1);
@@ -191,10 +196,14 @@ public:
         Tadeusz.Legs.setScale(5,5);
 
 
-        texAttack.loadFromFile("files/textures/rpg/test/attack.png");
-        Attack.setSpriteSheet(&texAttack,30,250);
+texIdleSword.loadFromFile("files/textures/rpg/idleSword.png");
+        IdleSword.setSpriteSheet(&texIdleSword,28,100);
+        IdleSword.setPoints();
+
+        texAttack.loadFromFile("files/textures/rpg/attackDown.png");
+        Attack.setSpriteSheet(&texAttack,35,150);
         Attack.setPoints();
-        ///
+
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -203,6 +212,7 @@ public:
         texEnemy.loadFromFile("files/textures/rpg/enemyStand.png");
         tempEnemy.setTexture(texEnemy);
         tempEnemy.setOrigin(tempEnemy.getTextureRect().width*0.5, tempEnemy.getTextureRect().height*0.5);
+tempEnemy.setScale(5,5);
 
         texGrass.loadFromFile("files/textures/rpg/grass.png");
         tempGrass.setTexture(texGrass);
@@ -259,23 +269,23 @@ public:
 
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
-            Tadeusz.Legs.move(0,-10);
+            Tadeusz.offset+=sf::Vector2f(0,-1);
 
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
         {
-            Tadeusz.Legs.move(0,10);
+             Tadeusz.offset+=sf::Vector2f(0,1);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
-            Tadeusz.Legs.move(-10,0);
+             Tadeusz.offset+=sf::Vector2f(-1,0);
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
         {
-            Tadeusz.Legs.move(10,0);
+            Tadeusz.offset+=sf::Vector2f(1,0);
         }
-handleCollision(&Tadeusz, spWall);
-handleCollision(&Tadeusz, spEnemy);
+       // handleCollision(&Tadeusz, spWall);
+      //  handleCollision(&Tadeusz, spEnemy);
         /*     if((clock.getElapsedTime()-idleTime).asSeconds()>0.2)
                  if(spTadeusz.getAnimation()!=&Idle)
                      spTadeusz.setAnimation(&Idle); */
@@ -324,6 +334,7 @@ handleCollision(&Tadeusz, spEnemy);
         window->draw(spCrosshair);
 
 
+        Tadeusz.move(Tadeusz.offset);
         Tadeusz.Body.setPosition(
             Tadeusz.Legs.getPosition()+Tadeusz.pointLegs[Tadeusz.Legs.currentFrame]*Tadeusz.Legs.getScale().x-Tadeusz.Body.getScale().x*Tadeusz.pointBody[Tadeusz.Body.currentFrame]+sf::Vector2f(0,Tadeusz.Body.getScale().x));
         Tadeusz.draw(window);
@@ -353,6 +364,9 @@ protected:
 
     AnimDomin Attack;
     sf::Texture texAttack;
+
+    AnimDomin IdleSword;
+    sf::Texture texIdleSword;
 
     sf::Image mapa;
 
