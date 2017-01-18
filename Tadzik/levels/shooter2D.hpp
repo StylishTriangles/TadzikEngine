@@ -187,7 +187,7 @@ public:
         int maxPenetrating = 1;
         bool bouncy = false;
         int bounces = 2;
-        bool exploding = true;
+        bool exploding = false;
         bool friendly = true;
         float v = 5;
     };
@@ -302,19 +302,40 @@ public:
         SHOOTER2D* game;
     };
 
-    class Enemy: public MovingEntity {
+    class EnemyMaker {
     public:
-        Enemy(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) {
-            setPosition(p);
-            setTexture(*t);
-            setOrigin(getTextureRect().width/2, getTextureRect().height/2);
-            hitbox.setRadius(getGlobalBounds().width/2);
-            hitbox.setOrigin(getGlobalBounds().width/2, getGlobalBounds().height/2);
-            target = ME;
-            healthBar.setFillColor(sf::Color::Red);
-            healthBar.setSize(sf::Vector2f(getGlobalBounds().width, 5));
+        EnemyMaker() {};
+        EnemyMaker(sf::Texture* texture, sf::Texture* textureDead, MovingEntity* tar, SHOOTER2D* g) {
+            enemyTexture = texture;
+            deadTexture = textureDead;
+            target = tar;
             game = g;
         }
+        sf::Texture* enemyTexture;
+        sf::Texture* deadTexture;
+        MovingEntity* target;
+        SHOOTER2D* game;
+    };
+
+    class Enemy: public MovingEntity {
+    public:
+        Enemy(sf::Vector2f position, EnemyMaker EM) {
+            setPosition(position);
+            setTexture(*EM.enemyTexture);
+            Utils::setOriginInCenter(*this);
+            hitbox.setRadius(getGlobalBounds().width/2);
+            hitbox.setOrigin(getGlobalBounds().width/2, getGlobalBounds().height/2);
+            target = EM.target;
+            healthBar.setFillColor(sf::Color::Red);
+            healthBar.setSize(sf::Vector2f(getGlobalBounds().width, 5));
+            game = EM.game;
+            deadTexture = EM.deadTexture;
+        }
+
+        void setDeadTexture(sf::Texture* d) {
+            deadTexture = d;
+        }
+
         virtual void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
             setRotation(angle*180/M_PI);
@@ -329,18 +350,22 @@ public:
             else
                 destination = target->hitbox.getPosition();
         }
+
         virtual void onHit (Bullet* bullet) {
             health-=bullet->damage;
             velocity.x*=bullet->knockback;
             velocity.y*=bullet->knockback;
         }
+
         void setTarget (MovingEntity* ME) {
             target = ME;
         }
+
         void fixElements() {
             hitbox.setPosition(getPosition());
             healthBar.setPosition(sf::Vector2f(getGlobalBounds().left, getGlobalBounds().top-10));
         }
+
         virtual void findPath() {
             sf::Vector2f rd = target->hitbox.getPosition()-getPosition();
             sf::Vector2f sp;
@@ -422,6 +447,13 @@ public:
             }
         }
 
+        virtual void onKilled() {
+            setTexture(*deadTexture);
+            game->rMisc.draw(*this);
+            game->rMisc.display();
+            delete(this);
+        }
+
         float health = 100;
         float maxSpeed = 5;
         float damage = 10;
@@ -432,13 +464,14 @@ public:
         SHOOTER2D* game;
         sf::Vector2f destination;
         sf::RectangleShape healthBar;
+        sf::Texture* deadTexture;
     };
 
     class AIZombie: public Enemy {
     public:
-        AIZombie(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
+        AIZombie(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
             speed = 2;
-        };
+        }
         void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
             setRotation(angle*180/M_PI);
@@ -455,15 +488,15 @@ public:
 
     class AIGhost: public Enemy {
     public:
-        AIGhost(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
+        AIGhost(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
             speed = 1;
             m_flying = true;
-        };
+        }
     };
 
     class AIRunner: public Enemy {
     public:
-        AIRunner(sf::Vector2f p, sf::Texture* t, MovingEntity* ME, SHOOTER2D* g) : Enemy(p, t, ME, g) {
+        AIRunner(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
             speed = 4;
             health = 10;
         };
@@ -691,6 +724,10 @@ public:
         aExplosion.setAnimation(&animExplosion);
         aExplosion.setLooped(false);
         aExplosion.centerOrigin();
+
+        ZombieMaker = EnemyMaker(&texZombie, &texBlood, &TADZIK, this);
+        GhostMaker = EnemyMaker(&texGhost, &texBlood, &TADZIK, this);
+        RunnerMaker = EnemyMaker(&texRunner, &texBlood, &TADZIK, this);
     }
 
     void onSceneActivate() {
@@ -891,19 +928,15 @@ public:
                         vecBullets[j].maxPenetrating--;
                     }
                     else
-                        if (vecBullets[i].exploding) {
-                            aExplosion.setPosition(vecBullets[i].getPosition());
-                            vecEffects.push_back(aExplosion);
+                        if (vecBullets[j].exploding) {
+                            aExplosion.setPosition(vecBullets[j].getPosition());
+                            vecExplosions.push_back(aExplosion);
                         }
                         vecBullets.erase(vecBullets.begin()+j);
                     vecEnemies[i]->healthBar.setScale(vecEnemies[i]->health/100.0, 1);
                     if (vecEnemies[i]->health<=0) {
                         vecEnemies[i]->onDrop();
-                        spBlood.setPosition(vecEnemies[i]->getPosition());
-                        spBlood.setRotation(vecEnemies[i]->getRotation());
-                        rMisc.draw(spBlood);
-                        rMisc.display();
-                        delete vecEnemies[i];
+                        vecEnemies[i]->onKilled();
                         vecEnemies.erase(vecEnemies.begin()+i);
                         score++;
                         break;
@@ -920,15 +953,15 @@ public:
             sf::Image img;
             img = rTextureTmp.getTexture().copyToImage();
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
-                sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, 1260, 700));
+                sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, mapSize.x-10, mapSize.y-10));
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
                     if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255)) {
                         if (Utils::chance(0.75))
-                            vecEnemies.push_back(new AIZombie(sf::Vector2f(t), &texZombie, &TADZIK, this));
+                            vecEnemies.push_back(new AIZombie(sf::Vector2f(t), ZombieMaker));
                         else if (Utils::chance(0.33))
-                            vecEnemies.push_back(new AIGhost(sf::Vector2f(t), &texGhost, &TADZIK, this));
+                            vecEnemies.push_back(new AIGhost(sf::Vector2f(t), GhostMaker));
                         else
-                            vecEnemies.push_back(new AIRunner(sf::Vector2f(t), &texRunner, &TADZIK, this));
+                            vecEnemies.push_back(new AIRunner(sf::Vector2f(t), RunnerMaker));
                     }
             }
             waveClock.restart();
@@ -952,7 +985,7 @@ public:
         }
         else if (args.size()==2 && args[0] == "spawn") {
             for (int i=0; i<atoi(args[1].c_str()); i++)
-                vecEnemies.push_back(new AIZombie(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texZombie, &TADZIK, this));
+                vecEnemies.push_back(new AIZombie(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), ZombieMaker));
         }
         else if (args[0] == "killall") {
             for (unsigned int i = 0; i<vecEnemies.size(); i++)
@@ -989,7 +1022,7 @@ public:
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) TADZIK.health-=10;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) TADZIK.reload();
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), &texGhost, &TADZIK, this));
+            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
     }
 
     virtual void draw(double deltaTime) {
@@ -1081,7 +1114,7 @@ public:
                         else {
                             if (vecBullets[i].exploding) {
                                 aExplosion.setPosition(vecBullets[i].getPosition());
-                                vecEffects.push_back(aExplosion);
+                                vecExplosions.push_back(aExplosion);
                             }
                             vecBullets.erase(vecBullets.begin()+i);
                             break;
@@ -1120,14 +1153,21 @@ public:
         rGame.draw(sf::Sprite(rTextureTmp.getTexture()), sf::BlendMultiply);
         rGame.draw(sf::Sprite(texLines));
 
-        ///EFEKTY
-        for (int i=vecEffects.size()-1; i>=0; --i) {
-            vecEffects[i].update(deltaTime);
-            if (!vecEffects[i].shouldDestroy()) {
-                rGame.draw(vecEffects[i]);
+        ///EKSPLOZJE
+        for (int i=vecExplosions.size()-1; i>=0; --i) {
+            for (int j=vecEnemies.size()-1; j>=0; --j) {
+                if (Collision::PixelPerfectTest(*vecEnemies[j], vecExplosions[i])) {
+                    vecEnemies[j]->onDrop();
+                    vecEnemies[j]->onKilled();
+                    vecEnemies.erase(vecEnemies.begin()+j);
+                }
+            }
+            vecExplosions[i].update(deltaTime);
+            if (!vecExplosions[i].shouldDestroy()) {
+                rGame.draw(vecExplosions[i]);
             }
             else {
-                vecEffects.erase(vecEffects.begin()+i);
+                vecExplosions.erase(vecExplosions.begin()+i);
             }
         }
 
@@ -1208,7 +1248,11 @@ protected:
 
     Bullet tmpBullet;
 
-    std::vector <ARO::AnimSprite> vecEffects;
+    EnemyMaker ZombieMaker;
+    EnemyMaker GhostMaker;
+    EnemyMaker RunnerMaker;
+
+    std::vector <ARO::AnimSprite> vecExplosions;
 
     std::vector <lightSource> vecLights;
 
