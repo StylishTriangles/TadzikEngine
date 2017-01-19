@@ -33,15 +33,42 @@ public:
             healthBar.setPosition(10, 5);
             healthFrame.setPosition(10, 5);
             activeWeapon.setPosition(1150, 600);
+            frameTopLeft.setPoint(0, sf::Vector2f(0, 0));
+            frameTopLeft.setPoint(1, sf::Vector2f(120, 0));
+            frameTopLeft.setPoint(2, sf::Vector2f(90, 30));
+            frameTopLeft.setPoint(3, sf::Vector2f(0, 30));
+            frameTopLeft.setFillColor(sf::Color::Yellow);
+
+            frameTopRight.setPoint(0, sf::Vector2f(game->windowSize.x, 0));
+            frameTopRight.setPoint(1, sf::Vector2f(game->windowSize.x-120, 0));
+            frameTopRight.setPoint(2, sf::Vector2f(game->windowSize.x-90, 30));
+            frameTopRight.setPoint(3, sf::Vector2f(game->windowSize.x, 30));
+            frameTopRight.setFillColor(sf::Color::Yellow);
+
+            frameBotLeft.setPoint(0, sf::Vector2f(0, 0));
+            frameBotLeft.setPoint(1, sf::Vector2f(120, 0));
+            frameBotLeft.setPoint(2, sf::Vector2f(90, 30));
+            frameBotLeft.setPoint(3, sf::Vector2f(0, 30));
+            frameBotLeft.setFillColor(sf::Color::Yellow);
+
+            frameBotRight.setPoint(0, sf::Vector2f(game->windowSize.x, game->windowSize.y));
+            frameBotRight.setPoint(1, sf::Vector2f(game->windowSize.x-120, game->windowSize.y));
+            frameBotRight.setPoint(2, sf::Vector2f(game->windowSize.x-90, game->windowSize.y-30));
+            frameBotRight.setPoint(3, sf::Vector2f(game->windowSize.x, game->windowSize.y-30));
+            frameBotRight.setFillColor(sf::Color::Yellow);
         }
         sf::Sprite healthBar;
         sf::Sprite healthFrame;
-        sf::Sprite frame;
         sf::Sprite activeWeapon;
         sf::Text tScore;
         sf::Text tAmmo;
         sf::Text tAllAmmo;
         sf::Text tLights;
+
+        sf::ConvexShape frameTopLeft = sf::ConvexShape(4);
+        sf::ConvexShape frameTopRight = sf::ConvexShape(4);
+        sf::ConvexShape frameBotLeft = sf::ConvexShape(4);
+        sf::ConvexShape frameBotRight = sf::ConvexShape(4);
         void update() {
             tScore.setString(Utils::stringify(game->score));
             tAmmo.setString(Utils::stringify(game->TADZIK.weapons[game->TADZIK.currentWeapon].ammo));
@@ -53,7 +80,9 @@ public:
             draw();
         }
         void draw() {
-            game->window->draw(frame);
+            game->window->draw(frameTopLeft);
+            game->window->draw(frameTopRight);
+            game->window->draw(frameBotRight);
             game->window->draw(healthFrame);
             game->window->draw(healthBar);
             game->window->draw(tScore);
@@ -187,7 +216,7 @@ public:
         int maxPenetrating = 1;
         bool bouncy = false;
         int bounces = 2;
-        bool exploding = false;
+        bool exploding = true;
         bool friendly = true;
         float v = 5;
     };
@@ -694,10 +723,8 @@ public:
         rTextureTmp.display();
         texLines = rTextureTmp.getTexture();
 
-        texHud.loadFromFile("files/textures/shooter2D/hud.png");
         hud.healthBar.setTexture(texHealthBar);
         hud.healthFrame.setTexture(texHealthFrame);
-        hud.frame.setTexture(texHud);
         hud.setFont(&Common::Font::Days_Later, sf::Color::Black);
 
         texCrosshair.loadFromFile("files/textures/shooter2D/crosshair.png");
@@ -732,6 +759,7 @@ public:
 
     void onSceneActivate() {
         window->setMouseCursorVisible(false);
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         waveClock.restart();
     }
 
@@ -1213,7 +1241,6 @@ protected:
     sf::Texture texGhost;
     sf::Texture texRunner;
     sf::Texture texCrosshair;
-    sf::Texture texHud;
     sf::Texture texShadow;
     sf::Texture texPUPGiveHealth;
     sf::Texture texPUPGiveAmmo;
@@ -1240,7 +1267,7 @@ protected:
 
     sf::Vector2f viewOffset = {0, 0};
     sf::Vector2f mapSize;
-    sf::Vector2f windowSize = {1280, 720};
+    sf::Vector2f windowSize = sf::Vector2f(window->getSize());
 
     HUD hud = HUD(this);
 

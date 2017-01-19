@@ -110,10 +110,6 @@ public:
 
     virtual void onSceneLoadToMemory()
     {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf"))
-        {
-            std::cout << "cannot load font\n";
-        }
         object cube;
         std::vector <wall> wallie;
 
@@ -217,7 +213,6 @@ public:
         c.display();
     }
 protected:
-    sf::Font font;
     std::vector <sf::Vector3f> terrain;
     std::vector <object> world;
     Camera c;

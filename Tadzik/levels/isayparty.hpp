@@ -121,10 +121,6 @@ public:
         texArrowRight.loadFromFile("files/textures/isaydisco/arrow_right.png");
         texArrowDown.loadFromFile("files/textures/isaydisco/arrow_down.png");
 
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
-            std::cout << "cannot load font\n";
-        }
-
         vecTracks.resize(1);
         vecTracks[0] = Track("Da_Funk", "Daft Punk", 112);
 
@@ -168,7 +164,7 @@ public:
 
 
         dbgText.move(100, 0);       //martwe pixele ftw
-        dbgText.setFont(font);
+        dbgText.setFont(Common::Font::Comic_Sans);
 
         vecDiscoColors.push_back(sf::Color(64, 0, 77));
         vecDiscoColors.push_back(sf::Color(104, 0, 95));
@@ -321,7 +317,7 @@ public:
     void displayText(std::string str, int type){
         sf::Text txt;
         txt.setString(str);
-        txt.setFont(font);
+        txt.setFont(Common::Font::Comic_Sans);
         txt.setPosition(window->getSize().x*Utils::randFloat(0.1, 0.9), window->getSize().y*Utils::randFloat(0.4, 0.9));
         txt.setRotation(360.0 * Utils::randFloat(0.0, 1.0));
         double scale = Utils::randFloat(0.5, 0.75);
@@ -356,7 +352,7 @@ public:
             txt = "B";
         if(limb == LEG_RIGHT)
             txt = "M";
-        KeyText ks(txt, font, 1000, limb, tmpTime);
+        KeyText ks(txt, Common::Font::Comic_Sans, 1000, limb, tmpTime);
         ks.setColor(vecDiscoColors[rand()%vecDiscoColors.size()]);
         ks.setPosition(pos);
         vecKeyTexts.push_back(ks);
@@ -368,7 +364,6 @@ protected:
     double bpm=20;          //uderzenia na minute
     double tmpTime=0.0;     //w sekundach
     int radius = 120;       //promien klawiszy wokol tadzika
-    sf::Font font;
 
     std::vector<DanceStep> vecSteps;
     DanceStep* actStep = nullptr;

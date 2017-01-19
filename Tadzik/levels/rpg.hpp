@@ -29,9 +29,6 @@ public:
     }
 
     virtual void onSceneLoadToMemory() {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")) {
-            std::cout << "cannot load font\n";
-        }
         texTadeusz.loadFromFile("files/textures/universal/playerStand.png");
         spTadeusz.setTexture(texTadeusz);
         spTadeusz.setScale(5, 5);
@@ -65,7 +62,6 @@ public:
     }
 
 protected:
-    sf::Font font;
     sf::Texture texTadeusz;
     sf::Sprite spTadeusz;
     sf::Image mapa;

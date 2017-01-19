@@ -14,8 +14,9 @@ public:
     SceneManager(sf::RenderWindow* w)
     :window(w)
     {
-        fpsCounter.setFont(Common::Font::Comic_Sans);
-        fpsCounter.setOrigin(0, 40);
+        fpsCounter.setFont(Common::Font::Digital_7);
+        fpsCounter.setString("60");
+        fpsCounter.setOrigin(0, 30);
         fpsCounter.setPosition(0, window->getSize().y);
         fpsCounter.setColor(sf::Color::Green);
         //tadzikCMD = new TadzikCMD(this);
@@ -65,6 +66,7 @@ public:
             ImGui::Begin("Tadzik CMD");
             ImGui::PushItemWidth(200);
             bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::SetKeyboardFocusHere(0);
             ImGui::PopItemWidth();
             ImGui::End();
             if(textInputted){
