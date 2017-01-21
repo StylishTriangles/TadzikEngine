@@ -358,7 +358,7 @@ public:
         texColumn.setRepeated(true);
         tempColumn.setTexture(texColumn);
 
-        mapa.loadFromFile("files/maps/mario/map1.png");
+        mapa.loadFromFile("files/maps/mario/map2.png");
     }
 
     virtual void onSceneActivate() {

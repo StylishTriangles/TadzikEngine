@@ -126,12 +126,23 @@ namespace ARO {
         void update (double delta) {
             runTime+=delta;
             move(velocity);
-            if (runTime*playSpeed>animation->duration.asMilliseconds()) {
+            if (runTime*playSpeed > animation->duration.asMilliseconds()) {
                 runTime = 0;
                 currentFrame++;
                 if (currentFrame>=animation->frames) {
                     loops++;
                     currentFrame = 0;
+                    if (!m_looped)
+                        m_destroy = true;
+                }
+                setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
+            }
+            else if (runTime*playSpeed < -animation->duration.asMilliseconds()) {
+                runTime = 0;
+                currentFrame--;
+                if (currentFrame<0) {
+                    loops++;
+                    currentFrame = animation->frames-1;
                     if (!m_looped)
                         m_destroy = true;
                 }
@@ -159,6 +170,12 @@ namespace ARO {
         }
         void setPlaySpeed (float speed) {
             playSpeed = speed;
+            if (playSpeed<0) {
+                currentFrame = animation->frames-currentFrame;
+            }
+        }
+        void playBack() {
+            playSpeed = -playSpeed;
         }
         void centerOrigin() {
             setOrigin(getTextureRect().width/2, getTextureRect().height/2);
