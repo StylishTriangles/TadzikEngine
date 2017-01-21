@@ -122,25 +122,36 @@ namespace ARO {
         }
         bool isLooped() {return m_looped;};
         bool shouldDestroy() {return m_destroy;};
-        int currentSprite = 0;
+        int currentFrame = 0;
         void update (double delta) {
             runTime+=delta;
             move(velocity);
-            if (runTime*playSpeed>animation->duration.asMilliseconds()) {
+            if (runTime*playSpeed > animation->duration.asMilliseconds()) {
                 runTime = 0;
-                currentSprite++;
-                if (currentSprite>=animation->frames) {
+                currentFrame++;
+                if (currentFrame>=animation->frames) {
                     loops++;
-                    currentSprite = 0;
+                    currentFrame = 0;
                     if (!m_looped)
                         m_destroy = true;
                 }
-                setTextureRect(sf::IntRect(currentSprite*animation->width, 0, animation->width, animation->height));
+                setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
+            }
+            else if (runTime*playSpeed < -animation->duration.asMilliseconds()) {
+                runTime = 0;
+                currentFrame--;
+                if (currentFrame<0) {
+                    loops++;
+                    currentFrame = animation->frames-1;
+                    if (!m_looped)
+                        m_destroy = true;
+                }
+                setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
             }
         }
         void setAnimation(Anim* a) {
             animation = a;
-            currentSprite = 0;
+            currentFrame = 0;
             runTime = 0;
             setTexture(*(animation->spriteSheet));
             setTextureRect(sf::IntRect(0, 0, animation->width, animation->height));
@@ -159,9 +170,23 @@ namespace ARO {
         }
         void setPlaySpeed (float speed) {
             playSpeed = speed;
+            if (playSpeed<0) {
+                currentFrame = animation->frames-currentFrame;
+            }
+        }
+        void playBack() {
+            playSpeed = -playSpeed;
         }
         void centerOrigin() {
             setOrigin(getTextureRect().width/2, getTextureRect().height/2);
+        }
+        Anim* getAnim() {
+            return animation;
+        }
+        void reset() {
+            runTime = 0;
+            loops = 0;
+            velocity = sf::Vector2f(0, 0);
         }
     protected:
         bool m_destroy = false;
