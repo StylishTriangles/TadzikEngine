@@ -231,7 +231,7 @@ public:
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-            if(Tadeusz.Body.getAnim()!=&Attack) Tadeusz.setAnimDomin(&Attack,1), Tadeusz.Body.setLoops(0);
+            if(Tadeusz.Body.getAnim()!=&Attack) Tadeusz.setAnimDomin(&Attack,1), Tadeusz.Body.reset();
 
         if(Tadeusz.Body.getAnim()==&Attack)
             if(Tadeusz.Body.getLoops()>0) Tadeusz.setAnimDomin(&IdleSword,1);

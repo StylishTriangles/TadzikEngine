@@ -163,6 +163,14 @@ namespace ARO {
         void centerOrigin() {
             setOrigin(getTextureRect().width/2, getTextureRect().height/2);
         }
+        Anim* getAnim() {
+            return animation;
+        }
+        void reset() {
+            runTime = 0;
+            loops = 0;
+            velocity = sf::Vector2f(0, 0);
+        }
     protected:
         bool m_destroy = false;
         bool m_looped = true;
