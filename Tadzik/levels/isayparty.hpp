@@ -225,6 +225,10 @@ public:
         spriteDaft2.sprite.setPosition(actSprite.sprite.getPosition());
         spriteDaft1.sprite.move(-200, 0);
         spriteDaft2.sprite.move(-300, 0);
+
+        texBkgrnd.loadFromFile("files/textures/isaydisco/background.png");
+        background.setTexture(texBkgrnd);
+        background.setScale(5,5);
     }
 
     void deliverEvent(sf::Event& event){
@@ -291,6 +295,8 @@ public:
         }
 
         window->clear(sf::Color::Black);
+        window->draw(background);
+
         for(auto txt: vecText){
             window->draw(txt.text);
         }
@@ -451,6 +457,9 @@ protected:
     AnimatedSprite actSprite;
     AnimatedSprite spriteDaft1;
     AnimatedSprite spriteDaft2;
+
+    sf::Texture texBkgrnd;
+    sf::Sprite background;
 };
 
 #endif // ISAYPARTY_HPP
