@@ -24,14 +24,15 @@ public:
     public:
         HUD(SHOOTER2D* g) {
             game = g;
-            tAmmo.setPosition(1200, 690);
-            tAllAmmo.setPosition(1250, 690);
-            tScore.setPosition(1250, 0);
-            tLights.setPosition(1150, 695);
+            tAmmo.setPosition(game->windowSize.x-80, game->windowSize.y-30);
+            tAllAmmo.setPosition(game->windowSize.x-30, game->windowSize.y-30);
+            tScore.setPosition(game->windowSize.x-30, 0);
+            tLights.setPosition(game->windowSize.x-130, game->windowSize.y-25);
             tLights.setScale(0.75, 0.75);
             healthBar.setPosition(10, 5);
             healthFrame.setPosition(10, 5);
-            activeWeapon.setPosition(1150, 600);
+            activeWeapon.setPosition(game->windowSize.x-130, game->windowSize.y-120);
+
             frameTopLeft.setPoint(0, sf::Vector2f(0, 0));
             frameTopLeft.setPoint(1, sf::Vector2f(120, 0));
             frameTopLeft.setPoint(2, sf::Vector2f(90, 30));
@@ -215,7 +216,7 @@ public:
         int maxPenetrating = 1;
         bool bouncy = false;
         int bounces = 2;
-        bool exploding = true;
+        bool exploding = false;
         bool friendly = true;
         float v = 5;
     };
@@ -1053,6 +1054,7 @@ public:
     }
 
     virtual void draw(double deltaTime) {
+        window->clear();
         ///VIEW HANDLING
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
         int scrollArea = 200;
