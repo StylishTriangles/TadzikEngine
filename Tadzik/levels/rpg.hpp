@@ -148,8 +148,8 @@ public:
         ///ANIMDOMIN
         texBody.loadFromFile("files/textures/rpg/test/body.png");
         texLegs.loadFromFile("files/textures/rpg/test/idle.png");
-        testBody.setSpriteSheet(&texBody, 15, 150);
-        testLegs.setSpriteSheet(&texLegs, 15, 300);
+        testBody.setSpriteSheet(&texBody, 15, sf::milliseconds(150));
+        testLegs.setSpriteSheet(&texLegs, 15, sf::milliseconds(300));
         testBody.setPoints();
         testLegs.setPoints();
         Tadeusz.setAnimDomin(&testBody,1);
@@ -158,12 +158,12 @@ public:
         Tadeusz.Legs.setScale(5,5);
 
         texIdleSword.loadFromFile("files/textures/rpg/idleSword.png");
-        IdleSword.setSpriteSheet(&texIdleSword,28,100);
+        IdleSword.setSpriteSheet(&texIdleSword,28,sf::milliseconds(100));
         IdleSword.setPoints();
         Tadeusz.setAnimDomin(&IdleSword,1);
 
         texAttack.loadFromFile("files/textures/rpg/attackDown.png");
-        Attack.setSpriteSheet(&texAttack,35,70);
+        Attack.setSpriteSheet(&texAttack,35,sf::milliseconds(70));
         Attack.setPoints();
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");

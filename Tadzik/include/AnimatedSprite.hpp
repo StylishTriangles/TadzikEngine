@@ -91,24 +91,44 @@ namespace ARO {
     class Anim {
     public:
         Anim () {};
-        Anim (sf::Texture* SpriteSheet, int frameWidth, int dur) {
+        Anim (sf::Texture* SpriteSheet, int frameWidth, sf::Time dur) {
             spriteSheet = SpriteSheet;
             width = frameWidth;
             frames = spriteSheet->getSize().x/width;
             height = spriteSheet->getSize().y;
-            duration = sf::milliseconds(dur);
+            frameDurations.resize(frames, dur);
+        }
+        Anim (sf::Texture* SpriteSheet, int frameWidth, std::vector <sf::Time> framesDur) {
+            spriteSheet = SpriteSheet;
+            width = frameWidth;
+            frames = spriteSheet->getSize().x/width;
+            height = spriteSheet->getSize().y;
+            frameDurations = framesDur;
         }
         sf::Texture* spriteSheet;
-        sf::Time duration = sf::seconds(2);
+        std::vector <sf::Time> frameDurations;
         int frames;
         int width;
         int height;
-        void setSpriteSheet (sf::Texture* t, int frameWidth, int dur) {
+        void setSpriteSheet (sf::Texture* t, int frameWidth, sf::Time dur) {
             spriteSheet = t;
             width = frameWidth;
             frames = spriteSheet->getSize().x/width;
             height = spriteSheet->getSize().y;
-            duration = sf::milliseconds(dur);
+            frameDurations.resize(frames, dur);
+        }
+        void setSpriteSheet (sf::Texture* t, int frameWidth, std::vector <sf::Time> framesDur) {
+            spriteSheet = t;
+            width = frameWidth;
+            frames = spriteSheet->getSize().x/width;
+            height = spriteSheet->getSize().y;
+            frameDurations = framesDur;
+        }
+        void setDurationVector(std::vector <sf::Time> framesDur) {
+            frameDurations = framesDur;
+        }
+        void setFrameDuration(int frame, sf::Time t) {
+            frameDurations[frame]=t;
         }
     };
 
@@ -126,7 +146,7 @@ namespace ARO {
         void update (double delta) {
             runTime+=delta;
             move(velocity);
-            if (runTime*playSpeed > animation->duration.asMilliseconds()) {
+            if (runTime*playSpeed > animation->frameDurations[currentFrame].asMilliseconds()) {
                 runTime = 0;
                 currentFrame++;
                 if (currentFrame>=animation->frames) {
@@ -137,7 +157,7 @@ namespace ARO {
                 }
                 setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
             }
-            else if (runTime*playSpeed < -animation->duration.asMilliseconds()) {
+            else if (runTime*playSpeed < -animation->frameDurations[currentFrame].asMilliseconds()) {
                 runTime = 0;
                 currentFrame--;
                 if (currentFrame<0) {

@@ -217,7 +217,7 @@ public:
         int maxPenetrating = 1;
         bool bouncy = false;
         int bounces = 2;
-        bool exploding = false;
+        bool exploding = true;
         bool friendly = true;
         float v = 5;
     };
@@ -748,7 +748,7 @@ public:
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
 
         spsExplosion.loadFromFile("files/textures/shooter2D/spsExplosion.png");
-        animExplosion.setSpriteSheet(&spsExplosion, 134, 10);
+        animExplosion.setSpriteSheet(&spsExplosion, 134, sf::milliseconds(10));
         aExplosion.setAnimation(&animExplosion);
         aExplosion.setLooped(false);
         aExplosion.centerOrigin();
