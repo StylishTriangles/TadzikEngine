@@ -11,7 +11,6 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
-#include <cmath>
 #include <fstream>
 
 
@@ -806,7 +805,7 @@ public:
                             }
                             if (d==0) {
                                 if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x, on.y-1) == objectColor) {
-                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    if (d!=dPrev && std::abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
                                     on.x++;
                                     did = true;
                                     t[on.x][on.y] = 1;
@@ -814,7 +813,7 @@ public:
                             }
                             else if (d==1) {
                                 if (mapa.getPixel(on.x, on.y) == objectColor || mapa.getPixel(on.x-1, on.y) == objectColor) {
-                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    if (d!=dPrev && std::abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
                                     on.y++;
                                     did = true;
                                     t[on.x][on.y] = 1;
@@ -822,7 +821,7 @@ public:
                             }
                             else if (d==2) {
                                 if (mapa.getPixel(on.x-1, on.y) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
-                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    if (d!=dPrev && std::abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
                                     on.x--;
                                     did = true;
                                     t[on.x][on.y] = 1;
@@ -830,7 +829,7 @@ public:
                             }
                             else if (d==3) {
                                 if (mapa.getPixel(on.x, on.y-1) == objectColor || mapa.getPixel(on.x-1, on.y-1) == objectColor) {
-                                    if (d!=dPrev && abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
+                                    if (d!=dPrev && std::abs(d-dPrev)!=2) tmpWall.points.push_back(sf::Vector2f(on.x*tileSize, on.y*tileSize));
                                     on.y--;
                                     did = true;
                                     t[on.x][on.y] = 1;
@@ -892,13 +891,13 @@ public:
                 sf::Vector2f direction = walls[i].getPosition() - s1.getPosition();
                 sf::Vector2f offset;
                 // X collision
-                if (abs(direction.x) > abs(direction.y))
+                if (std::abs(direction.x) > std::abs(direction.y))
                     offset.x = ((direction.x<0)?-1:1)*intersection.width;
                 // Y collision
-                if (abs(direction.x) < abs(direction.y))
+                if (std::abs(direction.x) < std::abs(direction.y))
                     offset.y = ((direction.y<0)?-1:1)*intersection.height;
-                s1.velocity.x -= offset.x * abs(offset.x)/50.0f;
-                s1.velocity.y -= offset.y * abs(offset.y)/50.0f;
+                s1.velocity.x -= offset.x * std::abs(offset.x)/50.0f;
+                s1.velocity.y -= offset.y * std::abs(offset.y)/50.0f;
             }
         }
     }

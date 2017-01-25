@@ -105,7 +105,7 @@ public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-        eyeDistance(-10), terrainSize(150)
+        eyeDistance(-10), terrainSize(5000)
     {}
 
     virtual void onSceneLoadToMemory()

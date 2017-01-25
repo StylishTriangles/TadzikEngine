@@ -106,8 +106,8 @@ public:
         isStanding = false;
         isJumping = true;
         speedY=-speedY;
-        speedY-=abs(speedX);
-        if (abs(speedY)>27) {
+        speedY-=std::abs(speedX);
+        if (std::abs(speedY)>27) {
             if (!derpMode) spTadzik.sprite.setOrigin(spTadzik.sprite.getTextureRect().width/2,
                                                      spTadzik.sprite.getTextureRect().height/2);
             spTadzik.setAnimation(&TadzikRoll);
@@ -115,7 +115,7 @@ public:
         }
         else if (!isSuperman) spTadzik.setAnimation(&TadzikJump);
         else spTadzik.setAnimation(&TadzikJumpSuper);
-        if (abs(speedY)<20) speedY = -20;
+        if (std::abs(speedY)<20) speedY = -20;
     }
     void flip() {
         if (speedX!=0) spTadzik.sprite.setScale(-spTadzik.sprite.getScale().x, spTadzik.sprite.getScale().y);
@@ -131,7 +131,7 @@ public:
         background2.setPosition(0, -0.99*window->getSize().y);
         spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
                                     window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
-        spTadzik.sprite.setScale(abs(spTadzik.sprite.getScale().x), spTadzik.sprite.getScale().y);
+        spTadzik.sprite.setScale(std::abs(spTadzik.sprite.getScale().x), spTadzik.sprite.getScale().y);
 
         platforms.clear();
         effects.clear();
@@ -193,11 +193,11 @@ public:
 
         //przypadki
         if (isStanding) {
-            if (abs(speedX)<0.001 && activeAnim!=0) {
+            if (std::abs(speedX)<0.001 && activeAnim!=0) {
                 spTadzik.setAnimation(&TadzikStand);
                 activeAnim = 0;
             }
-            else if (abs(speedX)>0.001 && activeAnim!=1) {
+            else if (std::abs(speedX)>0.001 && activeAnim!=1) {
                 spTadzik.setAnimation(&TadzikRun);
                 activeAnim = 1;
             }
@@ -302,7 +302,7 @@ public:
         //glupoty
         spTadzik.sprite.move(speedX, 0);
         speedX*=(1-airResistance);
-        spTadzik.update(abs(speedX)*deltaTime);
+        spTadzik.update(std::abs(speedX)*deltaTime);
         if (score>highScore) highScore=score;
         textScore.setString(Utils::stringify(highScore/10));
 

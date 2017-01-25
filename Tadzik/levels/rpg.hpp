@@ -119,10 +119,10 @@ public:
                 sf::Vector2f direction = walls[i].getPosition() - s1->Legs.getPosition();
                 sf::Vector2f offset;
                 // X collision
-                if (abs(direction.x) > abs(direction.y))
+                if (std::abs(direction.x) > std::abs(direction.y))
                     offset.x = ((direction.x<0)?-1:1)*intersection.width;
                 // Y collision
-                if (abs(direction.x) < abs(direction.y))
+                if (std::abs(direction.x) < std::abs(direction.y))
                     offset.y = ((direction.y<0)?-1:1)*intersection.height;
                 s1->move(offset);
             }
@@ -135,9 +135,9 @@ public:
 
         ///ANIMDOMIN
         texBody.loadFromFile("files/textures/rpg/test/body.png");
-        texLegs.loadFromFile("files/textures/rpg/test/playerRun1.png");
-        testBody.setSpriteSheet(&texBody, 15, 150);
-        testLegs.setSpriteSheet(&texLegs, 26, 300);
+        texLegs.loadFromFile("files/textures/rpg/test/idle.png");
+        testBody.setSpriteSheet(&texBody, 15, 600);
+        testLegs.setSpriteSheet(&texLegs, 15, 300);
         testBody.setPoints();
         testLegs.setPoints();
         Player.setAnimDomin(&testBody,1);
@@ -146,7 +146,7 @@ public:
         Player.Legs.setScale(5,5);
 
         texIdleSword.loadFromFile("files/textures/rpg/idleSword.png");
-        IdleSword.setSpriteSheet(&texIdleSword,28,100);
+        IdleSword.setSpriteSheet(&texIdleSword,28,600);
         IdleSword.setPoints();
         Player.setAnimDomin(&IdleSword,1);
 

@@ -10,7 +10,6 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
-#include <cmath>
 
 class MARIO;
 
@@ -156,7 +155,7 @@ public:
 
         }
         void flipSprite() {
-            sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(velocity.x), sprite.getScale().y);
+            sprite.setScale(std::abs(sprite.getScale().x)*Utils::sgn(velocity.x), sprite.getScale().y);
         }
         virtual void updateEntity() {
             velocity.y+=0.5;
@@ -225,10 +224,10 @@ public:
             changeAnimation(JUMP);
         }
         void updateAnimations() {
-            if (abs(velocity.x)<0.1 && isStanding && current!=STAND) {
+            if (std::abs(velocity.x)<0.1 && isStanding && current!=STAND) {
                 changeAnimation(STAND);
             }
-            if (abs(velocity.x)>0.1 && isStanding && current!=RUN) {
+            if (std::abs(velocity.x)>0.1 && isStanding && current!=RUN) {
                 changeAnimation(RUN);
             }
         }
@@ -516,12 +515,12 @@ public:
     virtual void draw(double deltaTime) {
         //przepisywanie z poprzedniej klatki
         spTadzik.updatePrev();
-        if (!spTadzik.isDead) spTadzik.update(abs(spTadzik.velocity.x)*deltaTime);
+        if (!spTadzik.isDead) spTadzik.update(std::abs(spTadzik.velocity.x)*deltaTime);
 
         for (unsigned int i=0; i<vecSnekes.size(); i++) {
             if (isActive(vecSnekes[i].sprite, 1.1)) {
                 vecSnekes[i].updatePrev();
-                vecSnekes[i].update(abs(vecSnekes[i].velocity.x)*deltaTime);
+                vecSnekes[i].update(std::abs(vecSnekes[i].velocity.x)*deltaTime);
             }
         }
 
@@ -600,7 +599,7 @@ public:
         for (int i=breakable.size()-1; i>=0; i--) {
             if (manageCollision(spTadzik, breakable[i])) {
                 if (closestBreakable==-1) closestBreakable = i;
-                else if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(breakable[i].center().x-spTadzik.sprite.getPosition().x))
+                else if (std::abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>std::abs(breakable[i].center().x-spTadzik.sprite.getPosition().x))
                     closestBreakable = i;
             }
         }
@@ -609,14 +608,14 @@ public:
         for (int i=powerupBlocks.size()-1; i>=0; i--) {
             if (manageCollision(spTadzik, powerupBlocks[i])) {
                 if (closestQuestionBlock==-1) closestQuestionBlock = i;
-                else if (abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
+                else if (std::abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>std::abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
                     closestQuestionBlock = i;
             }
         if (spTadzik.powerLevel == 0) closestBreakable = -1;
         }
 
         if (closestBreakable != -1 && closestQuestionBlock != -1) {
-            if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
+            if (std::abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>std::abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
                 closestBreakable = -1;
             }
             else {
@@ -699,7 +698,7 @@ public:
                             else {
                                 spTadzik.powerLevel--;
                                 speedX = -3*speedX;
-                                speedY = - abs(speedY);
+                                speedY = - std::abs(speedY);
                                 spTadzik.loadAnimations(animTadzikLVL1);
                                 spTadzik.changeAnimation(spTadzik.current);
                                 spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
