@@ -747,7 +747,7 @@ public:
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
 
         spsExplosion.loadFromFile("files/textures/shooter2D/spsExplosion.png");
-        animExplosion.setSpriteSheet(&spsExplosion, 134, 10);
+        animExplosion.setSpriteSheet(&spsExplosion, 134, sf::milliseconds(10));
         aExplosion.setAnimation(&animExplosion);
         aExplosion.setLooped(false);
         aExplosion.centerOrigin();
