@@ -54,7 +54,7 @@ public:
 
         spsExplosion.loadFromFile("files/textures/levelselect/explosion.png");
 
-        explosion.setSpriteSheet(&spsExplosion, 134, 50);
+        explosion.setSpriteSheet(&spsExplosion, 134, sf::milliseconds(50));
 
         test.setAnimation(&explosion);
         test.setVelocity(5, 5);

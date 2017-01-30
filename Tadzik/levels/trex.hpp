@@ -47,11 +47,7 @@ public:
         tmp.loadFromFile("files/textures/trex/cloud0.png"), texCloud.push_back(tmp);
         tmp.loadFromFile("files/textures/trex/cloud1.png"), texCloud.push_back(tmp);
 
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
-            std::cout << "cannot load font\n";
-        }
-
-        textScore.setFont(font);
+        textScore.setFont(Common::Font::Carnevalee_Freakshow);
 
         animTadzikRun.addFrame(AnimationFrame(&animRunTexture1, 150));
         animTadzikRun.addFrame(AnimationFrame(&animRunTexture2, 150));
@@ -281,7 +277,6 @@ protected:
     bool gameOver=false;
     bool quickFall=false;
 
-    sf::Font font;
     sf::Text textScore;
 
     int minObstacleInterval = 20, maxObstacleInterval = 100, lastObstacle = 0;

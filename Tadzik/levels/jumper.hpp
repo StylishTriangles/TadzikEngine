@@ -45,10 +45,7 @@ public:
     {}
 
     virtual void onSceneLoadToMemory() {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
-            std::cout << "cannot load font\n";
-        }
-        textScore.setFont(font);
+        textScore.setFont(Common::Font::Comic_Sans);
 
         texBackground.loadFromFile("files/textures/jumper/background.png");
         background1.setTexture(texBackground);
@@ -354,8 +351,6 @@ protected:
     sf::Texture texPlayerFall;
 
     sf::Text textScore;
-
-    sf::Font font;
 
     sf::Sprite background1;
     sf::Sprite background2;

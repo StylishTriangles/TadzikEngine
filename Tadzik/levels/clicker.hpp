@@ -4,6 +4,7 @@
 #include "../include/Scene.hpp"
 #include "../include/AnimatedSprite.hpp"
 #include "../include/Utils.hpp"
+#include "../include/Common.hpp"
 
 #include <string>
 #include <vector>
@@ -150,9 +151,6 @@ public:
     };
 
     virtual void onSceneLoadToMemory() {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf")){
-            std::cout << "cannot load font\n";
-        }
         texBackground.loadFromFile("files/textures/clicker/background.png");
         background.setTexture(texBackground);
         background.setScale((float)window->getSize().x/(float)background.getTextureRect().width,
@@ -186,17 +184,17 @@ public:
             vec[i].background.setScale(((double)window->getSize().x*2/3)/(double)(vec[i].background.getTextureRect().width) *0.99, 1);
             vec[i].setPosition(window->getSize().x/3,
                                window->getSize().y/8*(i+2)-vec[i].background.getTextureRect().height/2);
-            vec[i].textCost.setFont(font);
-            vec[i].textAmount.setFont(font);
-            vec[i].producing.setFont(font);
-            vec[i].incomePerSecond.setFont(font);
-            vec[i].perSecond.setFont(font);
+            vec[i].textCost.setFont(Common::Font::Carnevalee_Freakshow);
+            vec[i].textAmount.setFont(Common::Font::Carnevalee_Freakshow);
+            vec[i].producing.setFont(Common::Font::Carnevalee_Freakshow);
+            vec[i].incomePerSecond.setFont(Common::Font::Carnevalee_Freakshow);
+            vec[i].perSecond.setFont(Common::Font::Carnevalee_Freakshow);
 
         }
-        mainTitle.setFont(font);
-        textScore.setFont(font);
-        perSecond.setFont(font);
-        temp.setFont(font);
+        mainTitle.setFont(Common::Font::Carnevalee_Freakshow);
+        textScore.setFont(Common::Font::Carnevalee_Freakshow);
+        perSecond.setFont(Common::Font::Carnevalee_Freakshow);
+        temp.setFont(Common::Font::Carnevalee_Freakshow);
 
         mainTitle.setString("Tadzik's sausage stand");
         mainTitle.setPosition(0, 0);
@@ -313,7 +311,6 @@ public:
     }
 
 protected:
-    sf::Font font;
     sf::Text textScore;
     sf::Text perSecond;
     sf::Text mainTitle;

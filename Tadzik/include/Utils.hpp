@@ -24,6 +24,7 @@ bool chance(float c);
 double getAngle (sf::Vector2f p1, sf::Vector2f p2);
 float getMagnitude(sf::Vector2f p1, sf::Vector2f p2);
 sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d);
+void normalize(sf::Vector2f &v);
 
 }
 
