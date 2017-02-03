@@ -128,15 +128,17 @@ protected:
     bool rightSide(sf::Vector2f& line1, sf::Vector2f& line2, sf::Vector2f& point);
     bool planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
     float dotSize(float dot, sf::Vector3f vec);
+    std::string cmdOutput;
 };
 
 class SYNTH3D: public Scene
 {
 public:
+    virtual std::string printToConsole();
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-        eyeDistance(-10), terrainSize(50)
+        eyeDistance(-10), terrainSize(50), debug(0)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -211,6 +213,8 @@ protected:
     void loadMap(std::string path);
     void OptLines();
     void OptDots();
+    bool debug;
+    std::string cmdOutput;
 };
 
 void SYNTH3D::loadMap(std::string path)
@@ -449,6 +453,11 @@ void SYNTH3D::OptDots()
                     if(world[i].OptAllowed and world[i].wallie[j].OptAllowed)
                         world[i].wallie[j].dotDraw[k] = true;
                 }
+}
+
+std::string SYNTH3D::printToConsole()
+{
+    return cmdOutput;
 }
 
 Camera::Camera(SYNTH3D* parent):
@@ -1257,7 +1266,7 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
             if(i!=j and
                wallIntersect(tempOrder[i], tempOrder[j]) and
                wallSortingAlgorythm(tempOrder[i], tempOrder[j]) and
-               !wallSortingAlgorythm(tempOrder[j], tempOrder[i])
+                !wallSortingAlgorythm(tempOrder[j], tempOrder[i])
                )
             {
                 temp.push_back(j);
@@ -1330,6 +1339,10 @@ void Camera::wallSort()
 
 void Camera::display()
 {
+    std::string s;
+    s += "First ever testing";
+    s += "\nDone good";
+    p->cmdOutput = s;
     calcAngle();
     calcTerrain();
     wallSort();

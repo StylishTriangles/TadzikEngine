@@ -5,6 +5,7 @@
 #include "Utils.hpp"
 #include "Common.hpp"
 
+#include <stdlib.h>
 #include <unordered_map>
 #include <string>
 #include <iostream>
@@ -17,7 +18,7 @@ public:
         fpsCounter.setFont(Common::Font::Digital_7);
         fpsCounter.setString("60");
         fpsCounter.setOrigin(0, 30);
-        fpsCounter.setPosition(0, window->getSize().y);
+        fpsCounter.setPosition(20, window->getSize().y - 10);
         fpsCounter.setColor(sf::Color::Green);
         //tadzikCMD = new TadzikCMD(this);
     }
@@ -62,11 +63,19 @@ public:
     void runSceneFrame(double delta){
         actScene->draw(delta);
         if(cmdEnabled){
-            ImGui::SetNextWindowPos(sf::Vector2f(0,0));
+            ImGui::SetNextWindowPos(sf::Vector2f(20,10));
             ImGui::Begin("Tadzik CMD");
+
+            if(actScene->printToConsole().size() != 0)
+                ImGui::Text(actScene->printToConsole().c_str());
             ImGui::PushItemWidth(200);
             bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
-            ImGui::SetKeyboardFocusHere(0);
+            if(cmdJustToggled)
+            {
+                ImGui::SetWindowSize(cmdWindowSize);
+                ImGui::SetKeyboardFocusHere(0);
+                cmdJustToggled = false;
+            }
             ImGui::PopItemWidth();
             ImGui::End();
             if(textInputted){
@@ -81,6 +90,7 @@ public:
     }
     void toogleCMD(){
         cmdEnabled = !cmdEnabled;
+        cmdJustToggled = true;
     }
     std::vector<std::string> eval(){
         std::string cmd = std::string(cmdBuffer);
@@ -114,6 +124,10 @@ public:
         if(v.size()==1 && v[0]=="fps") {
             showFps=!showFps;
         }
+        if(v.size()==3 && v[0]=="resize"){
+            cmdWindowSize.x = atoi(v[1].c_str());
+            cmdWindowSize.y = atoi(v[2].c_str());
+        }
         return false;
     }
 
@@ -138,7 +152,9 @@ private:
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
+    bool cmdJustToggled=false;
     char cmdBuffer[1024]={};
+    sf::Vector2f cmdWindowSize = sf::Vector2f(250, 70);
 
     sf::Text fpsCounter;
     bool showFps = true;

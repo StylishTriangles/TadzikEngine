@@ -41,10 +41,10 @@ int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Tadzik", sf::Style::Fullscreen, settings);
-    window.setFramerateLimit(60);
+    sf::RenderWindow window(sf::VideoMode(1280, 960), "Tadzik", sf::Style::Fullscreen, settings);
+    window.setFramerateLimit(120);
     window.setKeyRepeatEnabled(false);
-    //window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
     //sceneManager.registerScene<TREX>("TREX", &window);

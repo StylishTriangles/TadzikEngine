@@ -110,4 +110,6 @@ void normalize(sf::Vector2f &v) {
     v = sf::Vector2f(v.x/length, v.y/length);
 }
 
+
+
 }

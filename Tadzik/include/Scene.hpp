@@ -23,6 +23,7 @@ public:
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
     virtual bool onConsoleUpdate(std::vector<std::string> args){}
+    virtual std::string printToConsole(){std::string s; return s;}
 
     std::string getName(){
         return name;
