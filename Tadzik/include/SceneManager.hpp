@@ -65,14 +65,17 @@ public:
         if(cmdEnabled){
             ImGui::SetNextWindowPos(sf::Vector2f(20,10));
             ImGui::Begin("Tadzik CMD");
-
             if(actScene->printToConsole().size() != 0)
                 ImGui::Text(actScene->printToConsole().c_str());
             ImGui::PushItemWidth(200);
             bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
-            if(cmdJustToggled)
+            if(cmdJustResized)
             {
                 ImGui::SetWindowSize(cmdWindowSize);
+                cmdJustResized = false;
+            }
+            if(cmdJustToggled)
+            {
                 ImGui::SetKeyboardFocusHere(0);
                 cmdJustToggled = false;
             }
@@ -127,6 +130,7 @@ public:
         if(v.size()==3 && v[0]=="resize"){
             cmdWindowSize.x = atoi(v[1].c_str());
             cmdWindowSize.y = atoi(v[2].c_str());
+            cmdJustResized = true;
         }
         return false;
     }
@@ -153,6 +157,7 @@ private:
     sf::RenderWindow* window = nullptr;
     bool cmdEnabled=false;
     bool cmdJustToggled=false;
+    bool cmdJustResized=false;
     char cmdBuffer[1024]={};
     sf::Vector2f cmdWindowSize = sf::Vector2f(250, 70);
 

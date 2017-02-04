@@ -84,12 +84,14 @@ public:
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
     void update();
+    void compare(wall* wallie1, wall* wallie2);
 protected:
     std::vector <sf::Vector2f> halfDotBegin;
     std::vector <sf::Vector2f> circleDefExample;
     std::vector <wall*> wallOrder;
     std::vector <sf::Vertex> quadArray;
     std::vector <sf::Vertex> debugArray;
+    std::vector <sf::Text> textArray;
     std::vector <sf::Vector3f> spot3d;
     std::vector <sf::Vector3f> spot2d;
     std::vector <sf::Vector2f> wallToPoly(wall* wallie);
@@ -128,12 +130,14 @@ protected:
     bool rightSide(sf::Vector2f& line1, sf::Vector2f& line2, sf::Vector2f& point);
     bool planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
     float dotSize(float dot, sf::Vector3f vec);
+    void identifyWalls(std::vector <wall*> wallie);
     std::string cmdOutput;
 };
 
 class SYNTH3D: public Scene
 {
 public:
+    virtual bool onConsoleUpdate(std::vector<std::string> args);
     virtual std::string printToConsole();
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
@@ -143,13 +147,18 @@ public:
 
     virtual void onSceneLoadToMemory()
     {
-        if (!font.loadFromFile("files/Carnevalee_Freakshow.ttf"))
+        if (!font.loadFromFile("files/fonts/Carnevalee_Freakshow.ttf"))
         {
             std::cout << "cannot load font\n";
         }
 
         //loadMap("cubeOnSurface");
+        /**
         loadMap("oblivion");
+        cameraPos = {210, 144, 1092};
+        cameraAngle = {-6, -137, 0};
+        */
+        loadMap("catOnSurface");
 
         OptLines();
         OptDots();
@@ -158,6 +167,7 @@ public:
     virtual void onSceneActivate() {}
     virtual void draw(double dt)
     {
+        cmdOutput.clear();
         float movementSpeed = 2;
         float cameraRotationSpeed = 1;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
@@ -196,6 +206,7 @@ public:
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             eyeDistance-=0.1;
 
+        showInfo();
         c.setPos(cameraPos);
         c.setAngle(cameraAngle);
         c.setEyeDistance(eyeDistance);
@@ -213,9 +224,20 @@ protected:
     void loadMap(std::string path);
     void OptLines();
     void OptDots();
+    void showInfo();
     bool debug;
     std::string cmdOutput;
+    std::vector <std::string> cmdInput;
 };
+
+void SYNTH3D::showInfo()
+{
+    if(cmdOutput.size() > 0)
+        cmdOutput += "\n";
+    cmdOutput += "Position: " + stringify(cameraPos.x) + "   " + stringify(cameraPos.y) + "   " + stringify(cameraPos.z);
+    cmdOutput += "\nAngle: " + stringify(cameraAngle.x) + "   " + stringify(cameraAngle.y) + "   " + stringify(cameraAngle.z);
+    cmdOutput += "\nEye Distance: " + stringify(eyeDistance);
+}
 
 void SYNTH3D::loadMap(std::string path)
 {
@@ -350,10 +372,10 @@ void SYNTH3D::loadMap(std::string path)
                         }
                         else if(first(line, "lMask"))
                             for(int i=0; i<tmpWall.size(); i++)
-                                tmpWall.drawable.push_back(value(line, i).first);
+                                tmpWall.drawable[i] = bool(value(line, i).first);
                         else if(first(line, "dMask"))
                             for(int i=0; i<tmpWall.size(); i++)
-                                tmpWall.dotDraw.push_back(value(line, i).first);
+                                tmpWall.dotDraw[i] = bool(value(line, i).first);
                         else if(line[0] == '#')
                         {
                             tmpObject.push_back(tmpWall);
@@ -458,6 +480,16 @@ void SYNTH3D::OptDots()
 std::string SYNTH3D::printToConsole()
 {
     return cmdOutput;
+}
+
+bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
+{
+    if(!args.empty())
+    {
+        cmdInput = args;
+        return true;
+    }
+    return false;
 }
 
 Camera::Camera(SYNTH3D* parent):
@@ -1276,6 +1308,47 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
     }
 }
 
+void Camera::compare(wall* wallie1, wall* wallie2)
+{
+    if(cmdOutput.size() > 0 or p->cmdOutput.size() > 0)
+        cmdOutput += "\n";
+
+}
+
+void Camera::identifyWalls(std::vector <wall*> wallie)
+{
+    for(int j=0; j<wallie.size(); j++)
+    {
+        std::vector <sf::Vector2f> polygon = wallToPoly(wallie[j]);
+        if(!polygon.empty())
+        {
+            sf::Vector2f centerPosition2d;
+            for(int i=0; i<polygon.size(); i++)
+                centerPosition2d += polygon[i];
+            centerPosition2d /= float(polygon.size());
+
+            sf::Vector3f centerPosition3d;
+            for(int i=0; i<wallie[j]->size(); i++)
+                centerPosition3d += spot3d[wallie[j]->coord[i]];
+            centerPosition3d /= float(wallie[j]->size());
+
+            sf::Text t;
+            int characterSize = 30; //roundf(dotSize(300, centerPosition3d));
+            if(characterSize > 0)
+            {
+                if(characterSize > 50)
+                    characterSize = 50;
+                t.setCharacterSize(characterSize);
+                t.setFont(p->font);
+                t.setOutlineThickness(2);
+                t.setString(stringify(j));
+                t.setPosition(centerPosition2d);
+                textArray.push_back(t);
+            }
+        }
+    }
+}
+
 void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <wall*> tempOrder)
 {
     std::queue <int> que;
@@ -1304,6 +1377,27 @@ void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vecto
 
 void Camera::displayGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
 {
+    if(cmdOutput.size() > 0 or p->cmdOutput.size() > 0)
+        cmdOutput += "\n";
+    cmdOutput += "Graph Level |";
+    for(int i=0; i<graphLevel.size(); i++)
+        cmdOutput += stringify(i) + "|";
+    cmdOutput += "\n            |";
+    for(int i=0; i<graphLevel.size(); i++)
+        cmdOutput += "-|";
+    cmdOutput += "\n            |";
+    for(int i=0; i<graphLevel.size(); i++)
+        cmdOutput += stringify(graphLevel[i]) + "|";
+
+    for(int i=0; i<graph.size(); i++)
+    {
+        cmdOutput += "\nWall " + stringify(i) + " results:";
+        for(int j=0; j<graph[i].size(); j++)
+            cmdOutput += " " + stringify(graph[i][j]);
+    }
+
+
+    /*
     std::cout << "\nGraph Level |0|1|2|3|4|5|6|";
     std::cout << "\n            |-|-|-|-|-|-|-|";
     std::cout << "\n            |";
@@ -1316,6 +1410,7 @@ void Camera::displayGraph(std::vector <std::vector <int> >& graph, std::vector <
         for(int j=0; j<graph[i].size(); j++)
             std::cout << " " << graph[i][j];
     }
+    */
 }
 
 void Camera::wallSort()
@@ -1332,17 +1427,22 @@ void Camera::wallSort()
 
     createGraph(graph, graphLevel, tempOrder);
 
+    cmdOutput+= "\nBEFORE:";
+    displayGraph(graph, graphLevel);
+
     cycleReduction(graph, graphLevel);
 
+    cmdOutput+= "\nAFTER:";
+    displayGraph(graph, graphLevel);
+
     topologicalSort(graph, graphLevel, tempOrder);
+
+    //identifyWalls(tempOrder);
 }
 
 void Camera::display()
 {
-    std::string s;
-    s += "First ever testing";
-    s += "\nDone good";
-    p->cmdOutput = s;
+    cmdOutput.clear();
     calcAngle();
     calcTerrain();
     wallSort();
@@ -1358,8 +1458,12 @@ void Camera::display()
     p->window->clear();
     p->window->draw(&quadArray[0], quadArray.size(), sf::Quads);
     p->window->draw(&debugArray[0], debugArray.size(), sf::Quads);
+    for(int i=0; i<textArray.size(); i++)
+        p->window->draw(textArray[i]);
     quadArray.clear();
     debugArray.clear();
+    textArray.clear();
+    p->cmdOutput += cmdOutput;
 }
 
 #endif //SYNTH3D_HPP
