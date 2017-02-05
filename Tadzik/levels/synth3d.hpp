@@ -217,16 +217,16 @@ public:
             eyeDistance-=0.1;
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
-            for(int i=0; i<4; i++)
+            for(int i=4; i<terrain.size(); i++)
                 terrain[i].x-=3;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
-            for(int i=0; i<4; i++)
+            for(int i=4; i<terrain.size(); i++)
                 terrain[i].x+=3;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
-            for(int i=0; i<4; i++)
+            for(int i=4; i<terrain.size(); i++)
                 terrain[i].z+=3;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-            for(int i=0; i<4; i++)
+            for(int i=4; i<terrain.size(); i++)
                 terrain[i].z-=3;
 
         showInfo();
@@ -1213,7 +1213,10 @@ bool Camera::wallIntersect(wall* wallie1, wall* wallie2)
     std::vector <sf::Vector2f> poly1 = wallToPoly(wallie1);
     std::vector <sf::Vector2f> poly2 = wallToPoly(wallie2);
     if(poly1.empty() or poly2.empty())
+    {
+        std::cout << "not even here";
         return false;
+    }
     return polygonIntersect(poly1, poly2);
 }
 
@@ -1727,7 +1730,7 @@ void Camera::wallSort()
     std::vector <int> graphLevel;
     graphLevel.resize(tempOrder.size());
 
-    //createGraph(graph, graphLevel, tempOrder);
+    createGraph(graph, graphLevel, tempOrder);
 
     //cmdOutput+= "\nBEFORE:";
     //displayGraph(graph, graphLevel);
@@ -1737,8 +1740,8 @@ void Camera::wallSort()
     //cmdOutput+= "\nAFTER:";
     //displayGraph(graph, graphLevel);
 
-    //topologicalSort(graph, graphLevel, tempOrder);
-    randSort(tempOrder);
+    topologicalSort(graph, graphLevel, tempOrder);
+    //randSort(tempOrder);
 
     //identifyWalls(tempOrder);
 
