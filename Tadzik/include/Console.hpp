@@ -83,6 +83,10 @@ struct AppConsole
 
     void    Draw(const char* title, bool* p_open)
     {
+        ImVector <char*> tmp = (*actScene)->getBuffer();
+        for (int i=0; i<tmp.size(); i++)
+            AddLog(tmp[i]);
+
         ImGui::SetNextWindowSize(ImVec2(520,600), ImGuiSetCond_FirstUseEver);
         if (!ImGui::Begin(title, p_open))
         {
@@ -147,7 +151,8 @@ struct AppConsole
         ImGui::Separator();
 
         // Command-line
-        if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_CallbackCompletion|ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
+        if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_CallbackCompletion|ImGuiInputTextFlags_CallbackHistory,
+                              [](ImGuiTextEditCallbackData* data) {return ((AppConsole*)data->UserData)->TextEditCallback(data);}, (void*)this))
         {
             char* input_end = InputBuf+strlen(InputBuf);
             while (input_end > InputBuf && input_end[-1] == ' ') input_end--; *input_end = 0;
@@ -206,12 +211,6 @@ struct AppConsole
         }
     }
 
-    static int TextEditCallbackStub(ImGuiTextEditCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
-    {
-        AppConsole* console = (AppConsole*)data->UserData;
-        return console->TextEditCallback(data);
-    }
-
     int     TextEditCallback(ImGuiTextEditCallbackData* data)
     {
         //AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
@@ -237,6 +236,10 @@ struct AppConsole
                 for (int i = 0; i < Commands.Size; i++)
                     if (Strnicmp(Commands[i], word_start, (int)(word_end-word_start)) == 0)
                         candidates.push_back(Commands[i]);
+
+                for (int i = 0; i < (*actScene)->getSceneCommands().size(); i++)
+                    if (Strnicmp((*actScene)->getSceneCommands()[i], word_start, (int)(word_end-word_start)) == 0)
+                        candidates.push_back((*actScene)->getSceneCommands()[i]);
 
                 if (candidates.Size == 0)
                 {

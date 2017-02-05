@@ -23,7 +23,6 @@ public:
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
     virtual bool onConsoleUpdate(std::vector<std::string> args){}
-    virtual std::string printToConsole(){std::string s; return s;}
 
     std::string getName(){
         return name;
@@ -45,11 +44,23 @@ public:
         return consoleCommands;
     }
 
+    void printToConsole(std::string s) {
+        char* tmp = &s[0u];
+        consoleBuff.push_back(tmp);
+    }
+
+    ImVector <char*> getBuffer() {
+        ImVector <char*> tmp = consoleBuff;
+        consoleBuff.clear();
+        return tmp;
+    }
+
 protected:
     std::string name;
     SceneManager* sceneManager=nullptr;
     sf::RenderWindow* window;
     ImVector <char*> consoleCommands;
+    ImVector <char*> consoleBuff;
 };
 
 #endif // SCENE_HPP

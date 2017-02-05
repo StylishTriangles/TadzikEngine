@@ -1058,7 +1058,7 @@ public:
             vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
     }
 
-    virtual void draw(double deltaTime) {
+    void draw(double deltaTime) {
         window->clear();
         ///VIEW HANDLING
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
