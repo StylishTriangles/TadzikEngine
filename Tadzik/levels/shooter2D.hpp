@@ -756,6 +756,10 @@ public:
         ZombieMaker = EnemyMaker(&texZombie, &texBlood, &TADZIK, this);
         GhostMaker = EnemyMaker(&texGhost, &texBlood, &TADZIK, this);
         RunnerMaker = EnemyMaker(&texRunner, &texBlood, &TADZIK, this);
+
+        consoleCommands.push_back("debug");
+        consoleCommands.push_back("killall");
+        consoleCommands.push_back("stopspawning");
     }
 
     void onSceneActivate() {
@@ -999,7 +1003,7 @@ public:
         }
     }
 
-    virtual bool onConsoleUpdate(std::vector<std::string> args){
+    bool onConsoleUpdate(std::vector<std::string> args){
         if (args[0] == "debug") {
             debug = !debug;
             rDebug.setActive(debug);
