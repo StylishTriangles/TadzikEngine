@@ -41,10 +41,15 @@ public:
 
     }
 
+    ImVector<char*> getSceneCommands() {
+        return consoleCommands;
+    }
+
 protected:
     std::string name;
     SceneManager* sceneManager=nullptr;
     sf::RenderWindow* window;
+    ImVector <char*> consoleCommands;
 };
 
 #endif // SCENE_HPP

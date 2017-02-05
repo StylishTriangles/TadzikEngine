@@ -4,6 +4,7 @@
 #include "Scene.hpp"
 #include "Utils.hpp"
 #include "Common.hpp"
+#include "Console.hpp"
 
 #include <stdlib.h>
 #include <unordered_map>
@@ -20,7 +21,6 @@ public:
         fpsCounter.setOrigin(0, 30);
         fpsCounter.setPosition(20, window->getSize().y - 10);
         fpsCounter.setColor(sf::Color::Green);
-        //tadzikCMD = new TadzikCMD(this);
     }
 
     virtual ~SceneManager(){
@@ -63,58 +63,15 @@ public:
     void runSceneFrame(double delta){
         actScene->draw(delta);
         if(cmdEnabled){
-            ImGui::SetNextWindowPos(sf::Vector2f(20,10));
-            ImGui::Begin("Tadzik CMD");
-            if(actScene->printToConsole().size() != 0)
-                ImGui::Text(actScene->printToConsole().c_str());
-            ImGui::PushItemWidth(200);
-            bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
-            if(cmdJustResized)
-            {
-                ImGui::SetWindowSize(cmdWindowSize);
-                cmdJustResized = false;
-            }
-            if(cmdJustToggled)
-            {
-                ImGui::SetKeyboardFocusHere(0);
-                cmdJustToggled = false;
-            }
-            ImGui::PopItemWidth();
-            ImGui::End();
-            if(textInputted){
-                std::vector<std::string> v = eval();
-                bool foundCommand = coreEval(v);
-                foundCommand |= actScene->onConsoleUpdate(v);
-                if(!foundCommand){
-                    //to be implemented...
-                }
-            }
+            gameConsole.Draw("Tadzik CMD", 0);
         }
     }
     void toogleCMD(){
         cmdEnabled = !cmdEnabled;
-        cmdJustToggled = true;
-    }
-    std::vector<std::string> eval(){
-        std::string cmd = std::string(cmdBuffer);
-        std::string tmp="";
-        std::vector<std::string> vParsed;
-        for(unsigned int i = 0; i < cmd.size(); i++){
-            if(std::isspace(static_cast<unsigned char>(cmd[i]))){
-                if(tmp != "" )
-                    vParsed.push_back(tmp);
-                tmp="";
-            }
-            else{
-                tmp += cmd[i];
-            }
-        }
-        if(tmp != "" )
-            vParsed.push_back(tmp);
-
-        return vParsed;
     }
 
+    ///na razie nie dzia³a, nie wiem co z tym zrobiæ
+    ///konsola nie ma dostêpu do scenemanager
     bool coreEval(std::vector<std::string> v){
         if(v.size()==0)
             return false;
@@ -126,11 +83,6 @@ public:
         }
         if(v.size()==1 && v[0]=="fps") {
             showFps=!showFps;
-        }
-        if(v.size()==3 && v[0]=="resize"){
-            cmdWindowSize.x = atoi(v[1].c_str());
-            cmdWindowSize.y = atoi(v[2].c_str());
-            cmdJustResized = true;
         }
         return false;
     }
@@ -155,15 +107,13 @@ private:
     std::unordered_map<std::string, Scene*> scenes;
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
-    bool cmdEnabled=false;
-    bool cmdJustToggled=false;
-    bool cmdJustResized=false;
-    char cmdBuffer[1024]={};
-    sf::Vector2f cmdWindowSize = sf::Vector2f(250, 70);
 
     sf::Text fpsCounter;
     bool showFps = true;
     float fps = 60;
+
+    bool cmdEnabled=false;
+    AppConsole gameConsole = AppConsole (&actScene);
 };
 
 #endif // SCENEMANAGER_HPP
