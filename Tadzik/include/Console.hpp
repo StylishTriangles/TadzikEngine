@@ -10,15 +10,15 @@ ImColor sfColorToImColor(sf::Color c) {
 struct AppConsole
 {
 
-    char                  InputBuf[256];
-    ImVector<coloredText> Items;
-    bool                  ScrollToBottom;
-    ImVector<char*>       History;
-    int                   HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
-    ImVector<const char*> Commands;
-    Scene**               actScene;
-    SceneManager*         sceneManager;
-    AppConsole(SceneManager* mngr, Scene** scene = nullptr)
+    char                        InputBuf[256];
+    ImVector<coloredText>       Items;
+    bool                        ScrollToBottom;
+    ImVector<char*>             History;
+    int                         HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
+    ImVector<const char*>       Commands;
+    Scene**                     actScene;
+    std::vector <std::string>   scnMngrBuffer;
+    AppConsole(Scene** scene = nullptr)
     {
         ClearLog();
         memset(InputBuf, 0, sizeof(InputBuf));
@@ -30,7 +30,6 @@ struct AppConsole
         Commands.push_back("FPS");
         AddLog("Welcome to TadzikCMD!");
         actScene = scene;
-        sceneManager = mngr;
     }
     ~AppConsole()
     {
@@ -217,17 +216,20 @@ struct AppConsole
             for (int i = History.Size >= 10 ? History.Size - 10 : 0; i < History.Size; i++)
                 AddLog("%3d: %s\n", i, History[i]);
         }
-        else if (processedInput[0]=="FPS") {
-            //sceneManager->showFps=!sceneManager->showFps;
-        }
         else if ((*actScene)->onConsoleUpdate(processedInput))
         {
             AddLog("Command executed succesfully\n");
         }
         else
         {
-            AddLog("[error] Command not found: '%s'\n", command_line);
+            scnMngrBuffer = processedInput;
         }
+    }
+
+    std::vector <std::string> passToSceneManager() {
+        std::vector <std::string> tmp = scnMngrBuffer;
+        scnMngrBuffer.clear();
+        return tmp;
     }
 
     int     TextEditCallback(ImGuiTextEditCallbackData* data)

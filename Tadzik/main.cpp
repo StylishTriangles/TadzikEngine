@@ -47,24 +47,29 @@ int main(){
     window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
-    //sceneManager.registerScene<TREX>("TREX", &window);
-    //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
-    //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
-    //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    //sceneManager.registerScene<RPG>("RPG", &window);
+    /*
+    sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
+    sceneManager.registerScene<MARIO>("MARIO", &window);
+    sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
+    sceneManager.registerScene<RPG>("RPG", &window);
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
-    //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
-    //sceneManager.setActiveScene("TREX");
-    //sceneManager.setActiveScene("JUMPER");
-    //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
-    //sceneManager.setActiveScene("MARIO");
-    //sceneManager.setActiveScene("LEVELSELECT");
+    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
+    sceneManager.setActiveScene("TREX");
+    sceneManager.setActiveScene("JUMPER");
+    sceneManager.setActiveScene("CLICKER");
+    sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("MARIO");
+    sceneManager.setActiveScene("LEVELSELECT");
     sceneManager.setActiveScene("SHOOTER2D");
-    //sceneManager.setActiveScene("RPG");
-    //sceneManager.setActiveScene("ISAYPARTY");
+    sceneManager.setActiveScene("RPG");
+    sceneManager.setActiveScene("ISAYPARTY");
+    */
+    //sceneManager.justLaunchIt<SYNTH3D>("SYNTH3D");
+    sceneManager.justLaunchIt<SHOOTER2D>("SHOOTER2D");
+
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;

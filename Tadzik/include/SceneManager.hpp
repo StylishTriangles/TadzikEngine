@@ -54,6 +54,12 @@ public:
         actScene->onSceneActivate();
     }
 
+    template<typename T>
+    void justLaunchIt(std::string nameId) {
+        registerScene<T>(nameId, window);
+        setActiveScene(nameId);
+    }
+
     std::string getActiveSceneName(){
         return actScene->getName();
     }
@@ -64,6 +70,12 @@ public:
         actScene->draw(delta);
         if(cmdEnabled){
             gameConsole.Draw("Tadzik CMD", 0);
+            std::vector <std::string> tmp = gameConsole.passToSceneManager();
+            if (tmp.size()>0)
+                if (!coreEval(tmp))
+                    gameConsole.AddLog("[error] Command not found\n");
+                else
+                    gameConsole.AddLog("Command executed succesfully\n");
         }
     }
     void toogleCMD(){
@@ -73,7 +85,11 @@ public:
     ///na razie nie dzia³a, nie wiem co z tym zrobiæ
     ///konsola nie ma dostêpu do scenemanager
     bool coreEval(std::vector<std::string> v){
-        if(v.size()==2){
+        if(v.size()==1 && v[0]=="fps") {
+            showFps = !showFps;
+            return true;
+        }
+        else if(v.size()==2){
             if(v[0]=="loadLvl" || v[0]=="ll"){
                 setActiveScene(v[1]);
                 return true;
@@ -107,7 +123,7 @@ private:
     float fps = 60;
 
     bool cmdEnabled=false;
-    AppConsole gameConsole = AppConsole (this, &actScene);
+    AppConsole gameConsole = AppConsole (&actScene);
 };
 
 #endif // SCENEMANAGER_HPP
