@@ -97,10 +97,10 @@ public:
             tAmmo.setFont(*f);
             tAllAmmo.setFont(*f);
             tLights.setFont(*f);
-            tScore.setColor(c);
-            tAmmo.setColor(c);
-            tAllAmmo.setColor(c);
-            tLights.setColor(c);
+            tScore.setFillColor(c);
+            tAmmo.setFillColor(c);
+            tAllAmmo.setFillColor(c);
+            tLights.setFillColor(c);
         }
         SHOOTER2D* game;
     };
@@ -1054,6 +1054,8 @@ public:
             TADZIK.velocity.x += acceleration;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) TADZIK.health-=10;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) TADZIK.reload();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+            printToConsole("test", Utils::randColor(0, 255));
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
             vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
     }

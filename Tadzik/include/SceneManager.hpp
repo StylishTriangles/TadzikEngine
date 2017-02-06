@@ -20,7 +20,7 @@ public:
         fpsCounter.setString("60");
         fpsCounter.setOrigin(0, 30);
         fpsCounter.setPosition(20, window->getSize().y - 10);
-        fpsCounter.setColor(sf::Color::Green);
+        fpsCounter.setFillColor(sf::Color::Green);
     }
 
     virtual ~SceneManager(){
@@ -73,31 +73,25 @@ public:
     ///na razie nie dzia³a, nie wiem co z tym zrobiæ
     ///konsola nie ma dostêpu do scenemanager
     bool coreEval(std::vector<std::string> v){
-        if(v.size()==0)
-            return false;
         if(v.size()==2){
             if(v[0]=="loadLvl" || v[0]=="ll"){
                 setActiveScene(v[1]);
                 return true;
             }
         }
-        if(v.size()==1 && v[0]=="fps") {
-            showFps=!showFps;
-        }
         return false;
     }
 
     void getFPS(sf::Time delta) {
-        sf::Time second = sf::seconds(1);
         if (showFps) {
             float smoothing = 0.95;
             fps = (fps*smoothing)+(sf::seconds(1)/delta*(1.0-smoothing));
             if (fps>60)
-                fpsCounter.setColor(sf::Color::Green);
+                fpsCounter.setFillColor(sf::Color::Green);
             else if (fps>30)
-                fpsCounter.setColor(sf::Color::Yellow);
+                fpsCounter.setFillColor(sf::Color::Yellow);
             else
-                fpsCounter.setColor(sf::Color::Red);
+                fpsCounter.setFillColor(sf::Color::Red);
             fpsCounter.setString(Utils::stringify((int)fps));
             window->draw(fpsCounter);
         }
@@ -113,7 +107,7 @@ private:
     float fps = 60;
 
     bool cmdEnabled=false;
-    AppConsole gameConsole = AppConsole (&actScene);
+    AppConsole gameConsole = AppConsole (this, &actScene);
 };
 
 #endif // SCENEMANAGER_HPP

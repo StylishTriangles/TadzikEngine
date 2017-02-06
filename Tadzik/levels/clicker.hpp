@@ -237,7 +237,7 @@ public:
             if (Utils::isMouseOnSprite(wiener, window)) {
                 wienerAmount+=wienerPerClick;
                 temp.setString("+"+Utils::stringify(wienerPerClick));
-                temp.setColor(sf::Color(255, 255, 255, 255));
+                temp.setFillColor(sf::Color(255, 255, 255, 255));
                 temp.setPosition((sf::Vector2f)sf::Mouse::getPosition(*window));
                 clickAnimation.push_back(temp);
             }
@@ -253,8 +253,8 @@ public:
     virtual void draw(double deltaTime) {
         for (unsigned int i=0; i<clickAnimation.size(); i++) {
             clickAnimation[i].move(0, -1);
-            clickAnimation[i].setColor(sf::Color( 255, 255, 255, clickAnimation[i].getColor().a-5));
-            if(clickAnimation[i].getColor().a==0) clickAnimation.erase(clickAnimation.begin()+i);
+            clickAnimation[i].setFillColor(sf::Color( 255, 255, 255, clickAnimation[i].getFillColor().a-5));
+            if(clickAnimation[i].getFillColor().a==0) clickAnimation.erase(clickAnimation.begin()+i);
         }
 
         if (isPressed) {

@@ -1,19 +1,24 @@
 #define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 #define IM_MAX(_A,_B)       (((_A) >= (_B)) ? (_A) : (_B))
 
-#include "Scene.hpp"
+#include "SceneManager.hpp"
+
+ImColor sfColorToImColor(sf::Color c) {
+    return ImColor(c.r, c.g, c.b, c.a);
+}
 
 struct AppConsole
 {
 
     char                  InputBuf[256];
-    ImVector<char*>       Items;
+    ImVector<coloredText> Items;
     bool                  ScrollToBottom;
     ImVector<char*>       History;
     int                   HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
     ImVector<const char*> Commands;
     Scene**               actScene;
-    AppConsole(Scene** scene = nullptr)
+    SceneManager*         sceneManager;
+    AppConsole(SceneManager* mngr, Scene** scene = nullptr)
     {
         ClearLog();
         memset(InputBuf, 0, sizeof(InputBuf));
@@ -22,8 +27,10 @@ struct AppConsole
         Commands.push_back("HISTORY");
         Commands.push_back("CLEAR");
         Commands.push_back("CLASSIFY");  // "classify" is here to provide an example of "C"+[tab] completing to "CL" and displaying matches.
+        Commands.push_back("FPS");
         AddLog("Welcome to TadzikCMD!");
         actScene = scene;
+        sceneManager = mngr;
     }
     ~AppConsole()
     {
@@ -31,11 +38,6 @@ struct AppConsole
         for (int i = 0; i < History.Size; i++)
             free(History[i]);
     }
-
-    // Portable helpers
-    static int   Stricmp(const char* str1, const char* str2)         { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
-    static int   Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
-    static char* Strdup(const char *str)                             { size_t len = strlen(str) + 1; void* buff = malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
 
     void    setActiveScene(Scene** scene) {
         actScene = scene;
@@ -64,12 +66,12 @@ struct AppConsole
     void    ClearLog()
     {
         for (int i = 0; i < Items.Size; i++)
-            free(Items[i]);
+            free(Items[i].text);
         Items.clear();
         ScrollToBottom = true;
     }
 
-    void    AddLog(const char* fmt, ...) IM_PRINTFARGS(2)
+    void    AddLog(const char* fmt, ... ) IM_PRINTFARGS(2)
     {
         char buf[1024];
         va_list args;
@@ -77,15 +79,28 @@ struct AppConsole
         vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
         buf[IM_ARRAYSIZE(buf)-1] = 0;
         va_end(args);
-        Items.push_back(Strdup(buf));
+        Items.push_back(coloredText(Strdup(buf), sf::Color::White));
+        ScrollToBottom = true;
+    }
+
+    void    AddLog(const char* text, sf::Color color)
+    {
+        Items.push_back(coloredText(Strdup(text), color));
+        ScrollToBottom = true;
+    }
+
+    void    AddLog(const coloredText t)
+    {
+        Items.push_back(coloredText(Strdup(t.text), t.color));
         ScrollToBottom = true;
     }
 
     void    Draw(const char* title, bool* p_open)
     {
-        ImVector <char*> tmp = (*actScene)->getBuffer();
-        for (int i=0; i<tmp.size(); i++)
-            AddLog(tmp[i]);
+        ImVector <coloredText>* tmp = (*actScene)->getBuffer();
+        for (int i=0; i<tmp->size(); i++)
+            AddLog((*tmp)[i]);
+        (*actScene)->clearBuffer();
 
         ImGui::SetNextWindowSize(ImVec2(520,600), ImGuiSetCond_FirstUseEver);
         if (!ImGui::Begin(title, p_open))
@@ -133,12 +148,12 @@ struct AppConsole
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4,1)); // Tighten spacing
         for (int i = 0; i < Items.Size; i++)
         {
-            const char* item = Items[i];
+            const char* item = Items[i].text;
             if (!filter.PassFilter(item))
                 continue;
-            ImVec4 col = ImVec4(1.0f,1.0f,1.0f,1.0f); // A better implementation may store a type per-item. For the sample let's just parse the text.
-            if (strstr(item, "[error]")) col = ImColor(1.0f,0.4f,0.4f,1.0f);
-            else if (strncmp(item, "# ", 2) == 0) col = ImColor(1.0f,0.78f,0.58f,1.0f);
+            ImColor col = sfColorToImColor(Items[i].color); // A better implementation may store a type per-item. For the sample let's just parse the text.
+            if (strstr(item, "[error]")) col = ImColor(255, 100, 100, 255);
+            else if (strncmp(item, "# ", 2) == 0) col = ImColor(255, 200, 150, 255);
             ImGui::PushStyleColor(ImGuiCol_Text, col);
             ImGui::TextUnformatted(item);
             ImGui::PopStyleColor();
@@ -184,6 +199,7 @@ struct AppConsole
         History.push_back(Strdup(command_line));
 
         // Process command
+        std::vector <std::string> processedInput = eval(command_line);
         if (Stricmp(command_line, "CLEAR") == 0)
         {
             ClearLog();
@@ -201,7 +217,10 @@ struct AppConsole
             for (int i = History.Size >= 10 ? History.Size - 10 : 0; i < History.Size; i++)
                 AddLog("%3d: %s\n", i, History[i]);
         }
-        else if ((*actScene)->onConsoleUpdate(eval(command_line)))
+        else if (processedInput[0]=="FPS") {
+            //sceneManager->showFps=!sceneManager->showFps;
+        }
+        else if ((*actScene)->onConsoleUpdate(processedInput))
         {
             AddLog("Command executed succesfully\n");
         }

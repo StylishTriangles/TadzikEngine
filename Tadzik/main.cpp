@@ -41,7 +41,7 @@ int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(1366, 768), "Tadzik", sf::Style::Fullscreen, settings);
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);

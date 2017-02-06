@@ -4,6 +4,18 @@
 #include <string>
 #include <iostream>
 
+#include "Common.hpp"
+
+struct coloredText
+{
+    coloredText(char* t, sf::Color c = sf::Color::White) {
+        text = t;
+        color = c;
+    }
+    char* text;
+    sf::Color color = sf::Color::White;
+};
+
 class SceneManager;
 
 class Scene{
@@ -17,12 +29,12 @@ public:
 
     virtual ~Scene(){}
 
-    virtual void onSceneLoadToMemory(){};
+    virtual void onSceneLoadToMemory(){}
     virtual void onSceneActivate(){}
     virtual void draw(double deltaTime){}
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
-    virtual bool onConsoleUpdate(std::vector<std::string> args){}
+    virtual bool onConsoleUpdate(std::vector<std::string> args) {return false;}
 
     std::string getName(){
         return name;
@@ -40,19 +52,21 @@ public:
 
     }
 
-    ImVector<char*> getSceneCommands() {
+    ImVector<char*> getSceneCommands() const {
         return consoleCommands;
     }
 
-    void printToConsole(std::string s) {
+    void printToConsole(std::string s, sf::Color color = sf::Color::White) {
         char* tmp = &s[0u];
-        consoleBuff.push_back(tmp);
+        consoleBuff.push_back(coloredText(Strdup(tmp), color));
     }
 
-    ImVector <char*> getBuffer() {
-        ImVector <char*> tmp = consoleBuff;
+    ImVector <coloredText>* getBuffer() {
+        return &consoleBuff;
+    }
+
+    void clearBuffer() {
         consoleBuff.clear();
-        return tmp;
     }
 
 protected:
@@ -60,7 +74,7 @@ protected:
     SceneManager* sceneManager=nullptr;
     sf::RenderWindow* window;
     ImVector <char*> consoleCommands;
-    ImVector <char*> consoleBuff;
+    ImVector <coloredText> consoleBuff;
 };
 
 #endif // SCENE_HPP
