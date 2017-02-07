@@ -82,8 +82,6 @@ public:
         cmdEnabled = !cmdEnabled;
     }
 
-    ///na razie nie dzia³a, nie wiem co z tym zrobiæ
-    ///konsola nie ma dostêpu do scenemanager
     bool coreEval(std::vector<std::string> v){
         if(v.size()==1 && v[0]=="fps") {
             showFps = !showFps;

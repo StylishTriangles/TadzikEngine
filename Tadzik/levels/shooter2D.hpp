@@ -760,6 +760,9 @@ public:
         consoleCommands.push_back("debug");
         consoleCommands.push_back("killall");
         consoleCommands.push_back("stopspawning");
+        consoleCommands.push_back("spawn");
+        consoleCommands.push_back("lightsoff");
+        consoleCommands.push_back("cleargore");
     }
 
     void onSceneActivate() {
@@ -1035,7 +1038,7 @@ public:
         else if (args[0] == "lightsoff") {
             vecLights.clear();
         }
-        else if (args[0] == "clear") {
+        else if (args[0] == "cleargore") {
             rMisc.clear(sf::Color(0, 0, 0, 0));
         }
         else

@@ -256,11 +256,11 @@ struct AppConsole
                 ImVector<const char*> candidates;
                 for (int i = 0; i < Commands.Size; i++)
                     if (Strnicmp(Commands[i], word_start, (int)(word_end-word_start)) == 0)
-                        candidates.push_back(Commands[i]);
+                        candidates.push_back(Strdup(Commands[i]));
 
                 for (int i = 0; i < (*actScene)->getSceneCommands().size(); i++)
                     if (Strnicmp((*actScene)->getSceneCommands()[i], word_start, (int)(word_end-word_start)) == 0)
-                        candidates.push_back((*actScene)->getSceneCommands()[i]);
+                        candidates.push_back(Strdup((*actScene)->getSceneCommands()[i]));
 
                 if (candidates.Size == 0)
                 {
