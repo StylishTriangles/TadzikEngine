@@ -53,6 +53,12 @@ std::string stringify(int x){
     return o.str();
 }
 
+std::string stringifyf(float x){
+    std::ostringstream o;
+    o << x;
+    return o.str();
+}
+
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot)
 {
     // top.x mid.x bot.x

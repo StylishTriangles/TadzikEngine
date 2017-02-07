@@ -16,6 +16,7 @@ sf::Vector2f randVector2f (sf::FloatRect f);
 sf::Color randColor (int from = 0, int to = 255);
 bool isMouseOnSprite(sf::Sprite& sp, sf::RenderWindow* window);
 std::string stringify(int x);
+std::string stringifyf(float x);
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot);
 int sgn(double x);
 std::string getDate();

@@ -20,8 +20,10 @@ inline realType toRad(realType angle)
     return angle * (realType)0.017453292519943295769;
 }
 
-struct wall
+class Wall
 {
+public:
+    Wall();
     std::vector <int> coord;
     std::vector <bool> drawable;
     std::vector <bool> dotDraw;
@@ -31,50 +33,88 @@ struct wall
     float pSize = 100;
     int grid = 0;
     bool OptAllowed = true;
-    void push_back(int c, bool draw = true, bool dot = true)
-    {
-        coord.push_back(c);
-        drawable.push_back(draw);
-        dotDraw.push_back(dot);
-    }
-    unsigned int size() const
-    {
-        return coord.size();
-    }
-    void clear()
-    {
-        coord.clear();
-        drawable.clear();
-        dotDraw.clear();
-        lineStrip.clear();
-        color=sf::Color::Green;
-        trans=sf::Color::Transparent;
-        pSize = 100;
-        grid = 0;
-        OptAllowed = true;
-    }
+    void push_back(int c, bool draw, bool dot);
+    unsigned int size() const;
+    void clear();
 };
 
-struct object
+Wall::Wall():
+    pSize(100),
+    grid(0),
+    OptAllowed(true)
 {
-    std::vector <wall> wallie;
-    void push_back(wall w)
-    {
-        wallie.push_back(w);
-    }
-    unsigned int size()
-    {
-        return wallie.size();
-    }
-    bool OptAllowed = true;
+}
+
+void Wall::clear()
+{
+    coord.clear();
+    drawable.clear();
+    dotDraw.clear();
+    lineStrip.clear();
+    color=sf::Color::Green;
+    trans=sf::Color::Transparent;
+    pSize = 100;
+    grid = 0;
+    OptAllowed = true;
+}
+
+void Wall::push_back(int c, bool draw = true, bool dot = true)
+{
+    coord.push_back(c);
+    drawable.push_back(draw);
+    dotDraw.push_back(dot);
+}
+
+unsigned int Wall::size() const
+{
+    return coord.size();
+}
+
+class Object
+{
+public:
+    Object();
     std::string name;
-    void clear()
-    {
-        wallie.clear();
-        OptAllowed = true;
-        name.clear();
-    }
+    std::vector <Wall> wallie;
+    unsigned int size();
+    void push_back(Wall w);
+    void clear();
+    bool OptAllowed;
+    sf::Vector3f velocity;
+    sf::Vector3f position;
+    void update(double dt);
+protected:
+
 };
+
+Object::Object():
+    OptAllowed(true),
+    velocity({0, 0, 0})
+{
+}
+
+void Object::clear()
+{
+    wallie.clear();
+    OptAllowed = true;
+    name.clear();
+    velocity = {0, 0, 0};
+}
+
+void Object::update(double dt)
+{
+
+}
+
+void Object::push_back(Wall w)
+{
+    wallie.push_back(w);
+}
+
+unsigned int Object::size()
+{
+    return wallie.size();
+}
 
 class SYNTH3D;
 
@@ -96,14 +136,14 @@ public:
 protected:
     std::vector <sf::Vector2f> halfDotBegin;
     std::vector <sf::Vector2f> circleDefExample;
-    std::vector <wall*> wallOrder;
+    std::vector <Wall*> wallOrder;
     std::vector <sf::Vertex> quadArray;
     std::vector <sf::Vertex> debugArray;
     std::vector <sf::Text> textArray;
     std::vector <sf::Vector3f> spot3d;
     std::vector <sf::Vector3f> spot2d;
     std::vector <float> dot;
-    std::vector <sf::Vector2f> wallToPoly(wall* wallie);
+    std::vector <sf::Vector2f> wallToPoly(Wall* wallie);
     void initCircleDef(int n);
     void calcTerrain();
     void updateTerrain();
@@ -125,28 +165,27 @@ protected:
     void drawHalfDot(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color);
     void drawDotwBegin(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color);
     void drawSphere(sf::Vector3f spot, float radius, sf::Color color, float outlineThickness, sf::Color outlineColor);
-    void drawWall(wall const& wallie);
+    void drawWall(Wall const& wallie);
     void drawPlane(std::vector <sf::Vector2f>& spot, sf::Color color);
     void debugDrawPlane(std::vector <sf::Vector2f>& spot, sf::Color color);
-    void drawGridWall(wall const& wallie, int n);
+    void drawGridWall(Wall const& wallie, int n);
     void wallSort();
     void cycleReduction(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
-    void createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <wall*> tempOrder);
-    void topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <wall*> tempOrder);
-    void randSort(std::vector <wall*> tempOrder);
+    void createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder);
+    void topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder);
+    void randSort(std::vector <Wall*> tempOrder);
     void displayGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
-    bool wallSortingAlgorythm(wall* lhs, wall* rhs);
-    bool wallSortingAlgorythmDebug(wall* lhs, wall* rhs);
+    bool wallSortingAlgorythm(Wall* lhs, Wall* rhs);
     bool lineIntersect(sf::Vector2f u0, sf::Vector2f v0, sf::Vector2f u1, sf::Vector2f v1);
     bool polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
     bool polygonIntersectOld(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
     bool polygonIntersectOlder(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
-    bool wallIntersect(wall* wallie1, wall* wallie2);
-    bool wallIntersectOS(wall* left, wall* right);
+    bool wallIntersect(Wall* wallie1, Wall* wallie2);
+    bool wallIntersectOS(Wall* left, Wall* right);
     bool rightSide(sf::Vector2f line1, sf::Vector2f line2, sf::Vector2f point);
     int planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
     float dotSize(sf::Vector3f vec);
-    void identifyWalls(std::vector <wall*> wallie);
+    void identifyWalls(std::vector <Wall*> wallie);
     std::string cmdOutput;
     bool cycleReductionEnabled;
     bool wallIntersectEnabled;
@@ -161,7 +200,7 @@ public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-        eyeDistance(-10), terrainSize(50), debug(0), offsetx(100), offsety(100)
+        eyeDistance(-10), terrainSize(50), debug(0), offsetx(0), offsety(0), tick(1)
     {}
 
     virtual void onSceneLoadToMemory()
@@ -171,6 +210,7 @@ public:
             std::cout << "cannot load font\n";
         }
         consoleCommands.push_back("print graph");
+        consoleCommands.push_back("print info");
         consoleCommands.push_back("enable");
         consoleCommands.push_back("enable cycleReduction");
         consoleCommands.push_back("enable wallIntersect");
@@ -196,13 +236,14 @@ public:
     virtual void onSceneActivate() {}
     virtual void draw(double dt)
     {
-        cmdOutput.clear();
-        float movementSpeed = 2;
-        float cameraRotationSpeed = 1;
+        std::cout << "\n" << dt;
+        float movementSpeed = 2.0f;
+        float cameraRotationSpeed = 1.0f;
+
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
         {
-            movementSpeed = 7;
-            cameraRotationSpeed = 2;
+            movementSpeed = 7.0f * (1 / 60) / dt;
+            cameraRotationSpeed = 2.0f * (1 / 60) / dt;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
             cameraPos.x-= movementSpeed;
@@ -247,8 +288,36 @@ public:
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
             for(int i=4; i<terrain.size(); i++)
                 terrain[i].z-=3;
+        ///#####################################
 
-        showInfo();
+        for(int i=3; i<7; i++)
+        {
+            if(i%2 == 0)
+            {
+                terrain[world[i].wallie[2].coord[0]].z += tick;
+                terrain[world[i].wallie[2].coord[1]].z += tick;
+                terrain[world[i].wallie[2].coord[2]].z += tick;
+                terrain[world[i].wallie[2].coord[3]].z += tick;
+            }
+            else
+            {
+                terrain[world[i].wallie[2].coord[0]].z -= tick;
+                terrain[world[i].wallie[2].coord[1]].z -= tick;
+                terrain[world[i].wallie[2].coord[2]].z -= tick;
+                terrain[world[i].wallie[2].coord[3]].z -= tick;
+            }
+        }
+
+        if(offsetx == 10)
+        {
+            tick = -tick;
+        }
+        else if(offsetx == -10)
+        {
+            tick = -tick;
+        }
+        offsetx += tick;
+
         c.setPos(cameraPos);
         c.setAngle(cameraAngle);
         c.setEyeDistance(eyeDistance);
@@ -257,7 +326,7 @@ public:
 protected:
     sf::Font font;
     std::vector <sf::Vector3f> terrain;
-    std::vector <object> world;
+    std::vector <Object> world;
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
@@ -268,18 +337,15 @@ protected:
     void OptDots();
     void showInfo();
     bool debug;
-    std::string cmdOutput;
-    std::vector <std::string> cmdInput;
     float offsetx, offsety;
+    int tick;
 };
 
 void SYNTH3D::showInfo()
 {
-    if(cmdOutput.size() > 0)
-        cmdOutput += "\n";
-    cmdOutput += "Position: " + stringify(cameraPos.x) + "   " + stringify(cameraPos.y) + "   " + stringify(cameraPos.z);
-    cmdOutput += "\nAngle: " + stringify(cameraAngle.x) + "   " + stringify(cameraAngle.y) + "   " + stringify(cameraAngle.z);
-    cmdOutput += "\nEye Distance: " + stringify(eyeDistance);
+    printToConsole("Position: " + stringifyf(cameraPos.x) + "   " + stringifyf(cameraPos.y) + "   " + stringifyf(cameraPos.z));
+    printToConsole("Angle: " + stringifyf(cameraAngle.x) + "   " + stringifyf(cameraAngle.y) + "   " + stringifyf(cameraAngle.z));
+    printToConsole("Eye Distance: " + stringifyf(eyeDistance));
 }
 
 void SYNTH3D::loadMap(std::string path)
@@ -336,10 +402,10 @@ void SYNTH3D::loadMap(std::string path)
     std::ifstream level;
     level.open("files/maps/synth3d/"+path+".dat");
     std::string line;
-    object tmpObject;
+    Object tmpObject;
     ///wall tmpWall; ///Uwaga zeby przy wpisywaniu kilku scian nie bylo nienadpisanych wartosci z poprzedniego
     int indicator = 0;
-    wall tmpWall;
+    Wall tmpWall;
     int VertexCount = 0;
     if(level.is_open())
         while(getline(level, line))
@@ -541,9 +607,14 @@ bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
         {
             if(args.size() == 2)
             {
-                if(args[1] == "graph");
+                if(args[1] == "graph")
                 {
                     c.printGraph();
+                    return true;
+                }
+                else if(args[1] == "info")
+                {
+                    showInfo();
                     return true;
                 }
             }
@@ -627,8 +698,8 @@ void Camera::compare(int left, int right)
     if(left != right)
     {
         int counter = 0;
-        wall* leftie;
-        wall* rightie;
+        Wall* leftie;
+        Wall* rightie;
         bool leftWallFound = false;
         bool rightWallFound = false;
 
@@ -997,7 +1068,7 @@ void Camera::calcTerrain()
     }
 }
 
-void Camera::drawGridWall(wall const& wallie, int n)
+void Camera::drawGridWall(Wall const& wallie, int n)
 {
     ///      1>
     ///  #########
@@ -1140,7 +1211,7 @@ void Camera::debugDrawPlane(std::vector <sf::Vector2f>& spot, sf::Color color)
 }
 
 
-std::vector <sf::Vector2f> Camera::wallToPoly(wall* wallie)
+std::vector <sf::Vector2f> Camera::wallToPoly(Wall* wallie)
 {
     std::vector <sf::Vector2f> spot;
     std::vector <int> usefulSpot;
@@ -1186,7 +1257,7 @@ std::vector <sf::Vector2f> Camera::wallToPoly(wall* wallie)
     return spot;
 }
 
-void Camera::drawWall(wall const& wallie)
+void Camera::drawWall(Wall const& wallie)
 {
     std::vector <sf::Vector2f> spot;
     std::vector <int> usefulSpot;
@@ -1348,7 +1419,7 @@ int Camera::planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& sid
     return 0;
 }
 
-bool Camera::wallIntersect(wall* wallie1, wall* wallie2)
+bool Camera::wallIntersect(Wall* wallie1, Wall* wallie2)
 {
     int leftBelowZero = 0;
     int rightBelowZero = 0;
@@ -1535,7 +1606,7 @@ bool Camera::polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf:
     return true;
 }
 
-bool Camera::wallIntersectOS(wall* left, wall* right)
+bool Camera::wallIntersectOS(Wall* left, Wall* right)
 {
     for(int i=0; i<left->size(); i++)
     {
@@ -1590,7 +1661,7 @@ bool Camera::wallIntersectOS(wall* left, wall* right)
     return true;
 }
 
-bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
+bool Camera::wallSortingAlgorythm(Wall* lhs, Wall* rhs)
 {
     ///True - to z prawej jest blizej
     std::vector <int> leftWall;
@@ -1731,7 +1802,7 @@ void Camera::cycleReduction(std::vector <std::vector <int> >& graph, std::vector
         }
 }
 
-void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <wall*> tempOrder)
+void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder)
 {
     for(int i=0; i<tempOrder.size(); i++)
     {
@@ -1751,10 +1822,10 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
 
 void Camera::printGraph()
 {
-    p->printToConsole(p->cmdOutput);
+    p->printToConsole(cmdOutput);
 }
 
-void Camera::identifyWalls(std::vector <wall*> wallie)
+void Camera::identifyWalls(std::vector <Wall*> wallie)
 {
     for(int j=0; j<wallie.size(); j++)
     {
@@ -1788,7 +1859,7 @@ void Camera::identifyWalls(std::vector <wall*> wallie)
     }
 }
 
-void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <wall*> tempOrder)
+void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder)
 {
     std::queue <int> que;
     for(int i=0; i<graphLevel.size(); i++)
@@ -1820,11 +1891,11 @@ void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vecto
     if(counter < tempOrder.size())
     {
         std::cout << "\nERROR: Topological sort failure";
-        //p->printToConsole("[error] Topological sort failure");
+        p->printToConsole("[error] Topological sort failure");
     }
 }
 
-void Camera::randSort(std::vector <wall*> tempOrder)
+void Camera::randSort(std::vector <Wall*> tempOrder)
 {
     while(!tempOrder.empty())
     {
@@ -1878,7 +1949,7 @@ void Camera::wallSort()
 {
     ///poza ekranem nie dodawaj do tempOrder
     std::vector <std::vector <int> > graph;
-    std::vector <wall*> tempOrder;
+    std::vector <Wall*> tempOrder;
     wallOrder.clear();
     for(int i=0; i<p->world.size(); i++)
         for(int j=0; j<p->world[i].size(); j++)
@@ -1930,7 +2001,6 @@ void Camera::display()
     quadArray.clear();
     debugArray.clear();
     textArray.clear();
-    p->cmdOutput += cmdOutput;
 }
 
 #endif //SYNTH3D_HPP
