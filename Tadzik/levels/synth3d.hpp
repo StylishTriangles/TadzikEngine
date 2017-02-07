@@ -11,6 +11,7 @@
 #include <fstream>
 #include <queue>
 #include <stack>
+#include <stdlib.h>
 using namespace Utils;
 
 template<typename realType>
@@ -86,7 +87,7 @@ public:
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
     void update();
-    void compare(wall* wallie1, wall* wallie2);
+    void printGraph();
 protected:
     std::vector <sf::Vector2f> halfDotBegin;
     std::vector <sf::Vector2f> circleDefExample;
@@ -146,7 +147,6 @@ class SYNTH3D: public Scene
 {
 public:
     virtual bool onConsoleUpdate(std::vector<std::string> args);
-    virtual std::string printToConsole();
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
@@ -159,7 +159,7 @@ public:
         {
             std::cout << "cannot load font\n";
         }
-
+        consoleCommands.push_back("print graph");
         //loadMap("cubeOnSurface");
 
         //loadMap("oblivion_old");
@@ -514,17 +514,21 @@ void SYNTH3D::OptDots()
                 }
 }
 
-std::string SYNTH3D::printToConsole()
-{
-    return cmdOutput;
-}
-
 bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
 {
     if(!args.empty())
     {
-        cmdInput = args;
-        return true;
+        if(args[0] == "print")
+        {
+            if(args.size() == 2)
+            {
+                if(args[1] == "graph");
+                {
+                    c.printGraph();
+                    return true;
+                }
+            }
+        }
     }
     return false;
 }
@@ -1213,10 +1217,7 @@ bool Camera::wallIntersect(wall* wallie1, wall* wallie2)
     std::vector <sf::Vector2f> poly1 = wallToPoly(wallie1);
     std::vector <sf::Vector2f> poly2 = wallToPoly(wallie2);
     if(poly1.empty() or poly2.empty())
-    {
-        std::cout << "not even here";
         return false;
-    }
     return polygonIntersect(poly1, poly2);
 }
 
@@ -1384,7 +1385,7 @@ bool Camera::polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf:
 bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
 {
     ///True - to z prawej jest blizej
-    int leftWall;
+    std::vector <int> leftWall;
     std::vector <int> rightWall;
 
     int leftC = lhs->coord[0];
@@ -1394,12 +1395,15 @@ bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
         if(leftC != lhs->coord[i])
         {
             leftT = lhs->coord[i];
-            for(int j=i+1; j<lhs->size(); j++)
-                if(leftC != lhs->coord[j] and leftT != lhs->coord[j])
-                {
-                    leftS = lhs->coord[j];
-                    break;
-                }
+            if((i+1) < lhs->size())
+                for(int j=i+1; j<lhs->size(); j++)
+                    if(leftC != lhs->coord[j] and leftT != lhs->coord[j])
+                    {
+                        leftS = lhs->coord[j];
+                        break;
+                    }
+            else
+                return false;
             break;
         }
     int rightC = rhs->coord[0];
@@ -1409,129 +1413,73 @@ bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
         if(rightC != rhs->coord[i])
         {
             rightT = rhs->coord[i];
-            for(int j=i+1; j<rhs->size(); j++)
-                if(rightC != rhs->coord[j] and rightT != rhs->coord[j])
-                {
-                    rightS = rhs->coord[j];
-                    break;
-                }
+            if((i+1) < lhs->size())
+                for(int j=i+1; j<rhs->size(); j++)
+                    if(rightC != rhs->coord[j] and rightT != rhs->coord[j])
+                    {
+                        rightS = rhs->coord[j];
+                        break;
+                    }
+            else
+                return false;
             break;
         }
-    /*
-    cmdOutput+= "\nLeftC:  " + stringify(spot3d[leftC].x) + "  " + stringify(spot3d[leftC].y) + "  " + stringify(spot3d[leftC].z);
-    cmdOutput+= "\nleftT:  " + stringify(spot3d[leftT].x) + "  " + stringify(spot3d[leftT].y) + "  " + stringify(spot3d[leftT].z);
-    cmdOutput+= "\nLeftS:  " + stringify(spot3d[leftS].x) + "  " + stringify(spot3d[leftS].y) + "  " + stringify(spot3d[leftS].z);
-    cmdOutput+= "\nRightC:  " + stringify(spot3d[rightC].x) + "  " + stringify(spot3d[rightC].y) + "  " + stringify(spot3d[rightC].z);
-    cmdOutput+= "\nRightT:  " + stringify(spot3d[rightT].x) + "  " + stringify(spot3d[rightT].y) + "  " + stringify(spot3d[rightT].z);
-    cmdOutput+= "\nRightS:  " + stringify(spot3d[rightS].x) + "  " + stringify(spot3d[rightS].y) + "  " + stringify(spot3d[rightS].z);
-    sf::Color plane1 = sf::Color::Blue;
-    plane1.a-= 80;
-    sf::Color plane15 = sf::Color::Yellow;
-    plane15.a-=80;
-    std::vector <sf::Vector2f> p1;
-    std::vector <sf::Vector2f> p15;
-    p1.push_back(flatView(spot2d[leftC]));
-    p1.push_back(flatView(spot2d[leftT]));
-    p1.push_back(flatView(spot2d[leftS]));
-    p15.push_back(flatView(spot2d[rightC]));
-    p15.push_back(flatView(spot2d[rightT]));
-    p15.push_back(flatView(spot2d[rightS]));
-    debugDrawPlane(p1, plane1);
-    debugDrawPlane(p15, plane15);
-    cmdOutput+= "\n" + stringify(planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], spot3d[leftC]));
 
-    */
-    bool leftWallEmpty = true;
     for(int i=0; i<lhs->size(); i++)
-        if(planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], p->terrain[lhs->coord[i]]) != 0)
-        {
-            leftWall = lhs->coord[i];
-            leftWallEmpty = false;
-            break;
-        }
-    if(leftWallEmpty)
+    {
+        int value = planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], p->terrain[lhs->coord[i]]);
+        if(value != 0)
+            leftWall.push_back(value);
+    }
+    if(leftWall.empty())
         return false;
+
     for(int i=0; i<rhs->size(); i++)
-        if(planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rhs->coord[i]]) != 0)
-            rightWall.push_back(rhs->coord[i]);
+    {
+        int value = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rhs->coord[i]]);
+        if(value != 0)
+            rightWall.push_back(value);
+    }
     if(rightWall.empty())
         return false;
+    int leftWallEyePos = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], position);
+    int rightWallEyePos = planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], position);
+    if(rightWallEyePos == 0 and leftWallEyePos == 0)
+        return false;
 
-    int lhsEyePlaneSide = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], position);
-    int first = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rightWall[0]]);
+    bool leftAllOnOneSide = true;
+    bool rightAllOnOneSide = true;
+    for(int i=1; i<leftWall.size(); i++)
+        if(leftWall[0] != leftWall[i])
+        {
+            leftAllOnOneSide = false;
+            break;
+        }
     for(int i=1; i<rightWall.size(); i++)
-    {
-        if(first != planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rightWall[i]]))
-            return planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], position) !=
-            planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], p->terrain[leftWall]);
-    }
-    return lhsEyePlaneSide == first;
-}
-
-bool Camera::wallSortingAlgorythmDebug(wall* lhs, wall* rhs)
-{
-    ///True - to z prawej jest blizej
-    int leftWall;
-    std::vector <int> rightWall;
-
-    int leftC = lhs->coord[0];
-    int leftT;
-    int leftS;
-    for(int i=1; i<lhs->size(); i++)
-        if(leftC != lhs->coord[i])
+        if(rightWall[0] != rightWall[i])
         {
-            leftT = lhs->coord[i];
-            for(int j=i+1; j<lhs->size(); j++)
-                if(leftC != lhs->coord[j] and leftT != lhs->coord[j])
-                {
-                    leftS = lhs->coord[j];
-                    break;
-                }
-            break;
-        }
-    int rightC = rhs->coord[0];
-    int rightT;
-    int rightS;
-    for(int i=1; i<rhs->size(); i++)
-        if(rightC != rhs->coord[i])
-        {
-            rightT = rhs->coord[i];
-            for(int j=i+1; j<rhs->size(); j++)
-                if(rightC != rhs->coord[j] and rightT != rhs->coord[j])
-                {
-                    rightS = rhs->coord[j];
-                    break;
-                }
+            rightAllOnOneSide = false;
             break;
         }
 
-    bool leftTab[lhs->size()] = {0};
-    bool rightTab[rhs->size()] = {0};
+    bool leftWallFirst = false;
+    bool rightWallFirst = false;
+    if(leftAllOnOneSide)
+        if(leftWall[0] == rightWallEyePos)
+            leftWallFirst = true;
+        else
+            rightWallFirst = true;
 
-    for(int i=0; i<rhs->size(); i++)
-        for(int j=0; j<lhs->size(); j++)
-            if(rhs->coord[i] == lhs->coord[j])
-            {
-                leftTab[j] = true;
-                rightTab[i] = true;
-            }
-    for(int i=0; i<lhs->size(); i++)
-        if(!leftTab[i])
-        {
-            leftWall = lhs->coord[i];
-            break;
-        }
-    for(int i=0; i<rhs->size(); i++)
-        if(!rightTab[i])
-            rightWall.push_back(rhs->coord[i]);
+    if(rightAllOnOneSide)
+        if(rightWall[0] == leftWallEyePos)
+            rightWallFirst = true;
+        else
+            leftWallFirst = true;
 
-    bool lhsEyePlaneSide = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], position);
-    bool first = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rightWall[0]]);
-    for(int i=1; i<rightWall.size(); i++)
-        if(first != planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rightWall[i]]))
-            return planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], position) !=
-            planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], p->terrain[leftWall]);
-    return lhsEyePlaneSide == first;
+    if(leftWallFirst != rightWallFirst)
+        return rightWallFirst;
+    return false;
+
 }
 
 void Camera::cycleReduction(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
@@ -1582,8 +1530,7 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
         for(int j=0; j<tempOrder.size(); j++)
             if(i!=j and
                wallIntersect(tempOrder[i], tempOrder[j]) and
-               wallSortingAlgorythm(tempOrder[i], tempOrder[j]) and
-                !wallSortingAlgorythm(tempOrder[j], tempOrder[i])
+               wallSortingAlgorythm(tempOrder[i], tempOrder[j])
                )
             {
                 temp.push_back(j);
@@ -1593,11 +1540,11 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
     }
 }
 
-void Camera::compare(wall* wallie1, wall* wallie2)
+void Camera::printGraph()
 {
-    if(cmdOutput.size() > 0 or p->cmdOutput.size() > 0)
-        cmdOutput += "\n";
-
+    std::string s;
+    s+= "kapa";
+    p->printToConsole(s);
 }
 
 void Camera::identifyWalls(std::vector <wall*> wallie)
@@ -1732,18 +1679,18 @@ void Camera::wallSort()
 
     createGraph(graph, graphLevel, tempOrder);
 
-    //cmdOutput+= "\nBEFORE:";
-    //displayGraph(graph, graphLevel);
+    cmdOutput+= "\nBEFORE:";
+    displayGraph(graph, graphLevel);
 
     //cycleReduction(graph, graphLevel);
 
-    //cmdOutput+= "\nAFTER:";
-    //displayGraph(graph, graphLevel);
+    cmdOutput+= "\nAFTER:";
+    displayGraph(graph, graphLevel);
 
     topologicalSort(graph, graphLevel, tempOrder);
     //randSort(tempOrder);
 
-    //identifyWalls(tempOrder);
+    identifyWalls(tempOrder);
 
 
 }
