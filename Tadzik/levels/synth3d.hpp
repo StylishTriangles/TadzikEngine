@@ -88,6 +88,11 @@ public:
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
     void update();
     void printGraph();
+    void enableCycleReduction(bool value);
+    void enableWallIntersect(bool value);
+    void enableRandomSort(bool value);
+    void enableIdentifyWalls(bool value);
+    void compare(int left, int right);
 protected:
     std::vector <sf::Vector2f> halfDotBegin;
     std::vector <sf::Vector2f> circleDefExample;
@@ -103,9 +108,10 @@ protected:
     void calcTerrain();
     void updateTerrain();
     SYNTH3D* p;
-    float screenSize, viewAngle, eye, scale, minDotSize;
+    float screenSize, viewAngle, scale, minDotSize;
     float sinx, siny, sinz, cosx, cosy, cosz, sinCircle, cosCircle, circleDef;
-    sf::Vector3f position, angle;
+    sf::Vector3f position, angle, vEye;
+    float &eye = vEye.z;
     sf::Vector2f whatever;
     sf::Vector3f planeCross(sf::Vector3f vec1, sf::Vector3f vec2);
     sf::Vector2f flatView(sf::Vector3f vec);
@@ -136,11 +142,16 @@ protected:
     bool polygonIntersectOld(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
     bool polygonIntersectOlder(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
     bool wallIntersect(wall* wallie1, wall* wallie2);
-    bool rightSide(sf::Vector2f& line1, sf::Vector2f& line2, sf::Vector2f& point);
+    bool wallIntersectOS(wall* left, wall* right);
+    bool rightSide(sf::Vector2f line1, sf::Vector2f line2, sf::Vector2f point);
     int planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
     float dotSize(sf::Vector3f vec);
     void identifyWalls(std::vector <wall*> wallie);
     std::string cmdOutput;
+    bool cycleReductionEnabled;
+    bool wallIntersectEnabled;
+    bool randomSortEnabled;
+    bool identifyWallsEnabled;
 };
 
 class SYNTH3D: public Scene
@@ -160,6 +171,12 @@ public:
             std::cout << "cannot load font\n";
         }
         consoleCommands.push_back("print graph");
+        consoleCommands.push_back("enable");
+        consoleCommands.push_back("enable cycleReduction");
+        consoleCommands.push_back("enable wallIntersect");
+        consoleCommands.push_back("enable randomSort");
+        consoleCommands.push_back("enable identifyWalls");
+        consoleCommands.push_back("compare");
         //loadMap("cubeOnSurface");
 
         //loadMap("oblivion_old");
@@ -167,6 +184,8 @@ public:
         //cameraAngle = {-6, -137, 0};
 
         loadMap("catOnSurface");
+        cameraPos = {26, 34, 32};
+
         //cameraPos = {26, 116, 30};
         //cameraAngle = {-34, 8, 0};
 
@@ -529,6 +548,40 @@ bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
                 }
             }
         }
+        else if(args[0] == "enable")
+        {
+            if(args.size() == 3)
+            {
+                if(args[1] == "cycleReduction")
+                {
+                    c.enableCycleReduction(bool(atoi(args[2].c_str())));
+                    return true;
+                }
+                else if(args[1] == "wallIntersect")
+                {
+                    c.enableWallIntersect(bool(atoi(args[2].c_str())));
+                    return true;
+                }
+                else if(args[1] == "randomSort")
+                {
+                    c.enableRandomSort(bool(atoi(args[2].c_str())));
+                    return true;
+                }
+                else if(args[1] == "identifyWalls")
+                {
+                    c.enableIdentifyWalls(bool(atoi(args[2].c_str())));
+                    return true;
+                }
+            }
+        }
+        else if(args[0] == "compare")
+        {
+            if(args.size() == 3)
+            {
+                c.compare(atoi(args[1].c_str()), atoi(args[2].c_str()));
+                return true;
+            }
+        }
     }
     return false;
 }
@@ -536,13 +589,99 @@ bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     position({0, 0, -400}),
-    eye(-80),
-    angle({0,0,0}),
+    angle({0, 0, 0}),
+    vEye({0, 0, -10}),
     screenSize(3),
     scale(100),
-    minDotSize(2)
+    minDotSize(2),
+    cycleReductionEnabled(false),
+    wallIntersectEnabled(true),
+    randomSortEnabled(false),
+    identifyWallsEnabled(false)
 {
     initCircleDef(32);
+}
+
+void Camera::enableCycleReduction(bool value)
+{
+    cycleReductionEnabled = value;
+}
+
+void Camera::enableWallIntersect(bool value)
+{
+    wallIntersectEnabled = value;
+}
+
+void Camera::enableRandomSort(bool value)
+{
+    randomSortEnabled = value;
+}
+
+void Camera::enableIdentifyWalls(bool value)
+{
+    identifyWallsEnabled = value;
+}
+
+void Camera::compare(int left, int right)
+{
+    if(left != right)
+    {
+        int counter = 0;
+        wall* leftie;
+        wall* rightie;
+        bool leftWallFound = false;
+        bool rightWallFound = false;
+
+        for(int i=0; i<p->world.size(); i++)
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                if(left == counter)
+                {
+                    leftie = &(p->world[i].wallie[j]);
+                    leftWallFound = true;
+                    p->printToConsole("First object: " + p->world[i].name);
+                }
+                if(right == counter)
+                {
+                    rightie = &(p->world[i].wallie[j]);
+                    rightWallFound = true;
+                    p->printToConsole("Second object: " + p->world[i].name);
+                }
+                counter++;
+            }
+        if(leftWallFound and rightWallFound)
+        {
+            if(wallSortingAlgorythm(leftie, rightie))
+            {
+                if(!wallSortingAlgorythm(rightie, leftie))
+                    p->printToConsole("Wall " + stringify(right) + " is in front of wall " + stringify(left), sf::Color::Cyan);
+                else
+                    p->printToConsole("[error] Both walls seem to be in front of each other");
+            }
+            else
+            {
+                if(wallSortingAlgorythm(rightie, leftie))
+                {
+                    p->printToConsole("Wall " + stringify(left) + " is in front of wall " + stringify(right), sf::Color::Cyan);
+                }
+                else
+                    p->printToConsole("[error] Both walls seem to be in behind of each other");
+            }
+        }
+        else
+        {
+            if(!leftWallFound and !rightWallFound)
+                p->printToConsole("[error] Couldn't find any of these walls");
+            else if(!leftWallFound)
+                p->printToConsole("[error] Could't find the first wall");
+            else
+                p->printToConsole("[error] Could't find the second wall");
+        }
+    }
+    else
+    {
+        p->printToConsole("[error] Cannot compare wall X with wall X");
+    }
 }
 
 void Camera::updateTerrain()
@@ -666,7 +805,6 @@ void Camera::drawSphere(sf::Vector3f spot, float radius, sf::Color color, float 
 {
     int n = 64;
     sf::Vector3f buffor;
-    sf::Vector3f vEye = {0, 0, eye};
     spot -= vEye;
     float lenght = sqrtf(spot.x*spot.x + spot.y*spot.y + spot.z*spot.z);
     float lenghtZ = sqrtf(spot.x*spot.x + spot.y*spot.y);
@@ -851,7 +989,6 @@ void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
 
 void Camera::calcTerrain()
 {
-    sf::Vector3f vEye = {0, 0, eye};
     for(int i=0; i<p->terrain.size(); i++)
     {
         spot3d[i] = vecTransform(p->terrain[i] - position);
@@ -872,7 +1009,6 @@ void Camera::drawGridWall(wall const& wallie, int n)
 
     sf::Vector3f line[4];
     sf::Vector3f point[4][n];
-    sf::Vector3f vEye = sf::Vector3f(0, 0, eye);
     sf::Vector2f buffor;
 
     line[0] = spot3d[ wallie.coord[1] ] - spot3d[ wallie.coord[0] ];
@@ -1188,7 +1324,7 @@ bool Camera::lineIntersect(sf::Vector2f u0, sf::Vector2f v0, sf::Vector2f u1, sf
     return false;
 }
 
-bool Camera::rightSide(sf::Vector2f& line1, sf::Vector2f& line2, sf::Vector2f& point)
+bool Camera::rightSide(sf::Vector2f line1, sf::Vector2f line2, sf::Vector2f point)
 {
     sf::Vector2f v1 = line2 - line1;
     sf::Vector2f p = point - line1;
@@ -1214,10 +1350,27 @@ int Camera::planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& sid
 
 bool Camera::wallIntersect(wall* wallie1, wall* wallie2)
 {
+    int leftBelowZero = 0;
+    int rightBelowZero = 0;
+    for(int i=0; i<wallie1->size(); i++)
+        if(spot3d[wallie1->coord[i]].z < 0)
+        {
+            leftBelowZero++;
+        }
+    for(int i=0; i<wallie2->size(); i++)
+        if(spot3d[wallie2->coord[i]].z < 0)
+        {
+            rightBelowZero++;
+        }
+    if(leftBelowZero == 0 and rightBelowZero == 0)
+        return wallIntersectOS(wallie1, wallie2);
+
+    if(leftBelowZero == wallie1->size() or rightBelowZero == wallie2->size())
+        return false;
+
     std::vector <sf::Vector2f> poly1 = wallToPoly(wallie1);
     std::vector <sf::Vector2f> poly2 = wallToPoly(wallie2);
-    if(poly1.empty() or poly2.empty())
-        return false;
+
     return polygonIntersect(poly1, poly2);
 }
 
@@ -1382,6 +1535,61 @@ bool Camera::polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf:
     return true;
 }
 
+bool Camera::wallIntersectOS(wall* left, wall* right)
+{
+    for(int i=0; i<left->size(); i++)
+    {
+        bool firstSide = rightSide(flatView(spot2d[left->coord[i]]), flatView(spot2d[left->coord[(i+1)%left->size()]]), flatView(spot2d[right->coord[0]]));
+        bool allOnOneSide = true;
+        for(int j=1; j<right->size(); j++)
+            if(firstSide != rightSide(flatView(spot2d[left->coord[i]]), flatView(spot2d[left->coord[(i+1)%left->size()]]), flatView(spot2d[right->coord[j]])))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%left->size(); j<left->size() + (i+2)%left->size(); j++)
+                if(flatView(spot2d[left->coord[j%left->size()]]) != flatView(spot2d[left->coord[i]]) and
+                   flatView(spot2d[left->coord[j%left->size()]]) != flatView(spot2d[left->coord[(i+1)%left->size()]]))
+                {
+                   opositePoint = flatView(spot2d[left->coord[j%left->size()]]);
+                   break;
+                }
+            if(firstSide != rightSide(flatView(spot2d[left->coord[i]]), flatView(spot2d[left->coord[(i+1)%left->size()]]), opositePoint))
+                return false;
+        }
+    }
+
+    for(int i=0; i<right->size(); i++)
+    {
+        bool firstSide = rightSide(flatView(spot2d[right->coord[i]]), flatView(spot2d[right->coord[(i+1)%right->size()]]), flatView(spot2d[left->coord[0]]));
+        bool allOnOneSide = true;
+        for(int j=1; j<left->size(); j++)
+            if(firstSide != rightSide(flatView(spot2d[right->coord[i]]), flatView(spot2d[right->coord[(i+1)%right->size()]]), flatView(spot2d[left->coord[j]])))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%right->size(); j<right->size() + (i+2)%right->size(); j++)
+                if(flatView(spot2d[right->coord[j%right->size()]]) != flatView(spot2d[right->coord[i]]) and
+                   flatView(spot2d[right->coord[j%right->size()]]) != flatView(spot2d[right->coord[(i+1)%right->size()]]))
+                {
+                   opositePoint = flatView(spot2d[right->coord[j%right->size()]]);
+                   break;
+                }
+            if(firstSide != rightSide(flatView(spot2d[right->coord[i]]), flatView(spot2d[right->coord[(i+1)%right->size()]]), opositePoint))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
 {
     ///True - to z prawej jest blizej
@@ -1427,7 +1635,7 @@ bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
 
     for(int i=0; i<lhs->size(); i++)
     {
-        int value = planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], p->terrain[lhs->coord[i]]);
+        int value = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], spot3d[lhs->coord[i]]);
         if(value != 0)
             leftWall.push_back(value);
     }
@@ -1436,14 +1644,14 @@ bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
 
     for(int i=0; i<rhs->size(); i++)
     {
-        int value = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], p->terrain[rhs->coord[i]]);
+        int value = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], spot3d[rhs->coord[i]]);
         if(value != 0)
             rightWall.push_back(value);
     }
     if(rightWall.empty())
         return false;
-    int leftWallEyePos = planeSide(p->terrain[leftC], p->terrain[leftT], p->terrain[leftS], position);
-    int rightWallEyePos = planeSide(p->terrain[rightC], p->terrain[rightT], p->terrain[rightS], position);
+    int leftWallEyePos = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], vEye);
+    int rightWallEyePos = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], vEye);
     if(rightWallEyePos == 0 and leftWallEyePos == 0)
         return false;
 
@@ -1461,6 +1669,7 @@ bool Camera::wallSortingAlgorythm(wall* lhs, wall* rhs)
             rightAllOnOneSide = false;
             break;
         }
+
 
     bool leftWallFirst = false;
     bool rightWallFirst = false;
@@ -1529,7 +1738,7 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
         std::vector <int> temp;
         for(int j=0; j<tempOrder.size(); j++)
             if(i!=j and
-               wallIntersect(tempOrder[i], tempOrder[j]) and
+               (!wallIntersectEnabled or wallIntersect(tempOrder[i], tempOrder[j])) and
                wallSortingAlgorythm(tempOrder[i], tempOrder[j])
                )
             {
@@ -1542,9 +1751,7 @@ void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <i
 
 void Camera::printGraph()
 {
-    std::string s;
-    s+= "kapa";
-    p->printToConsole(s);
+    p->printToConsole(p->cmdOutput);
 }
 
 void Camera::identifyWalls(std::vector <wall*> wallie)
@@ -1588,17 +1795,19 @@ void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vecto
         if(graphLevel[i] == 0)
             que.push(i);
 
-    cmdOutput += "\nWall Order:";
+    cmdOutput += "\nWall Order:\n";
     if(que.empty())
     {
         std::cout << "\nERROR: Topological sort queue empty";
-        cmdOutput += "\nERROR: Topological sort queue empty";
+        p->printToConsole("[error] Topological sort queue empty");
     }
     int counter = 0;
     while(!que.empty())
     {
             wallOrder.push_back(tempOrder[que.front()]);
-            cmdOutput += " " + stringify(que.front());
+            cmdOutput += stringify(que.front()) + " ";
+            if(counter%40 == 39)
+                cmdOutput+= "\n";
             counter++;
             for(int i=0; i<graph[que.front()].size(); i++)
             {
@@ -1611,7 +1820,7 @@ void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vecto
     if(counter < tempOrder.size())
     {
         std::cout << "\nERROR: Topological sort failure";
-        cmdOutput += "\nERROR: Topological sort failure";
+        //p->printToConsole("[error] Topological sort failure");
     }
 }
 
@@ -1627,6 +1836,7 @@ void Camera::randSort(std::vector <wall*> tempOrder)
 
 void Camera::displayGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
 {
+    /*
     if(cmdOutput.size() > 0 or p->cmdOutput.size() > 0)
         cmdOutput += "\n";
     cmdOutput += "Graph Level |";
@@ -1638,6 +1848,7 @@ void Camera::displayGraph(std::vector <std::vector <int> >& graph, std::vector <
     cmdOutput += "\n            |";
     for(int i=0; i<graphLevel.size(); i++)
         cmdOutput += stringify(graphLevel[i]) + "|";
+    */
 
     for(int i=0; i<graph.size(); i++)
     {
@@ -1677,22 +1888,24 @@ void Camera::wallSort()
     std::vector <int> graphLevel;
     graphLevel.resize(tempOrder.size());
 
-    createGraph(graph, graphLevel, tempOrder);
+    if(!randomSortEnabled)
+    {
+        createGraph(graph, graphLevel, tempOrder);
+        cmdOutput+= "\nBEFORE:";
+        displayGraph(graph, graphLevel);
+        if(cycleReductionEnabled)
+        {
+            cycleReduction(graph, graphLevel);
+            cmdOutput+= "\nAFTER:";
+            displayGraph(graph, graphLevel);
+        }
+        topologicalSort(graph, graphLevel, tempOrder);
+    }
+    else
+        randSort(tempOrder);
 
-    cmdOutput+= "\nBEFORE:";
-    displayGraph(graph, graphLevel);
-
-    //cycleReduction(graph, graphLevel);
-
-    cmdOutput+= "\nAFTER:";
-    displayGraph(graph, graphLevel);
-
-    topologicalSort(graph, graphLevel, tempOrder);
-    //randSort(tempOrder);
-
-    identifyWalls(tempOrder);
-
-
+    if(identifyWallsEnabled)
+        identifyWalls(tempOrder);
 }
 
 void Camera::display()
