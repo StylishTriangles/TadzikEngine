@@ -57,7 +57,6 @@ public:
         explosion.setSpriteSheet(&spsExplosion, 134, sf::milliseconds(50));
 
         test.setAnimation(&explosion);
-        test.setVelocity(5, 5);
     }
 
     virtual void onSceneActivate() {

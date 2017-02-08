@@ -30,7 +30,7 @@ public:
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
 #include "levels/synth3d.hpp"
-#include "levels/mario.hpp"
+#include "levels/marioRewritten.hpp"
 #include "levels/levelselect.hpp"
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
@@ -41,7 +41,7 @@ int main(){
     srand(time(NULL));
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Tadzik", sf::Style::Fullscreen, settings);
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     ImGui::SFML::Init(window);
@@ -50,19 +50,19 @@ int main(){
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     //sceneManager.registerScene<JUMPER>("JUMPER", &window);
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
+    sceneManager.registerScene<MARIO2>("MARIO2", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    sceneManager.registerScene<RPG>("RPG", &window);
+    //sceneManager.registerScene<RPG>("RPG", &window);
     //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
     //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
-    //sceneManager.setActiveScene("MARIO");
+    sceneManager.setActiveScene("MARIO2");
     //sceneManager.setActiveScene("LEVELSELECT");
-   // sceneManager.setActiveScene("SHOOTER2D");
-    sceneManager.setActiveScene("RPG");
+    //sceneManager.setActiveScene("SHOOTER2D");
+    //sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
     sf::Clock deltaClock;
     while(window.isOpen()){
