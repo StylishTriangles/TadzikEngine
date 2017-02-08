@@ -152,7 +152,7 @@ public:
         lastPlatformGenerated=0;
         scrolling = 0;
     }
-    virtual void draw(double deltaTime) {
+    virtual void draw(sf::Time deltaTime) {
         //std::cout << powerups.size() << "\n";
 
         //statyczne scrollowanie
@@ -302,7 +302,7 @@ public:
         //glupoty
         spTadzik.sprite.move(speedX, 0);
         speedX*=(1-airResistance);
-        spTadzik.update(abs(speedX)*deltaTime);
+        spTadzik.update(abs(speedX)*deltaTime.asMilliseconds());
         if (score>highScore) highScore=score;
         textScore.setString(Utils::stringify(highScore/10));
 

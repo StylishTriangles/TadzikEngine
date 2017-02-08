@@ -208,10 +208,11 @@ public:
 
     }
 
-    virtual void draw(double deltaTime)
+    virtual void draw(sf::Time deltaTime)
     {
-        Tadeusz.Body.update(deltaTime);
-        Tadeusz.Legs.update(deltaTime);
+        double dT = deltaTime.asMilliseconds();
+        Tadeusz.Body.update(dT);
+        Tadeusz.Legs.update(dT);
 
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {

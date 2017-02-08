@@ -1063,7 +1063,7 @@ public:
             vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
     }
 
-    void draw(double deltaTime) {
+    void draw(sf::Time deltaTime) {
         window->clear();
         ///VIEW HANDLING
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
@@ -1201,7 +1201,7 @@ public:
                     vecEnemies.erase(vecEnemies.begin()+j);
                 }
             }
-            vecExplosions[i].update(deltaTime);
+            vecExplosions[i].update(deltaTime.asMilliseconds());
             if (!vecExplosions[i].shouldDestroy()) {
                 rGame.draw(vecExplosions[i]);
             }

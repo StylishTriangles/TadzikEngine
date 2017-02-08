@@ -233,9 +233,10 @@ public:
         OptDots();
         c.update();
     }
-    virtual void onSceneActivate() {}
-    virtual void draw(double dt)
+    void onSceneActivate() {}
+    void draw(sf::Time deltaTime)
     {
+        double dt = deltaTime.asMilliseconds();
         std::cout << "\n" << dt;
         float movementSpeed = 2.0f;
         float cameraRotationSpeed = 1.0f;

@@ -31,7 +31,7 @@ public:
 
     virtual void onSceneLoadToMemory(){}
     virtual void onSceneActivate(){}
-    virtual void draw(double deltaTime){}
+    virtual void draw(sf::Time deltaTime){}
     virtual void deliverEvent(sf::Event&){}
     virtual void onSceneDeactivate(){}
     virtual bool onConsoleUpdate(std::vector<std::string> args) {return false;}

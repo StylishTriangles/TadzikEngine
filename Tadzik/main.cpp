@@ -90,11 +90,13 @@ int main(){
                 sceneManager.deliverEvent(event);
             }
         }
-        ImGui::SFML::Update(window, deltaClock.getElapsedTime());
-		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        sceneManager.getFPS(deltaClock.getElapsedTime());
 
+        sf::Time dT = deltaClock.getElapsedTime();
         deltaClock.restart();
+        ImGui::SFML::Update(window, dT);
+		sceneManager.runSceneFrame(dT);
+        sceneManager.getFPS(dT);
+
         window.resetGLStates();
         ImGui::Render();
         window.display();

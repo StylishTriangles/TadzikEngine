@@ -66,7 +66,7 @@ public:
     void deliverEvent(sf::Event& e){
         actScene->deliverEvent(e);
     }
-    void runSceneFrame(double delta){
+    void runSceneFrame(sf::Time delta){
         actScene->draw(delta);
         if(cmdEnabled){
             gameConsole.Draw("Tadzik CMD", 0);

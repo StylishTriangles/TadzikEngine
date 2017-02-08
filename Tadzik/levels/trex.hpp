@@ -78,7 +78,7 @@ public:
         }
     }
 
-    virtual void draw(double deltaTime){
+    virtual void draw(sf::Time deltaTime){
         if(gameOver){
             std::cout << result << std::endl;
             textScore.setString("press space to play again");
@@ -97,8 +97,8 @@ public:
             }
         }
         else{
-            spTadzik.sprite.move(0, deltaTime * -speedY * scaleFactor);
-            spTadzik.update(deltaTime);
+            spTadzik.sprite.move(0, deltaTime.asMilliseconds() * -speedY * scaleFactor);
+            spTadzik.update(deltaTime.asMilliseconds());
             if ((int)result%100==0) speedX+=0.1;
             double critHeight = window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY;
             if(spTadzik.sprite.getGlobalBounds().top < critHeight) {
@@ -144,7 +144,7 @@ public:
             window->draw(sp);
         }
         for(AnimatedSprite& sp : vecVulture){
-            sp.update(deltaTime);
+            sp.update(deltaTime.asMilliseconds());
             if(debug)
                 Utils::drawBoundingBox(sp.sprite, window);
             window->draw(sp.sprite);
