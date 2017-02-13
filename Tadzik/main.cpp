@@ -42,9 +42,11 @@ int main(){
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
-    window.setFramerateLimit(60);
+    //sf::RenderWindow window(sf::VideoMode(1280, 960), "Tadzik", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1366, 768), "Tadzik", sf::Style::Fullscreen, settings);
+    window.setFramerateLimit(400);
     window.setKeyRepeatEnabled(false);
-    window.setVerticalSyncEnabled(true);
+    //window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
     /*
@@ -67,8 +69,8 @@ int main(){
     sceneManager.setActiveScene("RPG");
     sceneManager.setActiveScene("ISAYPARTY");
     */
-    //sceneManager.justLaunchIt<SYNTH3D>("SYNTH3D");
-    sceneManager.justLaunchIt<SHOOTER2D>("SHOOTER2D");
+    sceneManager.justLaunchIt<SYNTH3D>("SYNTH3D");
+    //sceneManager.justLaunchIt<SHOOTER2D>("SHOOTER2D");
 
     sf::Clock deltaClock;
     while(window.isOpen()){
