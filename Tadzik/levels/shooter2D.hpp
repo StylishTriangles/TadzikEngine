@@ -746,6 +746,8 @@ public:
         GhostMaker = EnemyMaker(&texGhost, &texBlood, &TADZIK, this);
         RunnerMaker = EnemyMaker(&texRunner, &texBlood, &TADZIK, this);
 
+        fadeShape.setFillColor(sf::Color(30, 8, 8, 0));
+
         consoleCommands.push_back("debug");
         consoleCommands.push_back("killall");
         consoleCommands.push_back("stopspawning");
@@ -858,7 +860,7 @@ public:
                     }
                 }
                 else if (mapa.getPixel(i, j) == sf::Color(0, 0, 255)) {
-                    TADZIK.setPosition(i*tileSize, j*tileSize);
+                    TADZIK.setPosition(i*tileSize+1, j*tileSize+1);
                 }
             }
         }
@@ -877,7 +879,9 @@ public:
         rGame.create(mapSize.x, mapSize.y);
         rTextureTmp.create(mapSize.x, mapSize.y);
         gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
+
         viewOffset = sf::Vector2f(0, 0);
+        fadeShape.setSize(mapSize);
 
         ///KONTURY OBIEKTOW
         rTextureTmp.clear(sf::Color(0, 0, 0, 0));
@@ -1028,6 +1032,7 @@ public:
         if (waveClock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
             sf::Image img;
             img = rTextureTmp.getTexture().copyToImage();
+            currentWave++;
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
                 sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, mapSize.x-10, mapSize.y-10));
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
@@ -1041,10 +1046,10 @@ public:
                     }
             }
             waveClock.restart();
-            currentWave++;
-            //currentWave=currentWave%vecWaves.size();
-            if (currentWave==vecWalls.size())
-                nextMap();
+
+        }
+        if (currentWave==vecWaves.size()-1 && vecEnemies.empty()) {
+            mapCleared = true;
         }
     }
 
@@ -1086,6 +1091,25 @@ public:
         else
             return false;
         return true;
+    }
+
+    void fadeOut() {
+        sf::Color c = fadeShape.getFillColor();
+        c.a+=5;
+        fadeShape.setFillColor(c);
+        if (c.a>=255) {
+            nextMap();
+            fadeInEffect = true;
+            mapCleared = false;
+        }
+    }
+    void fadeIn() {
+        sf::Color c = fadeShape.getFillColor();
+        c.a-=5;
+        fadeShape.setFillColor(c);
+        if (c.a<=0) {
+            fadeInEffect = false;
+        }
     }
 
     void fixView() {
@@ -1288,6 +1312,14 @@ public:
         if (TADZIK.isReloading)
             rGame.draw(TADZIK.reloadBar);
 
+        if (mapCleared) {
+            fadeOut();
+            rGame.draw(fadeShape);
+        }
+        if (fadeInEffect) {
+            fadeIn();
+            rGame.draw(fadeShape);
+        }
         rGame.display();
 
         window->draw(sf::Sprite(rGame.getTexture()));
@@ -1318,6 +1350,8 @@ protected:
     sf::Texture spsExplosion;
 
     sf::Texture texLines;
+
+    sf::RectangleShape fadeShape;
 
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
@@ -1378,6 +1412,9 @@ protected:
     unsigned int levelNumber = 1;
 
     bool debug = false;
+
+    bool mapCleared = false;
+    bool fadeInEffect = false;
 
 };
 
