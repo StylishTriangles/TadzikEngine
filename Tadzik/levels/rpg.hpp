@@ -1,10 +1,10 @@
 #ifndef RPG_HPP
 #define RPG_HPP
 
-#include "Scene.hpp"
-#include "AnimatedSprite.hpp"
-#include "Collision.hpp"
-#include "Utils.hpp"
+#include "../include/Scene.hpp"
+#include "../include/AnimatedSprite.hpp"
+#include "../include/Collision.hpp"
+#include "../include/Utils.hpp"
 
 #include <string>
 #include <vector>
@@ -163,8 +163,8 @@ public:
         ///ANIMDOMIN
         texBody.loadFromFile("files/textures/rpg/test/body.png");
         texLegs.loadFromFile("files/textures/rpg/test/idle.png");
-        testBody.setSpriteSheet(&texBody, 15, 600);
-        testLegs.setSpriteSheet(&texLegs, 15, 300);
+        testBody.setSpriteSheet(&texBody, 15, sf::milliseconds(600));
+        testLegs.setSpriteSheet(&texLegs, 15, sf::milliseconds(300));
         testBody.setPoints();
         testLegs.setPoints();
         Player.setAnimDomin(&testBody,1);
@@ -173,7 +173,7 @@ public:
         Player.Legs.setScale(5,5);
 
         texIdleSword.loadFromFile("files/textures/rpg/idleSword.png");
-        IdleSword.setSpriteSheet(&texIdleSword,28,600);
+        IdleSword.setSpriteSheet(&texIdleSword,28,sf::milliseconds(600));
         IdleSword.setPoints();
         Player.setAnimDomin(&IdleSword,1);
 
@@ -190,7 +190,7 @@ public:
         Run[Up].setPoints();
 
         texAttack.loadFromFile("files/textures/rpg/attackDown.png");
-        Attack.setSpriteSheet(&texAttack,35,70);
+        Attack.setSpriteSheet(&texAttack,35,sf::milliseconds(70));
         Attack.setPoints();
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
