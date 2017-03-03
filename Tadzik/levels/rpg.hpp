@@ -19,6 +19,11 @@ public:
         :Scene(_name, mgr, w)
     {}
 
+    enum RunDirection
+    {
+        None, Right, Left, Up, Down
+    };
+
     class AnimDomin: public ARO::Anim
     {
     public:
@@ -43,12 +48,34 @@ public:
         std::vector <sf::Vector2f> pointLegs;
         sf::Vector2f offset;
         float speed = 10;
+        RunDirection direction;
+        bool isAttacking;
+
+        void changeDirection(RunDirection d)
+        {
+            //player.direction
+        }
 
         void setAnimDomin(AnimDomin* a, bool b)
         {
             if(b)   Body.setAnimation(a), pointBody = a->pointOrigin;
             else    Legs.setAnimation(a), pointLegs = a->pointOrigin;
         }
+        void changeAnimDomin(AnimDomin *a, bool b)
+        {
+            if(b)
+            {
+                if(Body.getAnim()!=a)
+                {
+                    Body.setAnimation(a);
+                    pointBody = a->pointOrigin;
+                }
+            }
+            else   if(Legs.getAnim()!=a)
+                Legs.setAnimation(a), pointLegs = a->pointOrigin;
+        }
+
+
         void draw(sf::RenderWindow* w)
         {
             w->draw(Legs);
@@ -150,6 +177,18 @@ public:
         IdleSword.setPoints();
         Player.setAnimDomin(&IdleSword,1);
 
+        texRun[Right].loadFromFile( "files/textures/rpg/run/right.png");
+        texRun[Left].loadFromFile(  "files/textures/rpg/run/left.png");
+        texRun[Down].loadFromFile(  "files/textures/rpg/run/down.png");
+        texRun[Up].loadFromFile(    "files/textures/rpg/run/up.png");
+        Run[Right].setSpriteSheet(  &texRun[Right], 25, 200),   Run[Right].setPoints();
+        Run[Left].setSpriteSheet(   &texRun[Left],  25, 200);
+        Run[Left].setPoints();
+        Run[Down].setSpriteSheet(   &texRun[Down],  15, 200);
+        Run[Down].setPoints();
+        Run[Up].setSpriteSheet(     &texRun[Up],    15, 200);
+        Run[Up].setPoints();
+
         texAttack.loadFromFile("files/textures/rpg/attackDown.png");
         Attack.setSpriteSheet(&texAttack,35,70);
         Attack.setPoints();
@@ -200,29 +239,47 @@ public:
     {
         Player.Body.update(deltaTime);
         Player.Legs.update(deltaTime);
+Player.offset = sf::Vector2f(0,0);
 
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
         {
+            //if(direction==None)
+                Player.changeDirection(Up);
+
             Player.offset+=sf::Vector2f(0,-1);
+            Player.changeAnimDomin(&Run[Up],0);
+
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
         {
             Player.offset+=sf::Vector2f(0,1);
+            Player.changeAnimDomin(&Run[Down],0);
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
-        {
-            Player.offset+=sf::Vector2f(-1,0);
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
         {
             Player.offset+=sf::Vector2f(1,0);
+            Player.changeAnimDomin(&Run[Right],0);
         }
-
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+        {
+            Player.offset+=sf::Vector2f(-1,0);
+            Player.changeAnimDomin(&Run[Left],0);
+        }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::K) )
+        {
+            Player.Body.setScale(Player.Body.getScale()+sf::Vector2f(  0.1,  0.1));
+            Player.Legs.setScale(Player.Legs.getScale()+sf::Vector2f(  0.1,  0.1));
+        }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::L) )
+        {
+            Player.Body.setScale(Player.Body.getScale()-sf::Vector2f(  0.1,  0.1));
+            Player.Legs.setScale(Player.Legs.getScale()-sf::Vector2f(  0.1,  0.1));
+        }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-            if(Player.Body.getAnim()!=&Attack) Player.setAnimDomin(&Attack,1), Player.Body.reset();
+            Player.changeAnimDomin(&Attack,1);
 
         if(Player.Body.getAnim()==&Attack)
-            if(Player.Body.getLoops()>0) Player.setAnimDomin(&IdleSword,1);
+            if(Player.Body.getLoops()>0) Player.setAnimDomin(&IdleSword,1), Player.Body.reset();
 
 
 ///Kolizja !!!
@@ -287,6 +344,9 @@ protected:
     AnimDomin testBody;
     sf::Texture texLegs;
     sf::Texture texBody;
+
+    sf::Texture texRun[4];
+    AnimDomin Run[4];
 
     AnimDomin Attack;
     sf::Texture texAttack;
