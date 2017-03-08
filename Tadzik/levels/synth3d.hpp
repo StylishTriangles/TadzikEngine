@@ -1,4 +1,3 @@
-///Synth3d ver. 2.8 alpha
 #ifndef SYNTH3D_HPP
 #define SYNTH3D_HPP
 
@@ -19,6 +18,30 @@ inline realType toRad(realType angle)
 {
     return angle * (realType)0.017453292519943295769;
 }
+
+sf::Vector3f operator/(sf::Vector3f lhs, const sf::Vector3f& rhs)
+{
+    return {lhs.x/rhs.x, lhs.y/rhs.y, lhs.z/rhs.z};
+}
+
+sf::Vector3f operator*(sf::Vector3f lhs, const sf::Vector3f& rhs)
+{
+    return {lhs.x*rhs.x, lhs.y*rhs.y, lhs.z*rhs.z};
+}
+
+class collisionPacket
+{
+public:
+    sf::Vector3f eRadius;
+    sf::Vector3f R3Velocity;
+    sf::Vector3f R3Position;
+    sf::Vector3f velocity;
+    sf::Vector3f normalizedVelocity;
+    sf::Vector3f basePoint;
+    bool foundCollision;
+    double nearestDistance;
+    sf::Vector3f intersectionPoint;
+};
 
 class Wall
 {
@@ -109,214 +132,53 @@ unsigned int Object::size()
     return wallie.size();
 }
 
-class Entity
+class Plane
 {
 public:
-    Entity(std::vector <sf::Vector3f>* terra, std::vector <sf::Vector3f>* defTerra);
-    void update(double deltaTime);
-    void importObject(Object* newElement);
-    void setDirection(sf::Vector3f vec, sf::Vector3f beginning);
-    void setPos(sf::Vector3f vec);
-    void setRotationCenter(sf::Vector3f);
-    void calcRotationCenter();
-    std::vector <std::pair <int, sf::Vector3f> > leftLeg;
-    std::vector <std::pair <int, sf::Vector3f> > rightLeg;
-protected:
-    void movement();
-    void calcAngle();
-    sf::Vector3f vecTransform(sf::Vector3f vec);
-    std::vector <Object*> element;
-    std::vector <sf::Vector3f>* terrain;
-    std::vector <sf::Vector3f>* defTerrain;
-    float sinx, siny, sinz, cosx, cosy, cosz;
-    sf::Vector3f direction;
-    sf::Vector3f position;
-    sf::Vector3f dirVec;
-    sf::Vector3f rotationCenter;
-    sf::Vector3f positionBuffor;
+    Plane(const sf::Vector3f& originGiven, const sf::Vector3f& normalGiven);
+    Plane(const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3);
+    float equation[4];
     sf::Vector3f origin;
-    double dt;
-    float offset;
-    float offsetLimit;
-    bool directionSet;
-    int tick;
+    sf::Vector3f normal;
+    bool isFrontFacingTo(const sf::Vector3f& direction) const;
+    double signedDistanceTo(const sf::Vector3f& point) const;
 };
 
-Entity::Entity(std::vector <sf::Vector3f>* terra, std::vector <sf::Vector3f>* defTerra):
-    position({0,0,0}), directionSet(false), tick(1), offsetLimit(15),
-    sinx(0), siny(0), sinz(0),
-    cosx(1), cosy(1), cosz(1),
-    offset(0)
+Plane::Plane(const sf::Vector3f& originGiven, const sf::Vector3f& normalGiven)
 {
-    terrain = terra;
-    defTerrain = defTerra;
+    normal = normalGiven;
+    origin = originGiven;
+    equation[0] = normal.x;
+    equation[1] = normal.y;
+    equation[2] = normal.z;
+    equation[3] = -(normal.x*origin.x+normal.y*origin.y+normal.z*origin.z);
+}
+/// Construct from triangle:
+Plane::Plane(const sf::Vector3f& p1,const sf::Vector3f& p2, const sf::Vector3f& p3)
+{
+    normal = crossProduct((p2-p1), (p3-p1));
+    normalize3f(normal);
+    origin = p1;
+    equation[0] = normal.x;
+    equation[1] = normal.y;
+    equation[2] = normal.z;
+    equation[3] = -(normal.x*origin.x+normal.y*origin.y+normal.z*origin.z);
+}
+bool Plane::isFrontFacingTo(const sf::Vector3f& direction) const
+{
+    double dot = dotProduct(normal, direction);
+    return (dot <= 0);
+}
+double Plane::signedDistanceTo(const sf::Vector3f& point) const
+{
+    return dotProduct(point, normal) + equation[3];
 }
 
-void Entity::update(double deltaTime)
-{
-    dt = deltaTime;
-    if(!directionSet)
-    {
-        if(position != positionBuffor)
-        {
-            setDirection(position, positionBuffor);
-            calcAngle();
-        }
-    }
-    else
-    {
-        directionSet = false;
-        calcAngle();
-    }
-    movement();
-    for(int i=0; i<element.size(); i++)
-        for(int j=0; j<element[i]->size(); j++)
-            for(int k=0; k<element[i]->wallie[j].size(); k++)
-            {
-                sf::Vector3f flatRotationCenter = {rotationCenter.x, 0, rotationCenter.z};
-                (*terrain)[element[i]->wallie[j].coord[k]] = vecTransform((*defTerrain)[element[i]->wallie[j].coord[k]]);
-                (*terrain)[element[i]->wallie[j].coord[k]] += position - flatRotationCenter;
-                for(int l=0; l<element[i]->wallie[j].lineStrip.size(); l++)
-                    for(int m=0; m<element[i]->wallie[j].lineStrip[l].size(); m++)
-                    {
-                        (*terrain)[element[i]->wallie[j].lineStrip[l][m]] = vecTransform((*defTerrain)[element[i]->wallie[j].lineStrip[l][m]]);
-                        (*terrain)[element[i]->wallie[j].lineStrip[l][m]] += position - flatRotationCenter;
-                    }
-            }
-}
 
-void Entity::importObject(Object* newElement)
-{
-    element.push_back(newElement);
-}
-
-void Entity::setDirection(sf::Vector3f vec, sf::Vector3f beginning)
-{
-    origin = beginning;
-    direction = vec;
-    directionSet = true;
-}
-
-void Entity::setPos(sf::Vector3f vec)
-{
-    positionBuffor = position;
-    position = vec;
-}
-
-void Entity::setRotationCenter(sf::Vector3f vec)
-{
-    rotationCenter = vec;
-}
-
-void Entity::movement()
-{
-    if(position != positionBuffor)
-    {
-        sf::Vector3f movementVec = position - positionBuffor;
-        float distance = sqrtf(movementVec.x*movementVec.x + movementVec.y*movementVec.y + movementVec.z*movementVec.z);
-        offset += distance*tick;
-        if(offset > offsetLimit)
-        {
-            tick = -tick;
-            offset = offsetLimit - fmodf(offset, offsetLimit);
-        }
-        else if(offset < -offsetLimit)
-        {
-            tick = -tick;
-            offset = -offsetLimit + fmodf(offset, -offsetLimit);
-        }
-    }
-    else
-    {
-        if(offset > 0)
-        {
-            if(offset < (dt / 16.6666f))
-                offset = 0;
-            else
-                offset-= (dt / 16.6666f);
-        }
-        else
-        {
-            if(offset > -(dt / 16.6666f))
-                offset = 0;
-            else
-                offset+= (dt / 16.6666f);
-        }
-    }
-    for(int i=0; i<leftLeg.size(); i++)
-        (*defTerrain)[leftLeg[i].first] = leftLeg[i].second + sf::Vector3f(0, 0, offset);
-    for(int i=0; i<rightLeg.size(); i++)
-        (*defTerrain)[rightLeg[i].first] = rightLeg[i].second - sf::Vector3f(0, 0, offset);
-}
-
-void Entity::calcAngle()
-{
-    ///CIALO OBRACA SIE TYLKO W PLASZCZYZNIE BEZ Y, GLOWA EWENTUALNIE BARDZIEJ
-    //dirVec = direction - position;
-    dirVec = direction - origin;
-    float length = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
-    siny = dirVec.x / length;
-    cosy = dirVec.z / length;
-    /*
-    float lengthX = sqrtf(dirVec.y*dirVec.y + dirVec.z*dirVec.z);
-    float lengthY = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
-    float lengthZ = sqrtf(dirVec.x*dirVec.x + dirVec.y*dirVec.y);
-    sinx = dirVec.z / lengthX;
-    cosx = dirVec.y / lengthX;
-    siny = dirVec.z / lengthY;
-    cosy = dirVec.x / lengthY;
-    sinz = dirVec.x / lengthZ;
-    cosz = dirVec.y / lengthZ;
-    */
-}
-
-void Entity::calcRotationCenter()
-{
-    if(!element.empty() and element[0]->size() > 0 and element[0]->wallie[0].size() > 0)
-    {
-        sf::Vector3f first = (*defTerrain)[element[0]->wallie[0].coord[0]];
-        float minx = first.x, maxx = first.x;
-        float miny = first.y, maxy = first.y;
-        float minz = first.z, maxz = first.z;
-        for(int i=0; i<element.size(); i++)
-            for(int j=0; j<element[i]->size(); j++)
-                for(int k=0; k<element[i]->wallie[j].size(); k++)
-                {
-                    sf::Vector3f temp = (*defTerrain)[element[i]->wallie[j].coord[k]];
-                    maxx = std::max(maxx, temp.x);
-                    minx = std::min(minx, temp.x);
-                    maxy = std::max(maxy, temp.y);
-                    miny = std::min(miny, temp.y);
-                    maxz = std::max(maxz, temp.z);
-                    minz = std::min(minz, temp.z);
-                }
-        rotationCenter = {(maxx+minx)/2, (maxy+miny)/2, (maxz+minz)/2};
-    }
-}
-
-sf::Vector3f Entity::vecTransform(sf::Vector3f vec)
-{
-    vec -= rotationCenter;
-    sf::Vector3f target = vec;
-    //Yaw: (y axis)
-    target.x = -vec.x*cosy - vec.z*siny;
-    target.z = -vec.z*cosy + vec.x*siny;
-    /*
-    //Pitch; (x axis)
-    vec = target;
-    target.y = vec.y*cosx - vec.z*sinx;
-    target.z = vec.y*sinx + vec.z*cosx;
-    //Roll: (z axis)
-    vec = target;
-    target.x = vec.x*cosz - vec.y*sinz;
-    //target.y = vec.x*sinz + vec.y*cosz;
-    target.y = -vec.x*sinz - vec.y*cosz;
-    */
-    target += rotationCenter;
-    return target;
-}
 
 class SYNTH3D;
+
+class Entity;
 
 class Camera
 {
@@ -410,194 +272,17 @@ class SYNTH3D: public Scene
 public:
     virtual bool onConsoleUpdate(std::vector<std::string> args);
     friend class Camera;
-    SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-        eyeDistance(-10), debug(0), offsetx(0), offsety(0), tick(1),
-        cat(&terrain, &defTerrain), catPosition({0,0,0}), catDirection({0, 0, 1})
-    {
-    }
-
-    virtual void onSceneLoadToMemory()
-    {
-        if (!font.loadFromFile("files/fonts/Carnevalee_Freakshow.ttf"))
-        {
-            std::cout << "cannot load font\n";
-        }
-        consoleCommands.push_back("print_graph");
-        consoleCommands.push_back("print_cycle");
-        consoleCommands.push_back("print_info");
-        consoleCommands.push_back("enable_cycleReduction");
-        consoleCommands.push_back("enable_wallIntersect");
-        consoleCommands.push_back("enable_randomSort");
-        consoleCommands.push_back("enable_identifyWalls");
-        consoleCommands.push_back("enable_distanceCheck");
-        consoleCommands.push_back("compare");
-
-        //loadMap("cubeOnSurface");
-        //cameraPos = {369.356f, 418.194f, 125.801f};
-        //cameraAngle = {-21.0601f, -32.5202f, 0};
-
-
-        //loadMap("oblivion_old");
-        //cameraPos = {210, 144, 1092};
-        //cameraAngle = {-6, -137, 0};
-
-        loadMap("catOnSurface_single");
-        //cameraPos = {-40.7f, 69.3f, 169.3f};
-        //cameraAngle = {-5.6f, -122.5f, 0};
-
-        //cameraPos = {26, 34, 32};
-
-        //cameraPos = {26, 116, 30};
-        //cameraAngle = {-34, 8, 0};
-        for(int i=4; i<terrain.size(); i++)
-            terrain[i].y -= 15;
-        defTerrain = terrain;
-
-        for(int i=1; i<world.size(); i++)
-            cat.importObject(&world[i]);
-        cat.calcRotationCenter();
-
-        for(int i=3; i<7; i++)
-        {
-            if(i == 5 or i == 4)
-            {
-                for(int j=0; j<4; j++)
-                    cat.leftLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
-            }
-            else
-            {
-                for(int j=0; j<4; j++)
-                    cat.rightLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
-            }
-        }
-
-
-        OptLines();
-        OptDots();
-        c.update();
-    }
+    SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w);
+    virtual void onSceneLoadToMemory();
     void onSceneActivate() {}
-    void draw(sf::Time deltaTime)
-    {
-        dt = deltaTime.asMilliseconds();
-        float movementSpeed = 2.0f * (dt / 16.6666f);
-        float cameraRotationSpeed = 1.0f * (dt / 16.6666f);
-        float catMovingSpeed = 2.0f * (dt / 16.6666f);
-        float catRotationSpeed = 1.0f * (dt / 16.6666f);
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
-        {
-            movementSpeed = 7.0f * (dt / 16.6666f);
-            cameraRotationSpeed = 2.0f * (dt / 16.6666f);
-            catMovingSpeed = 7.0f * (dt / 16.6666f);
-            catRotationSpeed = 2.0f * (dt / 16.6666f);
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-            cameraPos.x-= movementSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            cameraPos.x+= movementSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            cameraPos.z+= movementSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-            cameraPos.z-= movementSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-            cameraPos.y-= movementSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-            cameraPos.y+= movementSpeed;
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-            cameraAngle.y+= cameraRotationSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-            cameraAngle.y-= cameraRotationSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            cameraAngle.x+= cameraRotationSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            cameraAngle.x-= cameraRotationSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
-            cameraAngle.z-= cameraRotationSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
-            cameraAngle.z+= cameraRotationSpeed;
-
-        /*
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
-            eyeDistance+=0.1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-            eyeDistance-=0.1;
-        */
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
-        {
-            sf::Vector3f buffor = catDirection;
-            float angle = -0.0174524f * catRotationSpeed;
-            catAngle.y -= angle;
-            catDirection.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
-            catDirection.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
-        {
-            sf::Vector3f buffor = catDirection;
-            float angle = 0.0174524f * catRotationSpeed;
-            catAngle.y -= angle;
-            catDirection.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
-            catDirection.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
-            catPosition += catDirection * catMovingSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-            catPosition -= catDirection * catMovingSpeed;
-        //printToConsole("Cat direction: " + stringifyf(catDirection.x) +
-         //              "   " + stringifyf(catDirection.y) +
-          //             "   " + stringifyf(catDirection.z) );
-
-
-
-        /*
-
-        for(int i=3; i<7; i++)
-        {
-            if(i == 5 or i == 4)
-            {
-                terrain[world[i].wallie[2].coord[0]].z += tick;
-                terrain[world[i].wallie[2].coord[1]].z += tick;
-                terrain[world[i].wallie[2].coord[2]].z += tick;
-                terrain[world[i].wallie[2].coord[3]].z += tick;
-            }
-            else
-            {
-                terrain[world[i].wallie[2].coord[0]].z -= tick;
-                terrain[world[i].wallie[2].coord[1]].z -= tick;
-                terrain[world[i].wallie[2].coord[2]].z -= tick;
-                terrain[world[i].wallie[2].coord[3]].z -= tick;
-            }
-        }
-
-        if(offsetx == 10)
-        {
-            tick = -tick;
-        }
-        else if(offsetx == -10)
-        {
-            tick = -tick;
-        }
-        offsetx += tick;
-        */
-        cat.setDirection(catDirection, {0,0,0});
-        cat.setPos(catPosition);
-        cat.update(dt);
-        //cameraPos = terrain[34];
-
-        c.setPos(cameraPos);
-        //c.setAngle(catAngle * float(180.0f/M_PI));
-        c.setAngle(cameraAngle);
-        c.setEyeDistance(eyeDistance);
-        c.display();
-    }
-protected:
-    sf::Font font;
+    void draw(sf::Time deltaTime);
+    void checkCollision(collisionPacket* colPackage, int beginning, int ending);
     std::vector <sf::Vector3f> terrain;
     std::vector <sf::Vector3f> defTerrain;
     std::vector <Object> world;
+    std::vector <Entity> character;
+protected:
+    sf::Font font;
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
@@ -610,12 +295,460 @@ protected:
     float offsetx, offsety;
     int tick;
     double dt;
-    Entity cat;
-    sf::Vector3f catPosition;
     sf::Vector3f catVelocity;
-    sf::Vector3f catDirection;
     sf::Vector3f catAngle;
+    sf::Vector3f characterAcceleration;
+    sf::Vector3f gravity;
+
+    void checkTriangle(collisionPacket* colPackage,
+        const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3);
+    bool checkPointInTriangle(const sf::Vector3f& point,
+        const sf::Vector3f& pa, const sf::Vector3f& pb, const sf::Vector3f& pc);
+    bool getLowestRoot(float a, float b, float c, float maxR, float* root);
 };
+
+class Entity
+{
+public:
+    Entity(SYNTH3D* gameBase);
+    void update(double deltaTime);
+    void importObject(int newElement);
+    void setDirection(sf::Vector3f vec, sf::Vector3f beginning);
+    void setPos(sf::Vector3f vec);
+    void setRotationCenter(sf::Vector3f);
+    void setEllipsoidRadius(sf::Vector3f);
+    void calcRotationCenter();
+    std::vector <std::pair <int, sf::Vector3f> > leftLeg;
+    std::vector <std::pair <int, sf::Vector3f> > rightLeg;
+    void setAcceleration(sf::Vector3f acceleration);
+    void setGravity(sf::Vector3f acceleration);
+    void setSpeed(sf::Vector3f vec);
+    sf::Vector3f ellipsoidCenter;                             ///TUTAJ ZMIANA
+    collisionPacket collisionPackage;
+    sf::Vector3f position;
+protected:
+    SYNTH3D* synth;
+    sf::Vector3f positionBuffor;
+    void movement();
+    void calcAngle();
+    sf::Vector3f vecTransform(sf::Vector3f vec);
+    std::vector <int> element;
+    float sinx, siny, sinz, cosx, cosy, cosz;
+    sf::Vector3f origin, direction;
+    sf::Vector3f dirVec;
+    sf::Vector3f rotationCenter;
+    double dt;
+    float offset, offsetLimit;
+    bool directionSet;
+    int tick;
+    sf::Vector3f velocityVector;
+    sf::Vector3f gravityVector;
+    sf::Vector3f speedVector;
+    sf::Vector3f gravitySpeedVector;
+    float veryCloseDistance;
+    int collisionRecursionDepth;
+    void collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravity);
+    sf::Vector3f collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel);
+};
+
+SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
+    Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
+    eyeDistance(-10), debug(0), offsetx(0), offsety(0), tick(1),
+    gravity({0, -0.1f, 0}), catVelocity({0.0f, 0.0f, 0.2f})
+{
+}
+
+void SYNTH3D::onSceneLoadToMemory()
+{
+    if (!font.loadFromFile("files/fonts/Carnevalee_Freakshow.ttf"))
+    {
+        std::cout << "cannot load font\n";
+    }
+    consoleCommands.push_back("print_graph");
+    consoleCommands.push_back("print_cycle");
+    consoleCommands.push_back("print_info");
+    consoleCommands.push_back("enable_cycleReduction");
+    consoleCommands.push_back("enable_wallIntersect");
+    consoleCommands.push_back("enable_randomSort");
+    consoleCommands.push_back("enable_identifyWalls");
+    consoleCommands.push_back("enable_distanceCheck");
+    consoleCommands.push_back("compare");
+
+    Entity cat(this);
+    character.push_back(cat);
+
+
+    //loadMap("cubeOnSurface");
+    //cameraPos = {369.356f, 418.194f, 125.801f};
+    //cameraAngle = {-21.0601f, -32.5202f, 0};
+
+
+    //loadMap("oblivion_old");
+    //cameraPos = {210, 144, 1092};
+    //cameraAngle = {-6, -137, 0};
+
+    loadMap("catOnSurface_single_wall");
+    //cameraPos = {-40.7f, 69.3f, 169.3f};
+    //cameraAngle = {-5.6f, -122.5f, 0};
+
+    //cameraPos = {26, 34, 32};
+
+    //cameraPos = {26, 116, 30};
+    //cameraAngle = {-34, 8, 0};
+    for(int i=4; i<93; i++)
+        terrain[i].y -= 15;
+    defTerrain = terrain;
+
+    for(int i=1; i<8; i++)
+        character[0].importObject(i);
+    character[0].calcRotationCenter();
+    character[0].setPos({400, 70, 300});
+    character[0].setEllipsoidRadius(sf::Vector3f(80.0f, 80.0f, 80.0f));
+
+    for(int i=3; i<7; i++)
+    {
+        if(i == 5 or i == 4)
+        {
+            for(int j=0; j<4; j++)
+                character[0].leftLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
+        }
+        else
+        {
+            for(int j=0; j<4; j++)
+                character[0].rightLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
+        }
+    }
+
+
+    OptLines();
+    OptDots();
+    c.update();
+}
+
+void SYNTH3D::draw(sf::Time deltaTime)
+{
+    dt = deltaTime.asMilliseconds() / 16.6666f;
+    if(dt == 0.0d)
+        dt = 1.0d;
+    float movementSpeed = 2.0f * dt;
+    float cameraRotationSpeed = 1.0f * dt;
+    float catMovingSpeed = 2.0f * dt;
+    float catRotationSpeed = 1.0f * dt;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+    {
+        movementSpeed = 7.0f * dt;
+        cameraRotationSpeed = 2.0f * dt;
+        catMovingSpeed = 7.0f * dt;
+        catRotationSpeed = 2.0f * dt;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        cameraPos.x-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        cameraPos.x+= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+        cameraPos.z+= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        cameraPos.z-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+        cameraPos.y-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+        cameraPos.y+= movementSpeed;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        cameraAngle.y+= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        cameraAngle.y-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        cameraAngle.x+= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        cameraAngle.x-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+        cameraAngle.z-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
+        cameraAngle.z+= cameraRotationSpeed;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
+    {
+        sf::Vector3f buffor = catVelocity;
+        float angle = -0.0174524f * catRotationSpeed;
+        catAngle.y -= angle;
+        catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
+        catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+    {
+        sf::Vector3f buffor = catVelocity;
+        float angle = 0.0174524f * catRotationSpeed;
+        catAngle.y -= angle;
+        catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
+        catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+        //character[0].setVelocity(catDirection * catMovingSpeed);
+        character[0].setAcceleration(catVelocity);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+        character[0].setAcceleration(-catVelocity);
+
+    if(character[0].position.y < -1000)
+    {
+        character[0].setPos({400, 70, 300});
+        character[0].setSpeed({0,0,0});
+    }
+    character[0].setGravity(gravity);
+    character[0].setDirection(catVelocity, {0,0,0});
+    character[0].update(dt);
+    //cameraPos = terrain[34];
+
+    c.setPos(cameraPos);
+    //c.setAngle(catAngle * float(180.0f/M_PI));
+    c.setAngle(cameraAngle);
+    c.setEyeDistance(eyeDistance);
+    c.display();
+}
+
+void SYNTH3D::checkCollision(collisionPacket* colPackage, int beginning, int ending)
+{
+    for(int i=0; i<beginning; i++)
+    {
+        for(int j=0; j<world[i].size(); j++)
+        {
+            for(int k=0; k<world[i].wallie[j].size()-2; k++)
+            {
+                sf::Vector3f p1 = terrain[world[i].wallie[j].coord[0]] / colPackage->eRadius;
+                sf::Vector3f p2 = terrain[world[i].wallie[j].coord[k+1]] / colPackage->eRadius;
+                sf::Vector3f p3 = terrain[world[i].wallie[j].coord[k+2]] / colPackage->eRadius;
+                ///ASSUMES: Triangles are in ellipsoid space:
+                checkTriangle(colPackage, p1, p2, p3);
+            }
+        }
+    }
+    for(int i=ending+1; i<world.size(); i++)
+    {
+        for(int j=0; j<world[i].size(); j++)
+        {
+            for(int k=0; k<world[i].wallie[j].size()-2; k++)
+            {
+                sf::Vector3f p1 = terrain[world[i].wallie[j].coord[0]] / colPackage->eRadius;
+                sf::Vector3f p2 = terrain[world[i].wallie[j].coord[k+1]] / colPackage->eRadius;
+                sf::Vector3f p3 = terrain[world[i].wallie[j].coord[k+2]] / colPackage->eRadius;
+                ///ASSUMES: Triangles are in ellipsoid space:
+                checkTriangle(colPackage, p1, p2, p3);
+            }
+        }
+    }
+}
+
+void SYNTH3D::checkTriangle(collisionPacket* colPackage, const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3)
+{
+    Plane trianglePlane(p1,p2,p3);
+    if (trianglePlane.isFrontFacingTo( colPackage->normalizedVelocity ))
+    {
+        double t0, t1;
+        bool embeddedInPlane = false;
+        double signedDistToTrianglePlane = trianglePlane.signedDistanceTo(colPackage->basePoint);
+        float normalDotVelocity = dotProduct(trianglePlane.normal, colPackage->velocity);
+        if (normalDotVelocity == 0.0f)
+        {
+            if (fabs(signedDistToTrianglePlane) >= 1.0f)
+            {
+                return;
+            }
+            else
+            {
+                embeddedInPlane = true;
+                t0 = 0.0;
+                t1 = 1.0;
+            }
+        }
+        else
+        {
+            t0=(-1.0-signedDistToTrianglePlane) / normalDotVelocity;
+            t1=( 1.0-signedDistToTrianglePlane) / normalDotVelocity;
+            if (t0 > t1)
+            {
+                double temp = t1;
+                t1 = t0;
+                t0 = temp;
+            }
+            if (t0 > 1.0f || t1 < 0.0f)
+            {
+                return;
+            }
+            if (t0 < 0.0) t0 = 0.0;
+            if (t1 < 0.0) t1 = 0.0;
+            if (t0 > 1.0) t0 = 1.0;
+            if (t1 > 1.0) t1 = 1.0;
+        }
+        sf::Vector3f collisionPoint;
+        bool foundCollison = false;
+        float t = 1.0;
+        if (!embeddedInPlane)
+        {
+            sf::Vector3f planeIntersectionPoint = (colPackage->basePoint-trianglePlane.normal)
+                + float(t0) * colPackage->velocity;
+            if (checkPointInTriangle(planeIntersectionPoint, p1,p2,p3))
+            {
+                foundCollison = true;
+                t = t0;
+                collisionPoint = planeIntersectionPoint;
+            }
+        }
+        if (foundCollison == false)
+        {
+            sf::Vector3f velocity = colPackage->velocity;
+            sf::Vector3f base = colPackage->basePoint;
+            float velocitySquaredLength = vecSquaredLength(velocity);
+            float a,b,c;
+            float newT;
+            a = velocitySquaredLength;
+            b = 2.0*dotProduct(velocity, base-p1);
+            c = vecSquaredLength(p1-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p1;
+            }
+            b = 2.0*dotProduct(velocity, base-p2);
+            c = vecSquaredLength(p2-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p2;
+            }
+            b = 2.0*dotProduct(velocity, base-p3);
+            c = vecSquaredLength(p3-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p3;
+            }
+            sf::Vector3f edge = p2-p1;
+            sf::Vector3f baseToVertex = p1 - base;
+            float edgeSquaredLength = vecSquaredLength(edge);
+            float edgeDotVelocity = dotProduct(edge, velocity);
+            float edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p1 + f*edge;
+                }
+            }
+            edge = p3-p2;
+            baseToVertex = p2 - base;
+            edgeSquaredLength = vecSquaredLength(edge);
+            edgeDotVelocity = dotProduct(edge, velocity);
+            edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p2 + f*edge;
+                }
+            }
+            edge = p1-p3;
+            baseToVertex = p3 - base;
+            edgeSquaredLength = vecSquaredLength(edge);
+            edgeDotVelocity = dotProduct(edge, velocity);
+            edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p3 + f*edge;
+                }
+            }
+        }
+        if (foundCollison == true)
+        {
+            float distToCollision = t*vecLength(colPackage->velocity);
+            if (colPackage->foundCollision == false ||
+                    distToCollision < colPackage->nearestDistance)
+            {
+                colPackage->nearestDistance = distToCollision;
+                colPackage->intersectionPoint=collisionPoint;
+                colPackage->foundCollision = true;
+            }
+        }
+    }
+}
+
+bool SYNTH3D::checkPointInTriangle(const sf::Vector3f& point, const sf::Vector3f& pa,const sf::Vector3f& pb, const sf::Vector3f& pc)
+{
+    sf::Vector3f e10=pb-pa;
+    sf::Vector3f e20=pc-pa;
+    float a = dotProduct(e10,e10);
+    float b = dotProduct(e10,e20);
+    float c = dotProduct(e20,e20);
+    float ac_bb=(a*c)-(b*b);
+    sf::Vector3f vp(point.x-pa.x, point.y-pa.y, point.z-pa.z);
+    float d = dotProduct(vp,e10);
+    float e = dotProduct(vp,e20);
+    float x = (d*c)-(e*b);
+    float y = (e*a)-(d*b);
+    float z = x+y-ac_bb;
+    return (( ((unsigned int&)z)& ~(((unsigned int&)x)|((unsigned int&)y)) ) & 0x80000000);
+}
+
+bool SYNTH3D::getLowestRoot(float a, float b, float c, float maxR, float* root)
+{
+    float determinant = b*b - 4.0f*a*c;
+    if (determinant < 0.0f) return false;
+    float sqrtD = sqrtf(determinant);
+    float r1 = (-b - sqrtD) / (2*a);
+    float r2 = (-b + sqrtD) / (2*a);
+    if (r1 > r2)
+    {
+        float temp = r2;
+        r2 = r1;
+        r1 = temp;
+    }
+    if (r1 > 0 && r1 < maxR)
+    {
+        *root = r1;
+        return true;
+    }
+    if (r2 > 0 && r2 < maxR)
+    {
+        *root = r2;
+        return true;
+    }
+    return false;
+}
 
 void SYNTH3D::showInfo()
 {
@@ -939,6 +1072,7 @@ bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
     }
     return false;
 }
+
 
 Camera::Camera(SYNTH3D* parent):
     p(parent),
@@ -2432,11 +2566,30 @@ void Camera::display()
     calcTerrain();
     wallSort();
     sf::Vector3f place = sf::Vector3f(100, 50, 300);
+    //place = vecTransform(place);
     place = vecTransform(place);
     drawSphere(place, 10, sf::Color::Magenta);
 
+
     for(int i=0; i<wallOrder.size(); i++)
         drawWall(*wallOrder[i]);
+
+    /*
+    std::vector <sf::Vector2f> collisionSpot2d;
+
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[0]]);
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[1]]);
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[2]]);
+
+    debugDrawPlane(collisionSpot2d, sf::Color::Red);
+    */
+
+    place = vecTransform(p->character[0].ellipsoidCenter - position);
+    sf::Color color = sf::Color::Yellow;
+    color.a = 120;
+    drawSphere(place, 80, color);
+
+
 
     p->window->clear();
     p->window->draw(&quadArray[0], quadArray.size(), sf::Quads);
@@ -2447,5 +2600,280 @@ void Camera::display()
     debugArray.clear();
     textArray.clear();
 }
+
+Entity::Entity(SYNTH3D* gameBase):
+    position({0,0,0}), directionSet(false), tick(1), offsetLimit(15.0f),
+    sinx(0.0f), siny(0.0f), sinz(0.0f),
+    cosx(1.0f), cosy(1.0f), cosz(1.0f),
+    offset(0.0f), dt(0), veryCloseDistance(0.00005f),
+    velocityVector({0, 0, 0}), gravityVector({0, 0, 0}),
+    speedVector({0, 0, 0}), gravitySpeedVector({0, 0, 0})
+{
+    synth = gameBase;
+}
+
+void Entity::collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravity)
+{
+    collisionPackage.R3Position = position;
+    collisionPackage.R3Position.y += rotationCenter.y;
+    collisionPackage.R3Velocity = vel;
+    sf::Vector3f eSpacePosition = collisionPackage.R3Position / collisionPackage.eRadius;
+    sf::Vector3f eSpaceVelocity = collisionPackage.R3Velocity / collisionPackage.eRadius;
+    collisionRecursionDepth = 0;
+    sf::Vector3f finalPosition = collideWithWorld(eSpacePosition, eSpaceVelocity);
+
+    collisionPackage.R3Position = finalPosition*collisionPackage.eRadius;
+    collisionPackage.R3Velocity = gravity;
+    eSpaceVelocity = gravity/collisionPackage.eRadius;
+    collisionRecursionDepth = 0;
+    finalPosition = collideWithWorld(finalPosition, eSpaceVelocity);
+
+    finalPosition = finalPosition * collisionPackage.eRadius;
+    finalPosition.y -= rotationCenter.y;
+
+    position = finalPosition;
+}
+
+sf::Vector3f Entity::collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel)
+{
+    if (collisionRecursionDepth>5)
+        return pos;
+    collisionPackage.velocity = vel;
+    collisionPackage.normalizedVelocity = vel;
+    normalize3f(collisionPackage.normalizedVelocity);
+    collisionPackage.basePoint = pos;
+    collisionPackage.foundCollision = false;
+    synth->checkCollision(&collisionPackage, element[0], element[element.size() - 1]);
+    if (collisionPackage.foundCollision == false)
+    {
+        return pos + vel;
+    }
+    sf::Vector3f destinationPoint = pos + vel;
+    sf::Vector3f newBasePoint = pos;
+    if (collisionPackage.nearestDistance >= veryCloseDistance)
+    {
+        sf::Vector3f V = vel;
+        vecSetLength(V, collisionPackage.nearestDistance - veryCloseDistance);
+        newBasePoint = collisionPackage.basePoint + V;
+        normalize3f(V);
+        //collisionPackage.intersectionPoint = collisionPackage.intersectionPoint - veryCloseDistance * V;
+        collisionPackage.intersectionPoint -= veryCloseDistance * V;
+    }
+    sf::Vector3f slidePlaneOrigin = collisionPackage.intersectionPoint;
+    sf::Vector3f slidePlaneNormal = newBasePoint - collisionPackage.intersectionPoint;
+    normalize3f(slidePlaneNormal);
+    Plane slidingPlane(slidePlaneOrigin, slidePlaneNormal);
+    sf::Vector3f newDestinationPoint = destinationPoint -
+        float(slidingPlane.signedDistanceTo(destinationPoint)) * slidePlaneNormal;
+    sf::Vector3f newVelocityVector = newDestinationPoint - collisionPackage.intersectionPoint;
+    if (vecLength(newVelocityVector) < veryCloseDistance)
+    {
+        return newBasePoint;
+    }
+    collisionRecursionDepth++;
+    return collideWithWorld(newBasePoint, newVelocityVector);
+}
+
+void Entity::setAcceleration(sf::Vector3f acceleration)
+{
+    velocityVector = acceleration;
+}
+
+void Entity::setGravity(sf::Vector3f acceleration)
+{
+    gravityVector = acceleration;
+}
+
+void Entity::update(double deltaTime)
+{
+    dt = deltaTime;
+    positionBuffor = position;
+
+    sf::Vector3f velocity = (speedVector + velocityVector) * float(dt);
+    sf::Vector3f gravity = (gravitySpeedVector + gravityVector) * float(dt);
+
+    velocityVector = sf::Vector3f(0, 0, 0);
+    gravityVector =  sf::Vector3f(0, 0, 0);
+
+    collideAndSlide(velocity, gravity);
+
+    speedVector = sf::Vector3f(position.x - positionBuffor.x, 0, position.z - positionBuffor.z) / float(dt);
+    gravitySpeedVector = sf::Vector3f(0, position.y - positionBuffor.y, 0) / float(dt);
+
+
+    if(!directionSet)
+    {
+        if(position != positionBuffor)
+        {
+            setDirection(position, positionBuffor);
+            calcAngle();
+        }
+    }
+    else
+    {
+        directionSet = false;
+        calcAngle();
+    }
+    movement();
+    for(int i=0; i<element.size(); i++)
+        for(int j=0; j<synth->world[element[i]].size(); j++)
+            for(int k=0; k<synth->world[element[i]].wallie[j].size(); k++)
+            {
+                sf::Vector3f flatRotationCenter = {rotationCenter.x, 0, rotationCenter.z};
+                synth->terrain[synth->world[element[i]].wallie[j].coord[k]] = vecTransform(synth->defTerrain[synth->world[element[i]].wallie[j].coord[k]]);
+                synth->terrain[synth->world[element[i]].wallie[j].coord[k]] += position - flatRotationCenter;
+                for(int l=0; l<synth->world[element[i]].wallie[j].lineStrip.size(); l++)
+                    for(int m=0; m<synth->world[element[i]].wallie[j].lineStrip[l].size(); m++)
+                    {
+                        synth->terrain[synth->world[element[i]].wallie[j].lineStrip[l][m]] = vecTransform(synth->defTerrain[synth->world[element[i]].wallie[j].lineStrip[l][m]]);
+                        synth->terrain[synth->world[element[i]].wallie[j].lineStrip[l][m]] += position - flatRotationCenter;
+                    }
+            }
+    ellipsoidCenter = position;
+    ellipsoidCenter.y += rotationCenter.y;
+}
+
+void Entity::importObject(int newElement)
+{
+    element.push_back(newElement);
+}
+
+void Entity::setDirection(sf::Vector3f vec, sf::Vector3f beginning)
+{
+    origin = beginning;
+    direction = vec;
+    directionSet = true;
+}
+
+void Entity::setPos(sf::Vector3f vec)
+{
+    positionBuffor = vec;
+    position = vec;
+}
+
+void Entity::setSpeed(sf::Vector3f vec)
+{
+    speedVector = sf::Vector3f(vec.x, 0, vec.z);
+    gravitySpeedVector = sf::Vector3f(0, vec.y, 0);
+}
+
+void Entity::setRotationCenter(sf::Vector3f vec)
+{
+    rotationCenter = vec;
+}
+
+void Entity::setEllipsoidRadius(sf::Vector3f radius)
+{
+    collisionPackage.eRadius = radius;
+}
+
+void Entity::movement()
+{
+    if(position != positionBuffor)
+    {
+        sf::Vector3f movementVec = position - positionBuffor;
+        float distance = sqrtf(movementVec.x*movementVec.x + movementVec.y*movementVec.y + movementVec.z*movementVec.z);
+        offset += distance*tick;
+        if(offset > offsetLimit)
+        {
+            tick = -tick;
+            offset = offsetLimit - fmodf(offset, offsetLimit);
+        }
+        else if(offset < -offsetLimit)
+        {
+            tick = -tick;
+            offset = -offsetLimit - fmodf(offset, -offsetLimit);
+        }
+    }
+    else
+    {
+        if(offset > 0)
+        {
+            if(offset < dt)
+                offset = 0;
+            else
+                offset-= dt;
+        }
+        else
+        {
+            if(offset > -dt)
+                offset = 0;
+            else
+                offset+= dt;
+        }
+    }
+    for(int i=0; i<leftLeg.size(); i++)
+        synth->defTerrain[leftLeg[i].first] = leftLeg[i].second + sf::Vector3f(0, 0, offset);
+    for(int i=0; i<rightLeg.size(); i++)
+        synth->defTerrain[rightLeg[i].first] = rightLeg[i].second - sf::Vector3f(0, 0, offset);
+}
+
+void Entity::calcAngle()
+{
+    ///CIALO OBRACA SIE TYLKO W PLASZCZYZNIE BEZ Y, GLOWA EWENTUALNIE BARDZIEJ
+    //dirVec = direction - position;
+    dirVec = direction - origin;
+    float length = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
+    siny = dirVec.x / length;
+    cosy = dirVec.z / length;
+    /*
+    float lengthX = sqrtf(dirVec.y*dirVec.y + dirVec.z*dirVec.z);
+    float lengthY = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
+    float lengthZ = sqrtf(dirVec.x*dirVec.x + dirVec.y*dirVec.y);
+    sinx = dirVec.z / lengthX;
+    cosx = dirVec.y / lengthX;
+    siny = dirVec.z / lengthY;
+    cosy = dirVec.x / lengthY;
+    sinz = dirVec.x / lengthZ;
+    cosz = dirVec.y / lengthZ;
+    */
+}
+
+void Entity::calcRotationCenter()
+{
+    if(!element.empty() and synth->world[element[0]].size() > 0 and synth->world[element[0]].wallie[0].size() > 0)
+    {
+        sf::Vector3f first = synth->defTerrain[synth->world[element[0]].wallie[0].coord[0]];
+        float minx = first.x, maxx = first.x;
+        float miny = first.y, maxy = first.y;
+        float minz = first.z, maxz = first.z;
+        for(int i=0; i<element.size(); i++)
+            for(int j=0; j<synth->world[element[i]].size(); j++)
+                for(int k=0; k<synth->world[element[i]].wallie[j].size(); k++)
+                {
+                    sf::Vector3f temp = synth->defTerrain[synth->world[element[i]].wallie[j].coord[k]];
+                    maxx = std::max(maxx, temp.x);
+                    minx = std::min(minx, temp.x);
+                    maxy = std::max(maxy, temp.y);
+                    miny = std::min(miny, temp.y);
+                    maxz = std::max(maxz, temp.z);
+                    minz = std::min(minz, temp.z);
+                }
+        rotationCenter = {(maxx+minx)/2, (maxy+miny)/2, (maxz+minz)/2};
+    }
+}
+
+sf::Vector3f Entity::vecTransform(sf::Vector3f vec)
+{
+    vec -= rotationCenter;
+    sf::Vector3f target = vec;
+    //Yaw: (y axis)
+    target.x = -vec.x*cosy - vec.z*siny;
+    target.z = -vec.z*cosy + vec.x*siny;
+    /*
+    //Pitch; (x axis)
+    vec = target;
+    target.y = vec.y*cosx - vec.z*sinx;
+    target.z = vec.y*sinx + vec.z*cosx;
+    //Roll: (z axis)
+    vec = target;
+    target.x = vec.x*cosz - vec.y*sinz;
+    //target.y = vec.x*sinz + vec.y*cosz;
+    target.y = -vec.x*sinz - vec.y*cosz;
+    */
+    target += rotationCenter;
+    return target;
+}
+
 
 #endif //SYNTH3D_HPP

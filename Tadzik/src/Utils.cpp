@@ -116,6 +116,34 @@ void normalize(sf::Vector2f &v) {
     v = sf::Vector2f(v.x/length, v.y/length);
 }
 
+float dotProduct(sf::Vector3f a, sf::Vector3f b)
+{
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
 
+sf::Vector3f crossProduct(sf::Vector3f a, sf::Vector3f b)
+{
+    return {a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x};
+}
+
+void normalize3f(sf::Vector3f& vec)
+{
+    vec /= sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
+
+void vecSetLength(sf::Vector3f& vec, float length)
+{
+    vec *= (length / sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z));
+}
+
+float vecSquaredLength(sf::Vector3f vec)
+{
+    return vec.x*vec.x + vec.y*vec.y + vec.z*vec.z;
+}
+
+float vecLength(sf::Vector3f vec)
+{
+    return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
 
 }
