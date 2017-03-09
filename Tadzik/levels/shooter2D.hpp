@@ -499,6 +499,7 @@ public:
         }
 
         float health = 100;
+        float maxHealth = 100;
         float maxSpeed = 5;
         float damage = 10;
         float speed = 1;
@@ -545,6 +546,7 @@ public:
         AIRunner(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
             speed = 4;
             health = 10;
+            maxHealth = 10;
         };
         void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
@@ -558,6 +560,30 @@ public:
             findPath();
         }
 
+    };
+
+    class AIBoss: public Enemy {
+    public:
+        AIBoss(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
+            speed = 1;
+            health = 1000;
+            maxHealth = 1000;
+            damage = 1000000;
+        };
+        void update() {
+            angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
+            setRotation(angle*180/M_PI);
+            velocity.x += speed* cos(angle);
+            velocity.y += speed* sin(angle);
+            move(velocity);
+            Utils::normalize(velocity);
+            velocity *= speed;
+            fixElements();
+            findPath();
+            if (Utils::chance(0.01)) {
+                game->vecEnemies.push_back(new AIZombie(getPosition(), game->ZombieMaker));
+            }
+        }
     };
 
     class Powerup: public sf::Sprite {
@@ -724,6 +750,7 @@ public:
         texZombie.loadFromFile("files/textures/shooter2D/nmeZombie.png");
         texGhost.loadFromFile("files/textures/shooter2D/nmeGhost.png");
         texRunner.loadFromFile("files/textures/shooter2D/nmeRunner.png");
+        texBoss.loadFromFile("files/textures/shooter2D/nmeBoss.png");
 
         loadWeapons();
         TADZIK.addWeapon(vecWeapons[0]);
@@ -745,6 +772,7 @@ public:
         ZombieMaker = EnemyMaker(&texZombie, &texBlood, &TADZIK, this);
         GhostMaker = EnemyMaker(&texGhost, &texBlood, &TADZIK, this);
         RunnerMaker = EnemyMaker(&texRunner, &texBlood, &TADZIK, this);
+        BossMaker = EnemyMaker(&texBoss, &texBlood, &TADZIK, this);
 
         fadeShape.setFillColor(sf::Color(30, 8, 8, 0));
 
@@ -1013,7 +1041,7 @@ public:
                             vecExplosions.push_back(aExplosion);
                         }
                         vecBullets.erase(vecBullets.begin()+j);
-                    vecEnemies[i]->healthBar.setScale(vecEnemies[i]->health/100.0, 1);
+                    vecEnemies[i]->healthBar.setScale((float)vecEnemies[i]->getGlobalBounds().width*(vecEnemies[i]->health/vecEnemies[i]->maxHealth), 1);
                     if (vecEnemies[i]->health<=0) {
                         vecEnemies[i]->onDrop();
                         vecEnemies[i]->onKilled();
@@ -1044,6 +1072,18 @@ public:
                         else
                             vecEnemies.push_back(new AIRunner(sf::Vector2f(t), RunnerMaker));
                     }
+            }
+            if (currentWave==vecWaves.size()-1) {
+                bool spawned = false;
+                do {
+                    sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, mapSize.x-10, mapSize.y-10));
+                    if (img.getPixel(t.x, t.y) == sf::Color::Black)
+                        if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255)) {
+                            spawned=true;
+                            vecEnemies.push_back(new AIBoss(sf::Vector2f(t), BossMaker));
+                        }
+                }
+                while (!spawned);
             }
             waveClock.restart();
 
@@ -1103,6 +1143,7 @@ public:
             mapCleared = false;
         }
     }
+
     void fadeIn() {
         sf::Color c = fadeShape.getFillColor();
         c.a-=5;
@@ -1342,6 +1383,7 @@ protected:
     sf::Texture texZombie;
     sf::Texture texGhost;
     sf::Texture texRunner;
+    sf::Texture texBoss;
     sf::Texture texCrosshair;
     sf::Texture texShadow;
     sf::Texture texPUPGiveHealth;
@@ -1382,6 +1424,7 @@ protected:
     EnemyMaker ZombieMaker;
     EnemyMaker GhostMaker;
     EnemyMaker RunnerMaker;
+    EnemyMaker BossMaker;
 
     std::vector <ARO::AnimSprite> vecExplosions;
 
