@@ -53,20 +53,20 @@ int main(){
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     //sceneManager.registerScene<MARIO>("MARIO", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-   ///sceneManager.registerScene<RPG>("RPG", &window);
+   sceneManager.registerScene<RPG>("RPG", &window);
     //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
-    sceneManager.registerScene<FROGGER>("FROGGIE", &window);
-   // sceneManager.setActiveScene("TREX");
+
+   //sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
     //sceneManager.setActiveScene("MARIO");
     //sceneManager.setActiveScene("LEVELSELECT");
    // sceneManager.setActiveScene("SHOOTER2D");
-    ///sceneManager.setActiveScene("RPG");
+sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
-    sceneManager.setActiveScene("FROGGIE");
+
 
     sf::Clock deltaClock;
     while(window.isOpen()){
