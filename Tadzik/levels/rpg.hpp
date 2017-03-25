@@ -1,3 +1,4 @@
+
 #ifndef RPG_HPP
 #define RPG_HPP
 
@@ -17,47 +18,67 @@ class RPG : public Scene
 public:
     RPG(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
         : Scene(_name, mgr, w)
-    {
-    }
+    {    }
 
-    enum Direction
-    {
-        None = 0,
-        Down = 1,
-        Up = -1,
-        Right = 1,
-        Left = -1
-    };
+    enum Direction { None = 0,
+                     Down = 1,
+                     Up = -1,
+                     Right = 1,
+                     Left = -1
+                   };
 
     class Entity
     {
     public:
-        ARO::AnimSprite ASprite;
+        ARO::AnimSprite aSprite;
         int health = 100;
+        int damage = 10;
         float basespeed = 10;
-        float speedX = None;
-        float speedY = None;
+        float speedX = 0;
+        float speedY = 0;
         char dir = 'N';
+        int side = Right;
+        bool isAttacking;
 
         void draw(sf::RenderWindow* w)
         {
-            w->draw(ASprite);
+            w->draw(aSprite);
         }
         void move(sf::Vector2f a)
         {
-            ASprite.move(a);
+            aSprite.move(a);
         }
         void move(float x, float y)
         {
-
             if (x == 0 || y == 0)
-                ASprite.move(sf::Vector2f(x, y));
+                aSprite.move(sf::Vector2f(x, y));
             else
-                ASprite.move(sf::Vector2f(x * (double)0.70710678, y * (double)0.70710678));
+                aSprite.move(
+                    sf::Vector2f(x * (double)0.70710678, y * (double)0.70710678));
             std::cout << dir << "\t" << speedY << "\n";
         }
     };
 
+    class Slice: public ARO::AnimSprite
+    {
+    public:
+        Slice(sf::Vector2f V, ARO::Anim* A, int dmg, bool b)
+        {
+            setAnimation(A);
+            setPosition(V);
+            Damage = dmg;
+            isPlayer=b;
+        }
+        int Damage = 10;
+        bool isPlayer = 0;
+        void collide( std::vector<sf::Sprite> &V)
+        {
+            for(int i=V.size(); i>=0 ; i--)
+                if(Collision::PixelPerfectTest(*this,V[i]))
+                    V.erase(V.begin()+i);
+        }
+
+    };
     void loadMap(sf::Image mapa)
     {
         for (int i = 0; i < mapa.getSize().x; i++)
@@ -77,7 +98,7 @@ public:
 
                 if (mapa.getPixel(i, j) == sf::Color(0, 0, 255))
                 {
-                    Player.ASprite.setPosition(i * tilesize, j * tilesize);
+                    Player.aSprite.setPosition(i * tilesize, j * tilesize);
                 }
 
                 if (mapa.getPixel(i, j) == sf::Color(255, 0, 0))
@@ -87,7 +108,6 @@ public:
                 }
             }
         }
-        std::cout << "success";
     }
 
     float distance(sf::Sprite spA, sf::Sprite spB)
@@ -97,14 +117,13 @@ public:
 
     void staticCollision(Entity& E)
     {
-        sf::FloatRect R = E.ASprite.getGlobalBounds();
+        sf::FloatRect R = E.aSprite.getGlobalBounds();
         bool b = 0;
         int w;
         for (int i = 0; i < spWall.size(); i++)
 
             if (spWall[i].getGlobalBounds().intersects(R))
             {
-
                 b = 1;
                 w = i;
                 break;
@@ -113,12 +132,12 @@ public:
         {
             E.speedX = 0;
             E.speedY = 0;
-            E.move((spWall[w].getPosition().x - E.ASprite.getPosition().x) * 2,
-                   (spWall[w].getPosition().y - E.ASprite.getPosition().y) * 2);
+            E.move((spWall[w].getPosition().x - E.aSprite.getPosition().x) * 2,
+                   (spWall[w].getPosition().y - E.aSprite.getPosition().y) * 2);
         }
         else
         {
-            ///x
+            /// x
             R.left += E.speedX;
             for (int i = 0; i < spWall.size(); i++)
                 if (spWall[i].getGlobalBounds().intersects(R))
@@ -126,8 +145,8 @@ public:
                     E.speedX = 0;
                     break;
                 }
-            R = E.ASprite.getGlobalBounds();
-            ///y
+            R = E.aSprite.getGlobalBounds();
+            /// y
             R.top += E.speedY;
             for (int i = 0; i < spWall.size(); i++)
                 if (spWall[i].getGlobalBounds().intersects(R))
@@ -154,11 +173,19 @@ public:
         texLeftRun.loadFromFile("files/textures/rpg/left/run.png");
         leftRun.setSpriteSheet(&texLeftRun, 23, sf::milliseconds(60));
 
+        texDownAttack.loadFromFile("files/textures/rpg/down/attack.png");
+        downAttack.setSpriteSheet(&texDownAttack, 30, sf::milliseconds(165));
+
+        texSliceDown.loadFromFile("files/textures/rpg/down/projectile.png");
+        sliceDown.setSpriteSheet(&texSliceDown, 50, sf::milliseconds(12));
+
+
+
         texIdle.loadFromFile("files/textures/rpg/down/idle.png");
         Idle.setSpriteSheet(&texIdle, 15, sf::milliseconds(300));
 
-        Player.ASprite.setAnimation(&rightRun);
-        Player.ASprite.setScale(5, 5);
+        Player.aSprite.setAnimation(&rightRun);
+        Player.aSprite.setScale(5, 5);
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -166,7 +193,8 @@ public:
 
         texEnemy.loadFromFile("files/textures/rpg/enemyStand.png");
         tempEnemy.setTexture(texEnemy);
-        tempEnemy.setOrigin(tempEnemy.getTextureRect().width * 0.5, tempEnemy.getTextureRect().height * 0.5);
+        tempEnemy.setOrigin(tempEnemy.getTextureRect().width * 0.5,
+                            tempEnemy.getTextureRect().height * 0.5);
         tempEnemy.setScale(5, 5);
 
         texGrass.loadFromFile("files/textures/rpg/grass.png");
@@ -178,102 +206,135 @@ public:
         window->setMouseCursorVisible(0);
         texCrosshair.loadFromFile("files/textures/rpg/crosshair.png");
         spCrosshair.setTexture(texCrosshair);
-        spCrosshair.setOrigin(spCrosshair.getTextureRect().height * 0.5, spCrosshair.getTextureRect().width * 0.5);
+        spCrosshair.setOrigin(spCrosshair.getTextureRect().height * 0.5,
+                              spCrosshair.getTextureRect().width * 0.5);
 
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
         loadMap(mapa);
     }
 
-    virtual void onSceneActivate()
-    {
-    }
+    virtual void onSceneActivate() {}
 
-    void deliverEvent(sf::Event& event)
-    {
-    }
+    void deliverEvent(sf::Event& event) {}
 
     virtual void draw(double deltaTime)
     {
-
         // Player.speedX=0, Player.speedY=0;
-        ///Movement
-        Player.speedX = Player.speedX * 0.9;
-        Player.speedY = Player.speedY * 0.9;
-        ///Kierunki
-        if (Player.dir != 'N')
+        /// Movement
+        Player.speedX = Player.speedX * 0.5;
+        Player.speedY = Player.speedY * 0.5;
+        /// Kierunki
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && Player.isAttacking==false)
         {
-            if ((Player.dir == 'U' || Player.dir=='D') && std::abs(Player.speedY) < std::abs(Player.speedX))
-                Player.dir = 'N', Player.ASprite.setAnimation(&Idle);
-            if ((Player.dir == 'R' || Player.dir=='L') && std::abs(Player.speedY) > std::abs(Player.speedX))
-                Player.dir = 'N', Player.ASprite.setAnimation(&Idle);
-            else if (std::abs(Player.speedX) < 0.5 && std::abs(Player.speedY) < 0.5)
-                Player.dir = 'N', Player.ASprite.setAnimation(&Idle);
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
-        {
-            Player.speedY -= 0.6 * Player.basespeed;
-            if (Player.dir == 'N'|| Player.dir=='D')
-            {                Player.dir = 'U';
-                Player.ASprite.setAnimation(&upRun);
-            }
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
-        {
-            Player.speedY += 0.6 * Player.basespeed;
-            if (Player.dir == 'N'|| Player.dir=='U')
-            {
-                Player.dir = 'D';
-                Player.ASprite.setAnimation(&downRun);
-            }
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
-        {
-            Player.speedX -= 0.6 * Player.basespeed;
-            if (Player.dir == 'N' || Player.dir=='R')
-            {
-                Player.dir = 'L';
-               Player.ASprite.setAnimation(&leftRun);
-            }
-        }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
-        {
-            Player.speedX += 0.6 * Player.basespeed;
-            if (Player.dir == 'N'|| Player.dir=='L')
-            {
-                Player.dir = 'R';
-                Player.ASprite.setAnimation(&rightRun);
-            }
-        }
 
-        if (Player.speedX < -Player.basespeed)
-            Player.speedX = -Player.basespeed;
-        if (Player.speedY < -Player.basespeed)
-            Player.speedY = -Player.basespeed;
-        if (Player.speedX > Player.basespeed)
-            Player.speedX = Player.basespeed;
-        if (Player.speedY > Player.basespeed)
-            Player.speedY = Player.basespeed;
+            Player.isAttacking = true;
+            Player.aSprite.setAnimation(&downAttack);
+            Player.aSprite.reset();
+            Player.aSprite.setLooped(false);
+            sliceVec.push_back(Slice(Player.aSprite.getPosition(),&sliceDown, 10,true));
+            sliceVec[sliceVec.size()-1].setLooped(false);
+            sliceVec[sliceVec.size()-1].setScale(5,5);
 
-        staticCollision(Player);
-        if (Player.ASprite.getAnim() == &Idle)
-            Player.ASprite.update(deltaTime), std::cout << "arek;";
+        }
+        if(Player.aSprite.shouldDestroy())
+        {
+            Player.isAttacking=false;
+            Player.aSprite.setLooped(true);
+
+        }
+        if (Player.isAttacking == false)
+        {
+            if (Player.dir != 'N')
+            {
+                if ((Player.dir == 'U' || Player.dir == 'D') && std::abs(Player.speedY) < std::abs(Player.speedX))
+                    Player.dir = 'N', Player.aSprite.setAnimation(&Idle);
+                if ((Player.dir == 'R' || Player.dir == 'L') && std::abs(Player.speedY) > std::abs(Player.speedX))
+                    Player.dir = 'N', Player.aSprite.setAnimation(&Idle);
+                else if (std::abs(Player.speedX) < 0.5 && std::abs(Player.speedY) < 0.5)
+                    Player.dir = 'N', Player.aSprite.setAnimation(&Idle);
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
+            {
+                Player.speedY -= 0.6 * Player.basespeed;
+                if (Player.dir == 'N' || Player.dir == 'D')
+                {
+                    Player.dir = 'U';
+                    Player.aSprite.setAnimation(&upRun);
+                }
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
+            {
+                Player.speedY += 0.6 * Player.basespeed;
+                if (Player.dir == 'N' || Player.dir == 'U')
+                {
+                    Player.dir = 'D';
+                    Player.aSprite.setAnimation(&downRun);
+                }
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+            {
+                Player.speedX -= 0.6 * Player.basespeed;
+                if (Player.dir == 'N' || Player.dir == 'R')
+                {
+                    Player.dir = 'L';
+                    Player.aSprite.setAnimation(&leftRun);
+                }
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
+            {
+                Player.speedX += 0.6 * Player.basespeed;
+                if (Player.dir == 'N' || Player.dir == 'L')
+                {
+                    Player.dir = 'R';
+                    Player.aSprite.setAnimation(&rightRun);
+                }
+            }
+
+            if (Player.speedX < -Player.basespeed)
+                Player.speedX = -Player.basespeed;
+            if (Player.speedY < -Player.basespeed)
+                Player.speedY = -Player.basespeed;
+            if (Player.speedX > Player.basespeed)
+                Player.speedX = Player.basespeed;
+            if (Player.speedY > Player.basespeed)
+                Player.speedY = Player.basespeed;
+
+            staticCollision(Player);
+            if (Player.aSprite.getAnim() == &Idle)
+                Player.aSprite.update(deltaTime), std::cout << "arek;";
+            else if (((std::abs(Player.speedX) + std::abs(Player.speedY)) / Player.basespeed) > 1)
+                Player.aSprite.update(deltaTime);
+            else
+                Player.aSprite.update(deltaTime * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
+            Player.move(Player.speedX, Player.speedY);
+            view.setCenter(Player.aSprite.getPosition());
+            window->setView(view);
+        }
         else
-            Player.ASprite.update(1+deltaTime * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
-        Player.move(Player.speedX, Player.speedY);
-        view.setCenter(Player.ASprite.getPosition());
-        window->setView(view);
-
-        ///Kolizja gdzies tu
+        {
+            staticCollision(Player);
+            if(Player.aSprite.shouldDestroy()==0)
+                Player.aSprite.update(deltaTime);
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
+                Player.dir = 'R';
+            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+                Player.dir = 'L';
+            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
+                Player.dir = 'D';
+            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
+                Player.dir = 'U';
+        }
+        /// Kolizja gdzies tu
 
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
 
-        //OBRACANIE
+        // OBRACANIE
 
-        //SKELETON MOVEMENT
+        // SKELETON MOVEMENT
         for (int i = 0; i < spEnemy.size(); i++)
             spEnemy[i].move(sf::Vector2f(Utils::randInt(-50, 50) * tilesize * 0.001, Utils::randInt(-50, 50) * tilesize * 0.001));
 
-        //DRAW STARTS
+        // DRAW STARTS
         window->clear(sf::Color());
         for (int i = 0; i < spGrass.size(); i++)
             window->draw(spGrass[i]);
@@ -285,6 +346,24 @@ public:
         window->draw(spCrosshair);
 
         Player.draw(window);
+
+
+        for(int i=sliceVec.size()-1; i>=0; i--)
+            if(sliceVec[i].isPlayer==true)
+            {
+                if(Player.isAttacking == 0)
+                    sliceVec.erase(sliceVec.begin()+i);
+            }
+            else if(sliceVec[i].shouldDestroy())
+                sliceVec.erase(sliceVec.begin()+i);
+
+        for(int i=0; i<sliceVec.size(); i++)
+        {
+            sliceVec[i].update(deltaTime);
+            window->draw(sliceVec[i]);
+            sliceVec[i].collide(spEnemy);
+
+        }
     }
 
 protected:
@@ -314,6 +393,10 @@ protected:
     sf::Texture texCrosshair;
     sf::Sprite spCrosshair;
 
+    std::vector<Slice> sliceVec;
+    sf::Texture texSliceDown;
+    ARO::Anim sliceDown;
+
     Entity Player;
     sf::Texture texIdle;
     ARO::Anim Idle;
@@ -325,5 +408,7 @@ protected:
     ARO::Anim rightRun;
     sf::Texture texLeftRun;
     ARO::Anim leftRun;
+    sf::Texture texDownAttack;
+    ARO::Anim downAttack;
 };
-#endif //RPG
+#endif // RPG
