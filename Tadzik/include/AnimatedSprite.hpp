@@ -149,10 +149,14 @@ namespace ARO {
                 runTime = 0;
                 currentFrame++;
                 if (currentFrame>=animation->frames) {
-                    loops++;
-                    currentFrame = 0;
-                    if (!m_looped)
+                    if (m_looped) {
+                        loops++;
+                        currentFrame = 0;
+                    }
+                    else {
+                        currentFrame--;
                         m_destroy = true;
+                    }
                 }
                 setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
             }
@@ -160,10 +164,14 @@ namespace ARO {
                 runTime = 0;
                 currentFrame--;
                 if (currentFrame<0) {
-                    loops++;
-                    currentFrame = animation->frames-1;
-                    if (!m_looped)
+                    if (m_looped) {
+                        loops++;
+                        currentFrame = animation->frames-1;
+                    }
+                    else {
                         m_destroy = true;
+                        currentFrame = 0;
+                    }
                 }
                 setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
             }
@@ -202,6 +210,7 @@ namespace ARO {
         void reset() {
             runTime = 0;
             loops = 0;
+            m_destroy = false;
         }
         void nextFrame() {
             runTime = 0;

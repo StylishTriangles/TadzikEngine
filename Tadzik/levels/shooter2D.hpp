@@ -20,7 +20,7 @@ public:
         :Scene(_name, mgr, w)
     {}
 
-    class HUD {
+    class HUD: public sf::Drawable {
     public:
         HUD(SHOOTER2D* g) {
             game = g;
@@ -76,20 +76,6 @@ public:
             tLights.setString(Utils::stringify(game->TADZIK.lights));
             healthBar.setTextureRect(sf::IntRect(0, 0, game->TADZIK.health/100*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
             activeWeapon.setTexture(game->TADZIK.weapons[game->TADZIK.currentWeapon].texture);
-
-            draw();
-        }
-        void draw() {
-            game->window->draw(frameTopLeft);
-            game->window->draw(frameTopRight);
-            game->window->draw(frameBotRight);
-            game->window->draw(healthFrame);
-            game->window->draw(healthBar);
-            game->window->draw(tScore);
-            game->window->draw(tAmmo);
-            game->window->draw(tAllAmmo);
-            game->window->draw(tLights);
-            game->window->draw(activeWeapon);
         }
         void setFont(sf::Font* f, sf::Color c) {
             tScore.setFont(*f);
@@ -102,6 +88,19 @@ public:
             tLights.setFillColor(c);
         }
         SHOOTER2D* game;
+    private:
+        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
+            target.draw(frameTopLeft);
+            target.draw(frameTopRight);
+            target.draw(frameBotRight);
+            target.draw(healthFrame);
+            target.draw(healthBar);
+            target.draw(tScore);
+            target.draw(tAmmo);
+            target.draw(tAllAmmo);
+            target.draw(tLights);
+            target.draw(activeWeapon);
+        }
     };
 
     class Wave {
@@ -1364,6 +1363,7 @@ public:
 
         window->draw(sf::Sprite(rGame.getTexture()));
         hud.update();
+        window->draw(hud);
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
         window->draw(spCrosshair);
         if (TADZIK.isDead) {

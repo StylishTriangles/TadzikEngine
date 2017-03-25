@@ -150,4 +150,8 @@ float vecLength(sf::Vector3f vec)
     return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
+float getArea(sf::FloatRect r) {
+    return r.width*r.height;
+}
+
 }

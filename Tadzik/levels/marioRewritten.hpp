@@ -48,48 +48,6 @@ public:
         }
     };
 
-    class Tile: public ARO::AnimSprite {
-    public:
-        Tile(ARO::Anim* a, sf::Vector2f pos) {
-            setPosition(pos);
-            setAnimation(a);
-        }
-        virtual void onHitBelow() {
-
-        }
-        virtual void onHitAbove() {
-
-        }
-    };
-
-    class Tile_Breakable: public Tile {
-    public:
-        Tile_Breakable(ARO::Anim* a, sf::Vector2f pos) : Tile(a, pos) {
-            setLooped(false);
-        }
-        void onHitBelow() {
-            nextFrame();
-        }
-    };
-
-    class Tile_PowerUp: public Tile {
-    public:
-        Tile_PowerUp(ARO::Anim* a, sf::Vector2f pos, MARIO2* g, ARO::Anim* d) : Tile(a, pos) {
-            setLooped(false);
-            deactivated = d;
-            game = g;
-        }
-        void onHitBelow() {
-            if (active) {
-                setAnimation(deactivated);
-                active = false;
-                game->vecPowerups.push_back(new Powerup(game, getPosition()-sf::Vector2f(0, game->tileSize), sf::Vector2f(3, -2 )));
-            }
-        }
-        ARO::Anim* deactivated;
-        MARIO2* game;
-        bool active = true;
-    };
 
     class MovingEntity: public ARO::AnimSprite {
     public:
@@ -128,6 +86,65 @@ public:
         direction currentDirection = RIGHT;
     };
 
+    class Tile: public ARO::AnimSprite {
+    public:
+        Tile(ARO::Anim* a, sf::Vector2f pos) {
+            setPosition(pos);
+            setAnimation(a);
+        }
+        virtual void onHitBelow() {
+
+        }
+        virtual void onHitAbove() {
+
+        }
+        virtual void onCollision(MovingEntity* m, float area) {
+
+        }
+        bool collidable = true;
+    };
+
+    class Tile_Breakable: public Tile {
+    public:
+        Tile_Breakable(ARO::Anim* a, sf::Vector2f pos) : Tile(a, pos) {
+            setLooped(false);
+        }
+        void onHitBelow() {
+            nextFrame();
+        }
+    };
+
+    class Tile_PowerUp: public Tile {
+    public:
+        Tile_PowerUp(ARO::Anim* a, sf::Vector2f pos, MARIO2* g, ARO::Anim* d) : Tile(a, pos) {
+            setLooped(false);
+            deactivated = d;
+            game = g;
+        }
+        void onHitBelow() {
+            if (active) {
+                setAnimation(deactivated);
+                active = false;
+                game->vecPowerups.push_back(new Powerup(game, getPosition()-sf::Vector2f(0, game->tileSize), sf::Vector2f(3, -2 )));
+            }
+        }
+        ARO::Anim* deactivated;
+        MARIO2* game;
+        bool active = true;
+    };
+
+    class Tile_Water: public Tile {
+    public:
+        Tile_Water(ARO::Anim* a, sf::Vector2f pos) : Tile(a, pos) {
+            setLooped(true);
+            collidable = false;
+        }
+        void onCollision(MovingEntity* m, float area) {
+            m->velocity.y*=0.99;
+            m->velocity.y-=0.5*(area/(32*32));
+        }
+    };
+
     class Powerup: public MovingEntity {
     public:
         Powerup(MARIO2* g, sf::Vector2f pos, sf::Vector2f v) : MovingEntity(g, pos, v) {
@@ -139,17 +156,23 @@ public:
             sf::FloatRect intersection;
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
-                    move(0, -Utils::sgn(velocity.y)*intersection.height);
-                    velocity.y*=-1;
+                    if (a->collidable) {
+                        move(0, -Utils::sgn(velocity.y)*intersection.height);
+                        velocity.y*=-1;
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
                 }
             }
             move(velocity.x, 0);
             intersection = sf::FloatRect(0, 0, 0, 0);
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
-                    move(-Utils::sgn(velocity.x)*intersection.width, 0);
-                    velocity.x*=-1;
-                    flipSprite();
+                    if (a->collidable) {
+                        move(-Utils::sgn(velocity.x)*intersection.width, 0);
+                        velocity.x*=-1;
+                        flipSprite();
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
                 }
             }
             velocity.y+=0.5;
@@ -189,15 +212,22 @@ public:
 
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersectionTMP)) {
-                    float t = Utils::getMagnitude(getPosition(), a->getPosition());
-                    if (t<minDistance) {
-                        minDistance = t;
-                        tileCollided = a;
-                        intersection = intersectionTMP;
+                    if (a->collidable) {
+                        float t = Utils::getMagnitude(getPosition(), a->getPosition());
+                        if (t<minDistance) {
+                            minDistance = t;
+                            tileCollided = a;
+                            intersection = intersectionTMP;
+                        }
                     }
+                    else {
+                        a->onCollision(this, Utils::getArea(intersection));
+                    }
+
                 }
             }
             if (minDistance!=999999) {
+                tileCollided->onCollision(this, 32*32);
                 move(0, -Utils::sgn(velocity.y)*intersection.height);
                 if (velocity.y>0) {
                     tileCollided->onHitAbove();
@@ -241,11 +271,16 @@ public:
             intersection = sf::FloatRect(0, 0, 0, 0);
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
-                    move(-Utils::sgn(velocity.x)*intersection.width, 0);
-                    velocity.x=0;
+                    if (a->collidable) {
+                        move(-Utils::sgn(velocity.x)*intersection.width, 0);
+                        velocity.x=0;
+                    }
+                    else {
+                        a->onCollision(this, Utils::getArea(intersection));
+                    }
                 }
             }
-            velocity.y+=0.5;
+            velocity.y+=GRAVITY;
             velocity.x*=0.9;
             if ((velocity.x>0 && currentDirection!=RIGHT) || (velocity.x<0 && currentDirection!=LEFT))
                 flipSprite();
@@ -286,17 +321,23 @@ public:
             sf::FloatRect intersection;
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
-                    move(0, -Utils::sgn(velocity.y)*intersection.height);
-                    velocity.y=0;
+                    if (a->collidable) {
+                        move(0, -Utils::sgn(velocity.y)*intersection.height);
+                        velocity.y=0;
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
                 }
             }
             move(velocity.x, 0);
             intersection = sf::FloatRect(0, 0, 0, 0);
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
-                    move(-Utils::sgn(velocity.x)*intersection.width, 0);
-                    velocity.x*=-1;
-                    flipSprite();
+                    if (a->collidable) {
+                        move(-Utils::sgn(velocity.x)*intersection.width, 0);
+                        velocity.x*=-1;
+                        flipSprite();
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
                 }
             }
             velocity.y+=0.5;
@@ -350,14 +391,18 @@ public:
                 else if(mapa.getPixel(x, y)==sf::Color(255, 0, 0)) {
                     vecEnemies.push_back(new NME_Snek(&aSnekWalk, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(0, 0, 255)) {
+                else if(mapa.getPixel(x, y)==sf::Color(0, 255, 0)) {
                     TADZIK.setPosition(x*tileSize, y*tileSize);
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(200, 0, 100)) {
                     vecTiles.push_back(new Tile_PowerUp(&aPowerUpTile, sf::Vector2f(x*tileSize, y*tileSize), this, &aPowerUpTile_ ));
                 }
+                else if(mapa.getPixel(x, y)==sf::Color(0, 0, 255)) {
+                    vecTiles.push_back(new Tile_Water(&aWater, sf::Vector2f(x*tileSize, y*tileSize)));
+                }
             }
         }
+        std::cout << "MAP LOADED";
     }
 
     void onSceneLoadToMemory() {
@@ -384,6 +429,9 @@ public:
 
         spsPowerup.loadFromFile("files/textures/mario/powerup.png");
         aPowerup.setSpriteSheet(&spsPowerup, 32, sf::seconds(1000000));
+
+        spsWater.loadFromFile("files/textures/mario/water.png");
+        aWater.setSpriteSheet(&spsWater, 32, sf::seconds(1000000));
 
         spsTadzikFall.resize(3);
         spsTadzikIdle.resize(3);
@@ -523,6 +571,8 @@ public:
         rGame.draw(TADZIK);
         for (auto a:vecHitboxlessFront)
             rGame.draw(a);
+        for (auto a:vecWater)
+            rGame.draw(a);
         for (auto a:vecEffects)
             rGame.draw(a);
         rGame.display();
@@ -540,6 +590,7 @@ protected:
 
     sf::Texture spsSnekWalk;
     sf::Texture spsPowerup;
+    sf::Texture spsWater;
 
     std::vector <sf::Texture> spsTadzikRun;
     std::vector <sf::Texture> spsTadzikIdle;
@@ -555,6 +606,7 @@ protected:
     ARO::Anim aBreakableTile;
     ARO::Anim aPowerUpTile;
     ARO::Anim aPowerUpTile_;
+    ARO::Anim aWater;
 
     ARO::Anim aPowerup;
 
@@ -569,6 +621,7 @@ protected:
     std::vector <Effect> vecEffects;
     std::vector <sf::Sprite> vecHitboxlessFront;
     std::vector <sf::Sprite> vecHitboxlessBack;
+    std::vector <Tile_Water> vecWater;
 
     sf::Vector2f windowSize;
     sf::Vector2f mapSize;

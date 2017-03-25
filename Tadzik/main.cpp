@@ -25,17 +25,17 @@ public:
 #define Keyboard KeyboardHacked
 //*****
 
-#include "include/SceneManager.hpp"
-#include "levels/trex.hpp"
-#include "levels/clicker.hpp"
-#include "levels/jumper.hpp"
-#include "levels/synth3d.hpp"
-#include "levels/marioRewritten.hpp"
-#include "levels/levelselect.hpp"
-#include "levels/shooter2D.hpp"
-#include "levels/rpg.hpp"
-#include "levels/isayparty.hpp"
-#include "levels/frogger.hpp"
+#include "../include/SceneManager.hpp"
+#include "../levels/trex.hpp"
+#include "../levels/clicker.hpp"
+#include "../levels/jumper.hpp"
+#include "../levels/synth3d.hpp"
+#include "../levels/marioRewritten.hpp"
+#include "../levels/levelselect.hpp"
+#include "../levels/shooter2D.hpp"
+#include "../levels/rpg.hpp"
+#include "../levels/isayparty.hpp"
+#include "../levels/frogger.hpp"
 
 int main(){
     Common::loadFonts();
