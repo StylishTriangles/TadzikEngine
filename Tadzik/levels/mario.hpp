@@ -10,7 +10,6 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
-#include <cmath>
 
 class MARIO;
 
@@ -156,15 +155,12 @@ public:
 
         }
         void flipSprite() {
-            sprite.setScale(abs(sprite.getScale().x)*Utils::sgn(velocity.x), sprite.getScale().y);
+            sprite.setScale(std::abs(sprite.getScale().x)*Utils::sgn(velocity.x), sprite.getScale().y);
         }
         virtual void updateEntity() {
             velocity.y+=0.5;
-            sprite.move(0, velocity.y);
             //flip
-            if (Utils::sgn(velocity.x)!=Utils::sgn(prevVelocity.x) && Utils::sgn(velocity.x)!=0)
-                flipSprite();
-            velocity.x*=0.9;
+
         }
         virtual void updateAnimations() {
 
@@ -192,6 +188,10 @@ public:
 
     class Snek: public Enemy {
     public:
+        Snek() {};
+        Snek(Animation) {
+
+        }
         void onHit() {
             shouldDestroy = true;
         }
@@ -225,16 +225,15 @@ public:
             changeAnimation(JUMP);
         }
         void updateAnimations() {
-            if (abs(velocity.x)<0.1 && isStanding && current!=STAND) {
+            if (std::abs(velocity.x)<0.1 && isStanding && current!=STAND) {
                 changeAnimation(STAND);
             }
-            if (abs(velocity.x)>0.1 && isStanding && current!=RUN) {
+            if (std::abs(velocity.x)>0.1 && isStanding && current!=RUN) {
                 changeAnimation(RUN);
             }
         }
         void updateEntity() {
             velocity.y+=0.5;
-            sprite.move(0, velocity.y);
             //flip
             if (Utils::sgn(velocity.x)!=Utils::sgn(prevVelocity.x) && Utils::sgn(velocity.x)!=0)
                 flipSprite();
@@ -283,6 +282,7 @@ public:
 
     virtual void onSceneLoadToMemory() {
         texBackground.loadFromFile("files/textures/mario/background.png");
+        texBackground.setRepeated(true);
 
         texFloorTile.loadFromFile("files/textures/mario/floor1.png"), FloorTile.setTexture(texFloorTile);
 
@@ -363,17 +363,19 @@ public:
 
     virtual void onSceneActivate() {
         textScore.setFont(Common::Font::Comic_Sans);
-        Background1.setTexture(texBackground);
-        Background1.setScale(double(window->getSize().x)/double(Background1.getTextureRect().width),
-                             double(window->getSize().y)/double(Background1.getTextureRect().height));
-        Background2=Background1;
-        Background2.move(window->getSize().x, 0);
+        spBackground.setTexture(texBackground);
+        spBackground.setTextureRect(sf::IntRect(0, 0, 100000000, window->getSize().y));
+        spBackground.setScale((double)window->getSize().y/(double)texBackground.getSize().y,
+                             (double)window->getSize().y/(double)texBackground.getSize().y);
         circle.setRadius(1000);
         circle.setOutlineThickness(1000);
         circle.setFillColor(sf::Color::Transparent);
         circle.setOrigin(500, 500);
         circle.setOutlineColor(sf::Color::Black);
         loadMap();
+        gameView.reset(sf::FloatRect(0, 0, window->getSize().x, window->getSize().y));
+        windowSize = sf::Vector2i(window->getSize());
+        mapSize = {mapa.getSize().x*TileSize, mapa.getSize().y*TileSize};
 
     }
 
@@ -404,7 +406,7 @@ public:
             for (unsigned int j=0; j<mapa.getSize().y; j++) {
                 if (mapa.getPixel(i, j)==sf::Color(0, 0, 0)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
-                    floor.push_back(FloorTile);
+                    vecFloor.push_back(FloorTile);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(100, 100, 100)) {
                     FloorTile.setPosition(i*TileSize, j*TileSize);
@@ -428,7 +430,7 @@ public:
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(255, 0, 0)) {
                     tmpSnek.setPosition(i*TileSize, j*TileSize);
-                    vecSnekes.push_back(tmpSnek);
+                    vecEnemies.push_back(new Snek);
                 }
                 else if(mapa.getPixel(i, j)==sf::Color(0, 255, 255)) {
                     spritePowerup.setPosition((i+0.5)*TileSize, (j+0.5)*TileSize);
@@ -468,8 +470,11 @@ public:
         t.setString("YOU SUCK");
         t.setPosition(100, 100);
         window->draw(t);
-        floor.clear();
-        vecSnekes.clear();
+        vecFloor.clear();
+        for (int i=0; i<vecEnemies.size(); i++) {
+            delete vecEnemies[i];
+        }
+        vecEnemies.clear();
         breakable.clear();
         hitboxlessBack.clear();
         hitboxlessFront.clear();
@@ -480,48 +485,42 @@ public:
     }
 
     bool isActive(sf::Sprite s, double multiplier = 1) {
-        if (s.getGlobalBounds().left>window->getSize().x*multiplier ||
-            s.getGlobalBounds().left+s.getGlobalBounds().width<(1.0-multiplier)*window->getSize().x) return 0;
+        if (s.getGlobalBounds().left-viewOffset.x>window->getSize().x*multiplier ||
+            s.getGlobalBounds().left+s.getGlobalBounds().width-viewOffset.x<(1.0-multiplier)*window->getSize().x) return 0;
         else return 1;
     }
 
-    bool manageCollision(MovingEntity& entity, Tile s) {
-        bool check = false;
-        if (isActive(s, 2) && Collision::BoundingBoxTest(entity.sprite, s)) {
-            if (s.getGlobalBounds().top+s.getGlobalBounds().height<entity.pos.top) {
-                entity.velocity.y = 0;
-                entity.sprite.setPosition(entity.sprite.getPosition().x,
-                                          s.getGlobalBounds().top+s.getGlobalBounds().height+entity.sprite.getGlobalBounds().height);
-                //entity.pos.top = entity.sprite.getGlobalBounds().top;
-                //entity.pos.bottom = entity.sprite.getGlobalBounds().top+entity.sprite.getGlobalBounds().height;
-                check = true;
-            }
-            if (s.getGlobalBounds().top>=entity.pos.bottom) {
-                entity.isStanding = true;
-                entity.sprite.setPosition(entity.sprite.getPosition().x, s.getGlobalBounds().top);
-                entity.velocity.y = 0;
-            }
-            else if (s.getGlobalBounds().left>entity.pos.right-1) {
-                entity.sprite.setPosition(entity.prevPosition.x, entity.sprite.getPosition().y);
-                entity.velocity.x = 0;
-            }
-            else if (s.getGlobalBounds().left+s.getGlobalBounds().width<entity.pos.left+1) {
-                entity.sprite.setPosition(entity.prevPosition.x, entity.sprite.getPosition().y);
-                entity.velocity.x = 0;
+    virtual void draw(double deltaTime) {
+        ///OGARNIANIE VIEW
+        sf::Vector2i pos = window->mapCoordsToPixel(spTadzik.sprite.getPosition(), gameView);
+        int scrollArea = 200;
+        if (pos.x > windowSize.x-scrollArea && viewOffset.x+windowSize.x<mapSize.x) {
+            gameView.move(pos.x-windowSize.x+scrollArea, 0);
+            viewOffset.x+=pos.x-windowSize.x+scrollArea;
+            if (viewOffset.x+windowSize.x>mapSize.x) {
+                gameView.move(-viewOffset.x-windowSize.x+mapSize.x, 0);
+                viewOffset.x=mapSize.x-windowSize.x;
             }
         }
-        return check;
-    }
+        else if (pos.x < scrollArea && viewOffset.x>0) {
+            gameView.move(pos.x-scrollArea, 0);
+            viewOffset.x+=pos.x-scrollArea;
+            if (viewOffset.x<0) {
+                gameView.move(-viewOffset.y, 0);
+                viewOffset.x=0;
+            }
+        }
+        window->setView(gameView);
 
-    virtual void draw(double deltaTime) {
         //przepisywanie z poprzedniej klatki
         spTadzik.updatePrev();
-        if (!spTadzik.isDead) spTadzik.update(abs(spTadzik.velocity.x)*deltaTime);
+        if (!spTadzik.isDead) spTadzik.update(std::abs(spTadzik.velocity.x)*deltaTime);
+        std::cout << "LELELELELEL";
 
-        for (unsigned int i=0; i<vecSnekes.size(); i++) {
-            if (isActive(vecSnekes[i].sprite, 1.1)) {
-                vecSnekes[i].updatePrev();
-                vecSnekes[i].update(abs(vecSnekes[i].velocity.x)*deltaTime);
+        for (unsigned int i=0; i<vecEnemies.size(); i++) {
+            if (isActive(vecEnemies[i]->sprite, 1.1)) {
+                vecEnemies[i]->updatePrev();
+                vecEnemies[i]->update(std::abs(vecEnemies[i]->velocity.x)*deltaTime);
             }
         }
 
@@ -558,65 +557,68 @@ public:
             else bullets.erase(bullets.begin()+i);
 
         }
+        //spTadzik.move(speedX, 0);
 
-
-
-        //przewijanie i movement
-        if ((spTadzik.sprite.getPosition().x>(double)window->getSize().x*(3.0/4.0) && speedX>0) ||
-            (spTadzik.sprite.getPosition().x<(double)window->getSize().x*(1.0/5.0) && speedX<0 && floor[0].getPosition().x<0)) {
-            for (unsigned int i=0; i<floor.size(); i++)              { floor[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<hitboxlessBack.size(); i++)     { hitboxlessBack[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<hitboxlessFront.size(); i++)    { hitboxlessFront[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<powerupBlocks.size(); i++)      { powerupBlocks[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<breakable.size(); i++)          { breakable[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<vecWaterfall.size(); i++)          { vecWaterfall[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<vecCoins.size(); i++)              { vecCoins[i].sprite.move(-speedX, 0);}
-            for (unsigned int i=0; i<effects.size(); i++)            { effects[i].sprite.move(-speedX, 0);}
-            for (unsigned int i=0; i<vecPowerups.size(); i++)           { vecPowerups[i].sprite.move(-speedX, 0);}
-            for (unsigned int i=0; i<bullets.size(); i++)            { bullets[i].move(-speedX, 0);}
-            for (unsigned int i=0; i<vecSnekes.size(); i++)           { vecSnekes[i].move(-speedX, 0), vecSnekes[i].updatePrev();}
-            spTadzik.pos.left-=speedX;
-            spTadzik.pos.right-=speedX;
-            spTadzik.prevPosition.x-=speedX;
-            Background1.move(-speedX*parallax, 0);
-            Background2.move(-speedX*parallax, 0);
+        spTadzik.move(0, speedY);
+        sf::FloatRect intersection;
+        for (auto a:vecFloor) {
+            if (spTadzik.sprite.getGlobalBounds().intersects(a.getGlobalBounds(), intersection)) {
+                spTadzik.move(0, -Utils::sgn(speedY)*intersection.height), std::cout << intersection.height;
+                if (speedY>0) {
+                    spTadzik.isStanding = true;
+                    spTadzik.isJumping = false;
+                }
+                speedY=0;
+            }
         }
-        else {
-            spTadzik.move(speedX, 0);
+        spTadzik.move(speedX, 0);
+        intersection = sf::FloatRect(0, 0, 0, 0);
+        for (auto a:vecFloor) {
+            if (spTadzik.sprite.getGlobalBounds().intersects(a.getGlobalBounds(), intersection)) {
+                spTadzik.move(-Utils::sgn(speedX)*intersection.width, 0);
+                speedX=0;
+            }
         }
-        spTadzik.updateEntity();
-        for (unsigned int i=0; i<vecSnekes.size(); i++) {
-            if (isActive(vecSnekes[i].sprite, 1.1)) {
-                vecSnekes[i].move(vecSnekes[i].velocity.x, 0);
-                vecSnekes[i].updateEntity();
+        speedY+=gravity;
+        speedX*=0.9;
+        //spTadzik.velocity.y+=gravity;
+
+        //spTadzik.updateEntity();
+        for (unsigned int i=0; i<vecEnemies.size(); i++) {
+            if (isActive(vecEnemies[i]->sprite, 1.1)) {
+                vecEnemies[i]->move(vecEnemies[i]->velocity.x, 0);
+                vecEnemies[i]->updateEntity();
             }
         }
 
         //ogarnianie kolizji
-        for (auto a:floor) manageCollision(spTadzik, a);
-        for (auto a:powerupBlocks) manageCollision(spTadzik, a);
+        //for (auto a:floor) manageCollision(spTadzik, a);
+        //for (auto a:powerupBlocks) manageCollision(spTadzik, a);
 
+        /*
         closestBreakable = -1;
         for (int i=breakable.size()-1; i>=0; i--) {
             if (manageCollision(spTadzik, breakable[i])) {
                 if (closestBreakable==-1) closestBreakable = i;
-                else if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(breakable[i].center().x-spTadzik.sprite.getPosition().x))
+                else if (std::abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>std::abs(breakable[i].center().x-spTadzik.sprite.getPosition().x))
                     closestBreakable = i;
             }
         }
+        */
 
+        /*
         closestQuestionBlock = -1;
         for (int i=powerupBlocks.size()-1; i>=0; i--) {
             if (manageCollision(spTadzik, powerupBlocks[i])) {
                 if (closestQuestionBlock==-1) closestQuestionBlock = i;
-                else if (abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
+                else if (std::abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)>std::abs(powerupBlocks[i].center().x-spTadzik.sprite.getPosition().x))
                     closestQuestionBlock = i;
             }
         if (spTadzik.powerLevel == 0) closestBreakable = -1;
         }
 
         if (closestBreakable != -1 && closestQuestionBlock != -1) {
-            if (abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
+            if (std::abs(breakable[closestBreakable].center().x-spTadzik.sprite.getPosition().x)>std::abs(powerupBlocks[closestQuestionBlock].center().x-spTadzik.sprite.getPosition().x)) {
                 closestBreakable = -1;
             }
             else {
@@ -636,10 +638,11 @@ public:
                 breakable.erase(breakable.begin()+closestBreakable);
 
 
+
         for (unsigned int i=0; i<vecSnekes.size(); i++) {
             if (isActive(vecSnekes[i].sprite, 1.2))
             {
-                for (auto a:floor)
+                for (auto a:vecFloor)
                     manageCollision(vecSnekes[i], a);
                 for (auto a:breakable)
                     manageCollision(vecSnekes[i], a);
@@ -647,17 +650,19 @@ public:
                     manageCollision(vecSnekes[i], a);
             }
         }
+        */
 
         //enemies AI
-        for (int i=vecSnekes.size()-1; i>=0; i--) {
-            if (vecSnekes[i].velocity.x==0) {
-                vecSnekes[i].sprite.setScale(-vecSnekes[i].sprite.getScale().x, vecSnekes[i].sprite.getScale().y);
+        for (int i=vecEnemies.size()-1; i>=0; i--) {
+            if (vecEnemies[i]->velocity.x==0) {
+                vecEnemies[i]->sprite.setScale(-vecEnemies[i]->sprite.getScale().x, vecEnemies[i]->sprite.getScale().y);
             }
-            vecSnekes[i].velocity.x=1*Utils::sgn(vecSnekes[i].sprite.getScale().x);
-            if (vecSnekes[i].sprite.getGlobalBounds().top > window->getSize().y+10) {
-                vecSnekes.erase(vecSnekes.begin()+i);
+            vecEnemies[i]->velocity.x=1*Utils::sgn(vecEnemies[i]->sprite.getScale().x);
+            if (vecEnemies[i]->sprite.getGlobalBounds().top > window->getSize().y+10) {
+                delete vecEnemies[i];
+                vecEnemies.erase(vecEnemies.begin()+i);
             }
-            if (Utils::randInt(0, 100)<1) bullets.push_back(Bullet(&texBullet1, vecSnekes[i].sprite.getPosition(), 25, Utils::randFloat(0, 2*3.1415)));
+            if (Utils::randInt(0, 100)<1) bullets.push_back(Bullet(&texBullet1, vecEnemies[i]->sprite.getPosition(), 25, Utils::randFloat(0, 2*3.1415)));
         }
 
         //ogarnianie monet i powerupow
@@ -679,27 +684,30 @@ public:
 
         //gameover
         if (spTadzik.sprite.getGlobalBounds().top>window->getSize().y) {
-            floor.clear();
+            vecFloor.clear();
             gameOver();
         }
-        for (int i=vecSnekes.size()-1; i>=0; i--)
-            if (isActive(vecSnekes[i].sprite))
-                if (Collision::BoundingBoxTest(spTadzik.sprite, vecSnekes[i].sprite)) {
-                    if (vecSnekes[i].sprite.getGlobalBounds().top >= spTadzik.pos.bottom) {
+        for (int i=vecEnemies.size()-1; i>=0; i--)
+            if (isActive(vecEnemies[i]->sprite))
+                if (Collision::BoundingBoxTest(spTadzik.sprite, vecEnemies[i]->sprite)) {
+                    if (vecEnemies[i]->sprite.getGlobalBounds().top >= spTadzik.pos.bottom) {
                         spTadzik.jump();
-                        effects.push_back(Effect(vecSnekes[i], Utils::randFloat(-5, 5), -5.0, 0.0, 0.5));
-                        vecSnekes[i].onHit();
-                        if (vecSnekes[i].shouldDestroy) vecSnekes.erase(vecSnekes.begin()+i);
+                        effects.push_back(Effect(*vecEnemies[i], Utils::randFloat(-5, 5), -5.0, 0.0, 0.5));
+                        vecEnemies[i]->onHit();
+                        if (vecEnemies[i]->shouldDestroy) {
+                            delete vecEnemies[i];
+                            vecEnemies.erase(vecEnemies.begin()+i);
+                        }
                     }
                     else {
-                        if (Collision::PixelPerfectTest(spTadzik.sprite, vecSnekes[i].sprite) && spTadzik.invincibility.getElapsedTime().asMilliseconds()>500) {
+                        if (Collision::PixelPerfectTest(spTadzik.sprite, vecEnemies[i]->sprite) && spTadzik.invincibility.getElapsedTime().asMilliseconds()>500) {
                             if (spTadzik.powerLevel==0) {
                                 spTadzik.isDead = 1;
                             }
                             else {
                                 spTadzik.powerLevel--;
                                 speedX = -3*speedX;
-                                speedY = - abs(speedY);
+                                speedY = - std::abs(speedY);
                                 spTadzik.loadAnimations(animTadzikLVL1);
                                 spTadzik.changeAnimation(spTadzik.current);
                                 spTadzik.sprite.setOrigin(sf::Vector2f(spTadzik.sprite.getTextureRect().width/2, spTadzik.sprite.getTextureRect().height));
@@ -708,12 +716,6 @@ public:
                         }
                     }
                 }
-
-        //fixowanie backgroundu
-        if (-Background1.getGlobalBounds().left > window->getSize().x) Background1.move(2*(int)window->getSize().x, 0);
-        if (-Background2.getGlobalBounds().left > window->getSize().x) Background2.move(2*(int)window->getSize().x, 0);
-        if (Background1.getGlobalBounds().left > window->getSize().x) Background1.move(-2*(int)window->getSize().x, 0);
-        if (Background2.getGlobalBounds().left > window->getSize().x) Background2.move(-2*(int)window->getSize().x, 0);
 
         textScore.setString(Utils::stringify(score));
         if (spTadzik.isDead) {
@@ -727,24 +729,23 @@ public:
         }
         spTadzik.updateAnimations();
 
-        //rysowanie
+        ///rysowanie
         window->clear();
-        window->draw(Background1);
-        window->draw(Background2);
+        window->draw(spBackground);
 
         for (auto a:hitboxlessBack) {
             if (isActive(a)) window->draw(a);
         }
-        for (auto a:floor) { window->draw(a);}
-        for (auto a:breakable) { if (isActive(a)) window->draw(a);}
-        for (auto a:vecCoins) { window->draw(a.sprite);}
-        for (auto a:bullets) { window->draw(a);}
-        for (auto a:vecPowerups) { window->draw(a.sprite);}
-        for (auto a:vecSnekes) { window->draw(a.sprite);}
-        for (auto a:effects) { window->draw(a.sprite);}
-        for (auto a:powerupBlocks) { window->draw(a);}
+        for (auto a:vecFloor)              { window->draw(a);}
+        for (auto a:breakable)          { if (isActive(a)) window->draw(a);}
+        for (auto a:vecCoins)           { window->draw(a.sprite);}
+        for (auto a:bullets)            { window->draw(a);}
+        for (auto a:vecPowerups)        { window->draw(a.sprite);}
+        for (auto a:vecEnemies)          { window->draw(a->sprite);}
+        for (auto a:effects)            { window->draw(a.sprite);}
+        for (auto a:powerupBlocks)      { window->draw(a);}
         window->draw(spTadzik.sprite);
-        for (auto a:hitboxlessFront) { if (isActive(a)) window->draw(a);}
+        for (auto a:hitboxlessFront)    { if (isActive(a)) window->draw(a);}
         for (unsigned int i=0; i<vecWaterfall.size(); i++) {
             vecWaterfall[i].setTextureRect(sf::IntRect(0, -clock.getElapsedTime().asMilliseconds()/10, texWaterfall.getSize().x, 1000 ));
             window->draw(vecWaterfall[i]);
@@ -754,6 +755,7 @@ public:
     }
 
 protected:
+    sf::View gameView;
     sf::Texture texBackground;
     sf::Texture texFloorTile;
     sf::Texture texPowerupTileActive;
@@ -790,20 +792,18 @@ protected:
     Animation coinRotate, powerupAnim;
     Animation armadilloWalk, armadilloHide;
 
-    sf::Sprite Background1;
-    sf::Sprite Background2;
+    sf::Sprite spBackground;
     Tile FloorTile;
     MovingEntity spritePowerup;
     QuestionTile PowerupTile;
 
-    std::vector <Tile> floor;
+    std::vector <Tile> vecFloor;
     std::vector <sf::Sprite> hitboxlessFront;
     std::vector <sf::Sprite> hitboxlessBack;
     std::vector <QuestionTile> powerupBlocks;
     std::vector <MovingEntity> vecPowerups;
     std::vector <AnimatedSprite> vecCoins;
-    std::vector <Snek> vecSnekes;
-    std::vector <Armadillo> vecArmadillo;
+    std::vector <Enemy*> vecEnemies;
 
     std::vector <Animation*> animTadzikLVL1;
     std::vector <Animation*> animTadzikLVL2;
@@ -817,7 +817,7 @@ protected:
     std::vector <Bullet> bullets;
 
     float& speedX = spTadzik.velocity.x;
-    float& speedY = spTadzik.velocity.x;
+    float& speedY = spTadzik.velocity.y;
     double maxSpeed = 10;
     double gravity = 0.5;
     double standingHeight = 0;
@@ -843,5 +843,9 @@ protected:
     sf::Sprite tempColumn;
     sf::Sprite tempWaterfall;
     std::vector <sf::Sprite> vecWaterfall;
+
+    sf::Vector2f viewOffset = {0, 0};
+    sf::Vector2i windowSize;
+    sf::Vector2f mapSize;
 };
 #endif //mario

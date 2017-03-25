@@ -116,6 +116,10 @@ void normalize(sf::Vector2f &v) {
     v = sf::Vector2f(v.x/length, v.y/length);
 }
 
+sf::Vector2f getViewOffset(sf::RenderTarget* rt) {
+    return rt->mapPixelToCoords(sf::Vector2i(0,0));
+}
+
 float dotProduct(sf::Vector3f a, sf::Vector3f b)
 {
     return a.x*b.x + a.y*b.y + a.z*b.z;

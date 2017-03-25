@@ -135,17 +135,16 @@ namespace ARO {
     class AnimSprite: public sf::Sprite {
     public:
         AnimSprite() {};
-        AnimSprite(Anim* anim, bool looped = true, sf::Vector2f vel = sf::Vector2f(0, 0)) {
+        AnimSprite(Anim* anim, bool looped = true) {
             setAnimation(anim);
             m_looped = looped;
-            velocity = vel;
         }
         bool isLooped() {return m_looped;};
         bool shouldDestroy() {return m_destroy;};
         int currentFrame = 0;
         void update (double delta) {
             runTime+=delta;
-            move(velocity);
+//            move(velocity);
             if (runTime*playSpeed > animation->frameDurations[currentFrame].asMilliseconds()) {
                 runTime = 0;
                 currentFrame++;
@@ -176,12 +175,6 @@ namespace ARO {
             setTexture(*(animation->spriteSheet));
             setTextureRect(sf::IntRect(0, 0, animation->width, animation->height));
         }
-        void setVelocity(sf::Vector2f vel) {
-            velocity = vel;
-        }
-        void setVelocity(float vx, float vy) {
-            velocity = sf::Vector2f(vx, vy);
-        }
         void setLooped (bool t) {
             m_looped = t;
         }
@@ -193,6 +186,9 @@ namespace ARO {
             if (playSpeed<0) {
                 currentFrame = animation->frames-currentFrame;
             }
+        }
+        float getPlaySpeed() {
+            return playSpeed;
         }
         void playBack() {
             playSpeed = -playSpeed;
@@ -206,7 +202,22 @@ namespace ARO {
         void reset() {
             runTime = 0;
             loops = 0;
-            velocity = sf::Vector2f(0, 0);
+        }
+        void nextFrame() {
+            runTime = 0;
+            currentFrame++;
+            if (currentFrame>=animation->frames) {
+                loops++;
+                currentFrame = 0;
+                if (!m_looped)
+                    m_destroy = true;
+            }
+            setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
+        }
+        void setFrame(int a) {
+            currentFrame = a;
+            runTime=0;
+            setTextureRect(sf::IntRect(currentFrame*animation->width, 0, animation->width, animation->height));
         }
     protected:
         bool m_destroy = false;
@@ -214,7 +225,6 @@ namespace ARO {
         Anim* animation;
         double runTime = 0;
         int loops = 0;
-        sf::Vector2f velocity = sf::Vector2f(0, 0);
         float playSpeed = 1;
     };
 }
