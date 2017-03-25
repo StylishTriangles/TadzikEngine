@@ -30,7 +30,7 @@ public:
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
 #include "levels/synth3d.hpp"
-#include "levels/mario.hpp"
+#include "levels/marioRewritten.hpp"
 #include "levels/levelselect.hpp"
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
@@ -51,22 +51,22 @@ int main(){
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     //sceneManager.registerScene<JUMPER>("JUMPER", &window);
     //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
+    sceneManager.registerScene<MARIO2>("MARIO2", &window);
     //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-   ///sceneManager.registerScene<RPG>("RPG", &window);
+    //sceneManager.registerScene<RPG>("RPG", &window);
     //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
-    sceneManager.registerScene<FROGGER>("FROGGIE", &window);
+    //sceneManager.registerScene<FROGGER>("FROGGIE", &window);
    // sceneManager.setActiveScene("TREX");
     //sceneManager.setActiveScene("JUMPER");
     //sceneManager.setActiveScene("CLICKER");
     //sceneManager.setActiveScene("SYNTH3D");
-    //sceneManager.setActiveScene("MARIO");
+    sceneManager.setActiveScene("MARIO2");
     //sceneManager.setActiveScene("LEVELSELECT");
    // sceneManager.setActiveScene("SHOOTER2D");
-    ///sceneManager.setActiveScene("RPG");
+    //sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
-    sceneManager.setActiveScene("FROGGIE");
+    //sceneManager.setActiveScene("FROGGIE");
 
     sf::Clock deltaClock;
     while(window.isOpen()){

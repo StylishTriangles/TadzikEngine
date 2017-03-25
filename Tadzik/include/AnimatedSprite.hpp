@@ -186,6 +186,9 @@ namespace ARO {
                 currentFrame = animation->frames-currentFrame;
             }
         }
+        float getPlaySpeed() {
+            return playSpeed;
+        }
         void playBack() {
             playSpeed = -playSpeed;
         }

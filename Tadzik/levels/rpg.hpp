@@ -181,12 +181,12 @@ public:
         texRun[Left].loadFromFile(  "files/textures/rpg/run/left.png");
         texRun[Down].loadFromFile(  "files/textures/rpg/run/down.png");
         texRun[Up].loadFromFile(    "files/textures/rpg/run/up.png");
-        Run[Right].setSpriteSheet(  &texRun[Right], 25, 200),   Run[Right].setPoints();
-        Run[Left].setSpriteSheet(   &texRun[Left],  25, 200);
+        Run[Right].setSpriteSheet(  &texRun[Right], 25, sf::milliseconds(200)),   Run[Right].setPoints();
+        Run[Left].setSpriteSheet(   &texRun[Left],  25, sf::milliseconds(200));
         Run[Left].setPoints();
-        Run[Down].setSpriteSheet(   &texRun[Down],  15, 200);
+        Run[Down].setSpriteSheet(   &texRun[Down],  15, sf::milliseconds(200));
         Run[Down].setPoints();
-        Run[Up].setSpriteSheet(     &texRun[Up],    15, 200);
+        Run[Up].setSpriteSheet(     &texRun[Up],    15, sf::milliseconds(200));
         Run[Up].setPoints();
 
         texAttack.loadFromFile("files/textures/rpg/attackDown.png");
