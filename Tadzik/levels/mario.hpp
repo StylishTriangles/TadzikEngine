@@ -188,6 +188,7 @@ public:
 
     class Snek: public Enemy {
     public:
+        Snek() {};
         Snek(Animation) {
 
         }
