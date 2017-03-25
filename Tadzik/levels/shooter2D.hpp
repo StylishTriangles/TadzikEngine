@@ -96,10 +96,10 @@ public:
             tAmmo.setFont(*f);
             tAllAmmo.setFont(*f);
             tLights.setFont(*f);
-            tScore.setColor(c);
-            tAmmo.setColor(c);
-            tAllAmmo.setColor(c);
-            tLights.setColor(c);
+            tScore.setFillColor(c);
+            tAmmo.setFillColor(c);
+            tAllAmmo.setFillColor(c);
+            tLights.setFillColor(c);
         }
         SHOOTER2D* game;
     };
@@ -274,6 +274,16 @@ public:
                 }
             }
             velocity*=0.8f;
+        }
+        void reset() {
+            health = 100;
+            speed = 0;
+            lights = 30;
+            for (unsigned int i=0; i<weapons.size(); i++) {
+                weapons[i].ammo = weapons[i].magSize;
+                weapons[i].mags = weapons[i].magAmount;
+            }
+            currentWeapon = 0;
         }
         void nextWeapon() {
             currentWeapon++;
@@ -480,15 +490,22 @@ public:
             setTexture(*deadTexture);
             game->rMisc.draw(*this);
             game->rMisc.display();
-            delete(this);
+            delete this;
+        }
+
+        bool canBeHit() {
+            return lastHit.getElapsedTime()>invincTime;
         }
 
         float health = 100;
+        float maxHealth = 100;
         float maxSpeed = 5;
         float damage = 10;
         float speed = 1;
         float angle;
         bool m_flying = false;
+        sf::Time invincTime = sf::milliseconds(333);
+        sf::Clock lastHit;
         MovingEntity* target;
         SHOOTER2D* game;
         sf::Vector2f destination;
@@ -528,6 +545,7 @@ public:
         AIRunner(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
             speed = 4;
             health = 10;
+            maxHealth = 10;
         };
         void update() {
             angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
@@ -541,6 +559,30 @@ public:
             findPath();
         }
 
+    };
+
+    class AIBoss: public Enemy {
+    public:
+        AIBoss(sf::Vector2f position, EnemyMaker EM) : Enemy(position, EM) {
+            speed = 1;
+            health = 1000;
+            maxHealth = 1000;
+            damage = 1000000;
+        };
+        void update() {
+            angle = atan2(destination.y-getPosition().y, destination.x-getPosition().x);
+            setRotation(angle*180/M_PI);
+            velocity.x += speed* cos(angle);
+            velocity.y += speed* sin(angle);
+            move(velocity);
+            Utils::normalize(velocity);
+            velocity *= speed;
+            fixElements();
+            findPath();
+            if (Utils::chance(0.01)) {
+                game->vecEnemies.push_back(new AIZombie(getPosition(), game->ZombieMaker));
+            }
+        }
     };
 
     class Powerup: public sf::Sprite {
@@ -630,8 +672,8 @@ public:
 
     sf::VertexArray getLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color c = sf::Color::White) {
         sf::VertexArray a (sf::Lines, 2);
-        a[0]=p1;
-        a[1]=p2;
+        a[0]=sf::Vertex(p1, c);
+        a[1]=sf::Vertex(p2, c);
         return a;
     }
 
@@ -661,9 +703,11 @@ public:
     }
 
     void onSceneLoadToMemory() {
-        mapa.loadFromFile("files/maps/shooter2D/map1.png");
+        texWall.loadFromFile("files/textures/shooter2D/wall1.png");
+        spWall.setTexture(texWall);
+        spWall.setOrigin(tileSize/2, tileSize/2);
 
-        mapSize = {mapa.getSize().x*tileSize, mapa.getSize().y*tileSize};
+        loadMap(1);
 
         gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
 
@@ -680,9 +724,6 @@ public:
         spBlood.setTexture(texBlood);
         Utils::setOriginInCenter(spBlood);
 
-        texWall.loadFromFile("files/textures/shooter2D/wall1.png");
-        spWall.setTexture(texWall);
-        spWall.setOrigin(tileSize/2, tileSize/2);
         texCandle.loadFromFile("files/textures/shooter2D/candle.png");
 
         texPlayer.loadFromFile("files/textures/shooter2D/player.png");
@@ -697,32 +738,6 @@ public:
         TADZIK.ls.glow.setTexture(texShadow);
         Utils::setOriginInCenter(TADZIK.ls.glow);
 
-        loadMap();
-        loadWaves();
-
-        rDebug.create(mapSize.x, mapSize.y);
-        rShadows.create(mapSize.x, mapSize.y);
-        rMisc.create(mapSize.x, mapSize.y);
-        rGame.create(mapSize.x, mapSize.y);
-        rTextureTmp.create(mapSize.x, mapSize.y);
-
-        Object tmpObject;
-        tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, tileSize));
-        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, mapSize.y-tileSize));
-        tmpObject.points.push_back(sf::Vector2f(tileSize, mapSize.y-tileSize));
-
-        vecWalls.push_back(tmpObject);
-
-        rTextureTmp.clear(sf::Color(0, 0, 0, 0));
-        for (unsigned int i=0; i<vecWalls.size(); i++) {
-            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
-                rTextureTmp.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()]));
-            }
-        }
-        rTextureTmp.display();
-        texLines = rTextureTmp.getTexture();
-
         hud.healthBar.setTexture(texHealthBar);
         hud.healthFrame.setTexture(texHealthFrame);
         hud.setFont(&Common::Font::Days_Later, sf::Color::Black);
@@ -734,6 +749,7 @@ public:
         texZombie.loadFromFile("files/textures/shooter2D/nmeZombie.png");
         texGhost.loadFromFile("files/textures/shooter2D/nmeGhost.png");
         texRunner.loadFromFile("files/textures/shooter2D/nmeRunner.png");
+        texBoss.loadFromFile("files/textures/shooter2D/nmeBoss.png");
 
         loadWeapons();
         TADZIK.addWeapon(vecWeapons[0]);
@@ -755,6 +771,16 @@ public:
         ZombieMaker = EnemyMaker(&texZombie, &texBlood, &TADZIK, this);
         GhostMaker = EnemyMaker(&texGhost, &texBlood, &TADZIK, this);
         RunnerMaker = EnemyMaker(&texRunner, &texBlood, &TADZIK, this);
+        BossMaker = EnemyMaker(&texBoss, &texBlood, &TADZIK, this);
+
+        fadeShape.setFillColor(sf::Color(30, 8, 8, 0));
+
+        consoleCommands.push_back("debug");
+        consoleCommands.push_back("killall");
+        consoleCommands.push_back("stopspawning");
+        consoleCommands.push_back("spawn");
+        consoleCommands.push_back("lightsoff");
+        consoleCommands.push_back("cleargore");
     }
 
     void onSceneActivate() {
@@ -764,22 +790,40 @@ public:
     }
 
     void onSceneDeactivate() {
-        for (unsigned int i=vecEnemies.size()-1; i>=0; i--) {
-            delete vecEnemies[i];
-            vecEnemies.erase(vecEnemies.begin()+i);
-        }
-        for (unsigned int i=vecPowerups.size()-1; i>=0; i--) {
-            delete vecPowerups[i];
-            vecPowerups.erase(vecPowerups.begin()+i);
-        }
+        clearMap();
     }
 
-    void loadMap() {
+    void clearMap() {
+        for (int i=0; i<vecEnemies.size(); i++)
+            delete vecEnemies[i];
+        for (int i=0; i<vecPowerups.size(); i++)
+            delete vecPowerups[i];
+        vecEnemies.clear();
+        vecPowerups.clear();
+        vecWalls.clear();
+        vecWaves.clear();
+        vecSprites.clear();
+        waveClock.restart();
+    }
+
+    void nextMap() {
+        clearMap();
+        levelNumber++;
+        loadMap(levelNumber);
+    }
+
+    void loadMap(unsigned int levelNumber) {
+        if (!mapa.loadFromFile("files/maps/shooter2D/map"+Utils::stringify(levelNumber)+".png")) {
+            allMapsCompleted();
+            return;
+        }
+        mapSize = {mapa.getSize().x*tileSize, mapa.getSize().y*tileSize};
+        loadWaves(levelNumber);
         bool t[mapa.getSize().x][mapa.getSize().y];
         sf::Color objectColor = sf::Color(255, 255, 255);
         for (unsigned int i=0; i<mapa.getSize().x; i++)
             for (unsigned int j=0; j<mapa.getSize().y; j++) {
-                t[i][j]=0;
+                t[i][j]=false;
                 if (mapa.getPixel(i, j) == objectColor || mapa.getPixel(i, j) == sf::Color(0, 0, 0)) {
                     spWall.setPosition((i+0.5)*tileSize, (j+0.5)*tileSize);
                     vecSprites.push_back(spWall);
@@ -843,10 +887,38 @@ public:
                     }
                 }
                 else if (mapa.getPixel(i, j) == sf::Color(0, 0, 255)) {
-                    TADZIK.setPosition(i*tileSize, j*tileSize);
+                    TADZIK.setPosition(i*tileSize+1, j*tileSize+1);
                 }
             }
         }
+        ///DODANIE KRANCOW MAPY
+        Object tmpObject;
+        tmpObject.points.push_back(sf::Vector2f(tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, tileSize));
+        tmpObject.points.push_back(sf::Vector2f(mapSize.x-tileSize, mapSize.y-tileSize));
+        tmpObject.points.push_back(sf::Vector2f(tileSize, mapSize.y-tileSize));
+        vecWalls.push_back(tmpObject);
+
+        ///TWORZENIE RENDERTEXTUR
+        rDebug.create(mapSize.x, mapSize.y);
+        rShadows.create(mapSize.x, mapSize.y);
+        rMisc.create(mapSize.x, mapSize.y);
+        rGame.create(mapSize.x, mapSize.y);
+        rTextureTmp.create(mapSize.x, mapSize.y);
+        gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
+
+        viewOffset = sf::Vector2f(0, 0);
+        fadeShape.setSize(mapSize);
+
+        ///KONTURY OBIEKTOW
+        rTextureTmp.clear(sf::Color(0, 0, 0, 0));
+        for (unsigned int i=0; i<vecWalls.size(); i++) {
+            for (unsigned int j=0; j<vecWalls[i].points.size(); j++) {
+                rTextureTmp.draw(getLine(vecWalls[i].points[j], vecWalls[i].points[(j+1)%vecWalls[i].points.size()], sf::Color(150, 150, 150, 255)));
+            }
+        }
+        rTextureTmp.display();
+        texLines = rTextureTmp.getTexture();
     }
 
     void loadWeapons() {
@@ -874,9 +946,9 @@ public:
         }
     }
 
-    void loadWaves() {
+    void loadWaves(unsigned int levelNumber) {
         std::ifstream file;
-        file.open("files/resource/shooter2D/waves.dat");
+        file.open("files/resource/shooter2D/wave"+Utils::stringify(levelNumber)+".dat");
         Wave tmpWave(0, 0);
         while (!file.eof()) {
             file >> tmpWave.time;
@@ -903,7 +975,7 @@ public:
         }
     }
 
-    void handleEntityCollision (MovingEntity& e1, MovingEntity &e2, double knockback) {
+    void handleEntityCollision (MovingEntity& e1, MovingEntity& e2, double knockback) {
         sf::FloatRect intersection;
         if (e1.hitbox.getGlobalBounds().intersects(e2.hitbox.getGlobalBounds(), intersection)) {
             sf::Vector2f direction = e2.getPosition() - e1.getPosition();
@@ -918,8 +990,15 @@ public:
     }
 
     void gameOver() {
-        TADZIK.isDead = true;
-        deathMessage.setString("YOU SUCK");
+        TADZIK.reset();
+        levelNumber = 0;
+        nextMap();
+        //TADZIK.isDead = true;
+        //deathMessage.setString("YOU SUCK");
+    }
+
+    void allMapsCompleted() {
+        gameOver();
     }
 
     void deliverEvent(sf::Event& event){
@@ -950,7 +1029,7 @@ public:
             if (!vecEnemies[i]->m_flying)
                 handleCollision(*vecEnemies[i], vecSprites);
             for (int j=vecBullets.size()-1; j>=0; j--) {
-                if (Collision::BoundingBoxTest(*vecEnemies[i], vecBullets[j]) && vecBullets[j].friendly) {
+                if (Collision::BoundingBoxTest(*vecEnemies[i], vecBullets[j]) && vecBullets[j].friendly && vecEnemies[i]->canBeHit()) {
                     vecEnemies[i]->onHit(&vecBullets[j]);
                     if (vecBullets[j].penetrating && vecBullets[j].maxPenetrating > 0) {
                         vecBullets[j].maxPenetrating--;
@@ -961,7 +1040,7 @@ public:
                             vecExplosions.push_back(aExplosion);
                         }
                         vecBullets.erase(vecBullets.begin()+j);
-                    vecEnemies[i]->healthBar.setScale(vecEnemies[i]->health/100.0, 1);
+                    vecEnemies[i]->healthBar.setScale((float)vecEnemies[i]->getGlobalBounds().width*(vecEnemies[i]->health/vecEnemies[i]->maxHealth), 1);
                     if (vecEnemies[i]->health<=0) {
                         vecEnemies[i]->onDrop();
                         vecEnemies[i]->onKilled();
@@ -980,6 +1059,7 @@ public:
         if (waveClock.getElapsedTime().asSeconds()>vecWaves[currentWave].time) {
             sf::Image img;
             img = rTextureTmp.getTexture().copyToImage();
+            currentWave++;
             for (int i=0; i<vecWaves[currentWave].maxEnemies; i++) {
                 sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, mapSize.x-10, mapSize.y-10));
                 if (img.getPixel(t.x, t.y) == sf::Color::Black)
@@ -992,13 +1072,27 @@ public:
                             vecEnemies.push_back(new AIRunner(sf::Vector2f(t), RunnerMaker));
                     }
             }
+            if (currentWave==vecWaves.size()-1) {
+                bool spawned = false;
+                do {
+                    sf::Vector2i t = Utils::randVector2i(sf::IntRect(10, 10, mapSize.x-10, mapSize.y-10));
+                    if (img.getPixel(t.x, t.y) == sf::Color::Black)
+                        if (mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(0, 0, 0) && mapa.getPixel(t.x/tileSize, t.y/tileSize)!=sf::Color(255, 255, 255)) {
+                            spawned=true;
+                            vecEnemies.push_back(new AIBoss(sf::Vector2f(t), BossMaker));
+                        }
+                }
+                while (!spawned);
+            }
             waveClock.restart();
-            currentWave++;
-            currentWave=currentWave%vecWaves.size();
+
+        }
+        if (currentWave==vecWaves.size()-1 && vecEnemies.empty()) {
+            mapCleared = true;
         }
     }
 
-    virtual bool onConsoleUpdate(std::vector<std::string> args){
+    bool onConsoleUpdate(std::vector<std::string> args){
         if (args[0] == "debug") {
             debug = !debug;
             rDebug.setActive(debug);
@@ -1030,7 +1124,7 @@ public:
         else if (args[0] == "lightsoff") {
             vecLights.clear();
         }
-        else if (args[0] == "clear") {
+        else if (args[0] == "cleargore") {
             rMisc.clear(sf::Color(0, 0, 0, 0));
         }
         else
@@ -1038,24 +1132,27 @@ public:
         return true;
     }
 
-    virtual void getKeyboardStuff() {
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -TADZIK.velocity.x < TADZIK.maxSpeed)
-            TADZIK.velocity.x -= acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -TADZIK.velocity.y < TADZIK.maxSpeed)
-            TADZIK.velocity.y -= acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && TADZIK.velocity.y < TADZIK.maxSpeed)
-            TADZIK.velocity.y += acceleration;
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && TADZIK.velocity.x < TADZIK.maxSpeed)
-            TADZIK.velocity.x += acceleration;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) TADZIK.health-=10;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) TADZIK.reload();
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
+    void fadeOut() {
+        sf::Color c = fadeShape.getFillColor();
+        c.a+=5;
+        fadeShape.setFillColor(c);
+        if (c.a>=255) {
+            nextMap();
+            fadeInEffect = true;
+            mapCleared = false;
+        }
     }
 
-    virtual void draw(double deltaTime) {
-        window->clear();
-        ///VIEW HANDLING
+    void fadeIn() {
+        sf::Color c = fadeShape.getFillColor();
+        c.a-=5;
+        fadeShape.setFillColor(c);
+        if (c.a<=0) {
+            fadeInEffect = false;
+        }
+    }
+
+    void fixView() {
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
         int scrollArea = 200;
         if (pos.y > windowSize.y-scrollArea && viewOffset.y+windowSize.y<mapSize.y) {
@@ -1074,7 +1171,45 @@ public:
                 viewOffset.y=0;
             }
         }
+        if (pos.x > windowSize.x-scrollArea && viewOffset.x+windowSize.x<mapSize.x) {
+            gameView.move(pos.x-windowSize.x+scrollArea, 0);
+            viewOffset.x+=pos.x-windowSize.x+scrollArea;
+            if (viewOffset.x+windowSize.x>mapSize.x) {
+                gameView.move(-viewOffset.x-windowSize.x+mapSize.x, 0);
+                viewOffset.x=mapSize.x-windowSize.x;
+            }
+        }
+        else if (pos.x < scrollArea && viewOffset.x>0) {
+            gameView.move(pos.x-scrollArea, 0);
+            viewOffset.x+=pos.x-scrollArea;
+            if (viewOffset.x<0) {
+                gameView.move(-viewOffset.x, 0);
+                viewOffset.x=0;
+            }
+        }
         rGame.setView(gameView);
+    }
+
+    virtual void getKeyboardStuff() {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) && -TADZIK.velocity.x < TADZIK.maxSpeed)
+            TADZIK.velocity.x -= acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) && -TADZIK.velocity.y < TADZIK.maxSpeed)
+            TADZIK.velocity.y -= acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) && TADZIK.velocity.y < TADZIK.maxSpeed)
+            TADZIK.velocity.y += acceleration;
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) && TADZIK.velocity.x < TADZIK.maxSpeed)
+            TADZIK.velocity.x += acceleration;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) TADZIK.health-=10;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) TADZIK.reload();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+            nextMap();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
+            vecEnemies.push_back(new AIGhost(sf::Vector2f(Utils::randInt(10, window->getSize().x-10), Utils::randInt(10, window->getSize().y)), GhostMaker));
+    }
+
+    void draw(sf::Time deltaTime) {
+        window->clear();
+        fixView();
 
         /// INPUT MYSZKI
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && TADZIK.weapons[TADZIK.currentWeapon].automatic) {
@@ -1158,7 +1293,7 @@ public:
             rGame.draw(*vecPowerups[i]);
             if (Collision::BoundingBoxTest(TADZIK, *vecPowerups[i])) {
                 vecPowerups[i]->onPickup();
-                delete(vecPowerups[i]);
+                delete vecPowerups[i];
                 vecPowerups.erase(vecPowerups.begin()+i);
             }
         }
@@ -1185,13 +1320,11 @@ public:
         ///EKSPLOZJE
         for (int i=vecExplosions.size()-1; i>=0; --i) {
             for (int j=vecEnemies.size()-1; j>=0; --j) {
-                if (Collision::PixelPerfectTest(*vecEnemies[j], vecExplosions[i])) {
-                    vecEnemies[j]->onDrop();
-                    vecEnemies[j]->onKilled();
-                    vecEnemies.erase(vecEnemies.begin()+j);
+                if (Collision::PixelPerfectTest(*vecEnemies[j], vecExplosions[i]) && vecEnemies[i]->canBeHit()) {
+                    vecEnemies[i]->health-=50;
                 }
             }
-            vecExplosions[i].update(deltaTime);
+            vecExplosions[i].update(deltaTime.asMilliseconds());
             if (!vecExplosions[i].shouldDestroy()) {
                 rGame.draw(vecExplosions[i]);
             }
@@ -1219,6 +1352,14 @@ public:
         if (TADZIK.isReloading)
             rGame.draw(TADZIK.reloadBar);
 
+        if (mapCleared) {
+            fadeOut();
+            rGame.draw(fadeShape);
+        }
+        if (fadeInEffect) {
+            fadeIn();
+            rGame.draw(fadeShape);
+        }
         rGame.display();
 
         window->draw(sf::Sprite(rGame.getTexture()));
@@ -1241,6 +1382,7 @@ protected:
     sf::Texture texZombie;
     sf::Texture texGhost;
     sf::Texture texRunner;
+    sf::Texture texBoss;
     sf::Texture texCrosshair;
     sf::Texture texShadow;
     sf::Texture texPUPGiveHealth;
@@ -1249,6 +1391,8 @@ protected:
     sf::Texture spsExplosion;
 
     sf::Texture texLines;
+
+    sf::RectangleShape fadeShape;
 
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
@@ -1279,6 +1423,7 @@ protected:
     EnemyMaker ZombieMaker;
     EnemyMaker GhostMaker;
     EnemyMaker RunnerMaker;
+    EnemyMaker BossMaker;
 
     std::vector <ARO::AnimSprite> vecExplosions;
 
@@ -1306,7 +1451,12 @@ protected:
 
     int currentWave = 0;
 
+    unsigned int levelNumber = 1;
+
     bool debug = false;
+
+    bool mapCleared = false;
+    bool fadeInEffect = false;
 
 };
 

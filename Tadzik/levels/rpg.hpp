@@ -159,7 +159,6 @@ public:
 
         Player.ASprite.setAnimation(&rightRun);
         Player.ASprite.setScale(5, 5);
-
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
         tempWall.setScale(1, 1);
@@ -192,9 +191,9 @@ public:
     {
     }
 
-    virtual void draw(double deltaTime)
+    virtual void draw(sf::Time deltaTime)
     {
-
+        float dT = deltaTime.asMilliseconds();
         // Player.speedX=0, Player.speedY=0;
         ///Movement
         Player.speedX = Player.speedX * 0.9;
@@ -256,9 +255,9 @@ public:
 
         staticCollision(Player);
         if (Player.ASprite.getAnim() == &Idle)
-            Player.ASprite.update(deltaTime), std::cout << "arek;";
+            Player.ASprite.update(dT), std::cout << "arek;";
         else
-            Player.ASprite.update(1+deltaTime * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
+            Player.ASprite.update(1+dT * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
         Player.move(Player.speedX, Player.speedY);
         view.setCenter(Player.ASprite.getPosition());
         window->setView(view);

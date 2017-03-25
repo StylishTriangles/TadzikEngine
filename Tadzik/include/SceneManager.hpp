@@ -4,7 +4,9 @@
 #include "Scene.hpp"
 #include "Utils.hpp"
 #include "Common.hpp"
+#include "Console.hpp"
 
+#include <stdlib.h>
 #include <unordered_map>
 #include <string>
 #include <iostream>
@@ -17,9 +19,8 @@ public:
         fpsCounter.setFont(Common::Font::Digital_7);
         fpsCounter.setString("60");
         fpsCounter.setOrigin(0, 30);
-        fpsCounter.setPosition(0, window->getSize().y);
-        fpsCounter.setColor(sf::Color::Green);
-        //tadzikCMD = new TadzikCMD(this);
+        fpsCounter.setPosition(20, window->getSize().y - 10);
+        fpsCounter.setFillColor(sf::Color::Green);
     }
 
     virtual ~SceneManager(){
@@ -53,81 +54,58 @@ public:
         actScene->onSceneActivate();
     }
 
+    template<typename T>
+    void justLaunchIt(std::string nameId) {
+        registerScene<T>(nameId, window);
+        setActiveScene(nameId);
+    }
+
     std::string getActiveSceneName(){
         return actScene->getName();
     }
     void deliverEvent(sf::Event& e){
         actScene->deliverEvent(e);
     }
-    void runSceneFrame(double delta){
+    void runSceneFrame(sf::Time delta){
         actScene->draw(delta);
         if(cmdEnabled){
-            ImGui::SetNextWindowPos(sf::Vector2f(0,0));
-            ImGui::Begin("Tadzik CMD");
-            ImGui::PushItemWidth(200);
-            bool textInputted = ImGui::InputText("", cmdBuffer, 1024, ImGuiInputTextFlags_EnterReturnsTrue);
-            ImGui::SetKeyboardFocusHere(0);
-            ImGui::PopItemWidth();
-            ImGui::End();
-            if(textInputted){
-                std::vector<std::string> v = eval();
-                bool foundCommand = coreEval(v);
-                foundCommand |= actScene->onConsoleUpdate(v);
-                if(!foundCommand){
-                    //to be implemented...
-                }
-            }
+            gameConsole.Draw("Tadzik CMD", 0);
+            std::vector <std::string> tmp = gameConsole.passToSceneManager();
+            if (tmp.size()>0)
+                if (!coreEval(tmp))
+                    gameConsole.AddLog("[error] Command not found\n");
+                else
+                    gameConsole.AddLog("Command executed succesfully\n");
         }
     }
     void toogleCMD(){
         cmdEnabled = !cmdEnabled;
     }
-    std::vector<std::string> eval(){
-        std::string cmd = std::string(cmdBuffer);
-        std::string tmp="";
-        std::vector<std::string> vParsed;
-        for(unsigned int i = 0; i < cmd.size(); i++){
-            if(std::isspace(static_cast<unsigned char>(cmd[i]))){
-                if(tmp != "" )
-                    vParsed.push_back(tmp);
-                tmp="";
-            }
-            else{
-                tmp += cmd[i];
-            }
-        }
-        if(tmp != "" )
-            vParsed.push_back(tmp);
-
-        return vParsed;
-    }
 
     bool coreEval(std::vector<std::string> v){
-        if(v.size()==0)
-            return false;
-        if(v.size()==2){
+        if(v.size()==1 && v[0]=="fps") {
+            showFps = !showFps;
+            return true;
+        }
+        else if(v.size()==2){
             if(v[0]=="loadLvl" || v[0]=="ll"){
                 setActiveScene(v[1]);
                 return true;
             }
         }
-        if(v.size()==1 && v[0]=="fps") {
-            showFps=!showFps;
-        }
         return false;
     }
 
     void getFPS(sf::Time delta) {
-        sf::Time second = sf::seconds(1);
         if (showFps) {
             float smoothing = 0.95;
             fps = (fps*smoothing)+(sf::seconds(1)/delta*(1.0-smoothing));
             if (fps>60)
-                fpsCounter.setColor(sf::Color::Green);
+                fpsCounter.setFillColor(sf::Color::Green);
             else if (fps>30)
-                fpsCounter.setColor(sf::Color::Yellow);
+                fpsCounter.setFillColor(sf::Color::Yellow);
             else
-                fpsCounter.setColor(sf::Color::Red);
+                fpsCounter.setFillColor(sf::Color::Red);
             fpsCounter.setString(Utils::stringify((int)fps));
             window->draw(fpsCounter);
         }
@@ -137,12 +115,13 @@ private:
     std::unordered_map<std::string, Scene*> scenes;
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
-    bool cmdEnabled=false;
-    char cmdBuffer[1024]={};
 
     sf::Text fpsCounter;
     bool showFps = true;
     float fps = 60;
+
+    bool cmdEnabled=false;
+    AppConsole gameConsole = AppConsole (&actScene);
 };
 
 #endif // SCENEMANAGER_HPP

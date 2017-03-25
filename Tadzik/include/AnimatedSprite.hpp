@@ -144,6 +144,7 @@ namespace ARO {
         int currentFrame = 0;
         void update (double delta) {
             runTime+=delta;
+//            move(velocity);
             if (runTime*playSpeed > animation->frameDurations[currentFrame].asMilliseconds()) {
                 runTime = 0;
                 currentFrame++;

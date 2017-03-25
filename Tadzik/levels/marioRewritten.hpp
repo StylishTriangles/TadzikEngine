@@ -434,7 +434,7 @@ public:
         }
     }
 
-    void draw(double deltaTime) {
+    void draw(sf::Time deltaTime) {
         ///OGARNIANIE VIEW
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
         int scrollAreaRight = windowSize.x*(4.0f/8.0f);
@@ -468,7 +468,7 @@ public:
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))) {
             TADZIK.jump();
         }
-        TADZIK.updatePlayer(sf::milliseconds(deltaTime));
+        TADZIK.updatePlayer(deltaTime);
 
         ///OGARNIANIE KLOCKUF
         for (auto a=vecTiles.begin(); a!=vecTiles.end(); a++) {
@@ -480,7 +480,7 @@ public:
 
         ///OGARNIANIE PRZECIWNIKOW
         for (auto a=vecEnemies.begin(); a!=vecEnemies.end(); a++) {
-            (*a)->updateEnemy(sf::milliseconds(deltaTime));
+            (*a)->updateEnemy(deltaTime);
         }
 
         ///GAME OVER
@@ -502,7 +502,7 @@ public:
         ///POWERUPY
         if (!vecPowerups.empty()) {
             for (int i=vecPowerups.size()-1; i>=0; --i) {
-                vecPowerups[i]->updatePowerup(sf::milliseconds(deltaTime));
+                vecPowerups[i]->updatePowerup(deltaTime);
                 if (Collision::BoundingBoxTest(TADZIK, *vecPowerups[i])) {
                     vecPowerups[i]->onPickup();
                     delete vecPowerups[i];
