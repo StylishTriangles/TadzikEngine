@@ -30,7 +30,7 @@ public:
 #include "levels/clicker.hpp"
 #include "levels/jumper.hpp"
 #include "levels/synth3d.hpp"
-#include "levels/mario.hpp"
+#include "levels/marioRewritten.hpp"
 #include "levels/levelselect.hpp"
 #include "levels/shooter2D.hpp"
 #include "levels/rpg.hpp"
@@ -43,10 +43,17 @@ int main(){
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
+    //sf::RenderWindow window(sf::VideoMode(1280, 960), "Tadzik", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1366, 768), "Tadzik", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1920, 1080), "Tadzik", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(640, 480), "Tadzik", sf::Style::Default, settings);
+    //window.setFramerateLimit(400);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
+    //window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
+
     //sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     //sceneManager.registerScene<JUMPER>("JUMPER", &window);
@@ -88,11 +95,13 @@ sceneManager.setActiveScene("RPG");
                 sceneManager.deliverEvent(event);
             }
         }
-        ImGui::SFML::Update(window, deltaClock.getElapsedTime());
-		sceneManager.runSceneFrame(deltaClock.getElapsedTime().asMilliseconds());
-        sceneManager.getFPS(deltaClock.getElapsedTime());
 
+        sf::Time dT = deltaClock.getElapsedTime();
         deltaClock.restart();
+        ImGui::SFML::Update(window, dT);
+		sceneManager.runSceneFrame(dT);
+        sceneManager.getFPS(dT);
+
         window.resetGLStates();
         ImGui::Render();
         window.display();

@@ -53,6 +53,12 @@ std::string stringify(int x){
     return o.str();
 }
 
+std::string stringifyf(float x){
+    std::ostringstream o;
+    o << x;
+    return o.str();
+}
+
 float det3f(sf::Vector3f top, sf::Vector3f mid, sf::Vector3f bot)
 {
     // top.x mid.x bot.x
@@ -108,6 +114,40 @@ sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
 void normalize(sf::Vector2f &v) {
     float length = sqrt(v.x*v.x+v.y*v.y);
     v = sf::Vector2f(v.x/length, v.y/length);
+}
+
+sf::Vector2f getViewOffset(sf::RenderTarget* rt) {
+    return rt->mapPixelToCoords(sf::Vector2i(0,0));
+}
+
+float dotProduct(sf::Vector3f a, sf::Vector3f b)
+{
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
+
+sf::Vector3f crossProduct(sf::Vector3f a, sf::Vector3f b)
+{
+    return {a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x};
+}
+
+void normalize3f(sf::Vector3f& vec)
+{
+    vec /= sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
+
+void vecSetLength(sf::Vector3f& vec, float length)
+{
+    vec *= (length / sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z));
+}
+
+float vecSquaredLength(sf::Vector3f vec)
+{
+    return vec.x*vec.x + vec.y*vec.y + vec.z*vec.z;
+}
+
+float vecLength(sf::Vector3f vec)
+{
+    return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
 }

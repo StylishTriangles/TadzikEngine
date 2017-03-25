@@ -103,8 +103,8 @@ public:
             incomePerSecond.setString("0 Wieners");
             perSecond.setString("per second");
         }
-        double getIncome(double deltaTime) {
-            return amount*income*deltaTime;
+        double getIncome(sf::Time deltaTime) {
+            return amount*income*deltaTime.asMilliseconds();
         }
         void setPosition(int x, int y) {
             background.setPosition(x, y);
@@ -230,31 +230,31 @@ public:
         }
         if (event.type == sf::Event::MouseButtonReleased) {
             for(unsigned int i=0; i<vec.size(); i++) {
-                wienerPerSecond += vec[i].getIncome(1);
-                vec[i].incomePerSecond.setString(Utils::stringify(vec[i].getIncome(1))+" Wieners");
+                wienerPerSecond += vec[i].getIncome(sf::seconds(1));
+                vec[i].incomePerSecond.setString(Utils::stringify(vec[i].getIncome(sf::seconds(1)))+" Wieners");
             }
             isReleased = true;
             if (Utils::isMouseOnSprite(wiener, window)) {
                 wienerAmount+=wienerPerClick;
                 temp.setString("+"+Utils::stringify(wienerPerClick));
-                temp.setColor(sf::Color(255, 255, 255, 255));
+                temp.setFillColor(sf::Color(255, 255, 255, 255));
                 temp.setPosition((sf::Vector2f)sf::Mouse::getPosition(*window));
                 clickAnimation.push_back(temp);
             }
         }
     }
 
-    void updateWieners(double deltaTime) {
+    void updateWieners(sf::Time deltaTime) {
         for (auto a:vec) {
             wienerAmount += a.getIncome(deltaTime);
         }
     }
 
-    virtual void draw(double deltaTime) {
+    virtual void draw(sf::Time deltaTime) {
         for (unsigned int i=0; i<clickAnimation.size(); i++) {
             clickAnimation[i].move(0, -1);
-            clickAnimation[i].setColor(sf::Color( 255, 255, 255, clickAnimation[i].getColor().a-5));
-            if(clickAnimation[i].getColor().a==0) clickAnimation.erase(clickAnimation.begin()+i);
+            clickAnimation[i].setFillColor(sf::Color( 255, 255, 255, clickAnimation[i].getFillColor().a-5));
+            if(clickAnimation[i].getFillColor().a==0) clickAnimation.erase(clickAnimation.begin()+i);
         }
 
         if (isPressed) {
@@ -306,7 +306,7 @@ public:
         if (playTime.getElapsedTime().asSeconds()>1) {
             //std::cout << vec[0].costShown << std::endl;
         }
-        updateWieners((double)clock.getElapsedTime().asSeconds());
+        updateWieners(clock.getElapsedTime());
         clock.restart();
     }
 

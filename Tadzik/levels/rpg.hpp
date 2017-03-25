@@ -217,8 +217,11 @@ public:
 
     void deliverEvent(sf::Event& event) {}
 
-    virtual void draw(double deltaTime)
+    virtual void draw(sf::Time deltaTime)
     {
+
+        float dT = deltaTime.asMilliseconds();
+
         // Player.speedX=0, Player.speedY=0;
         /// Movement
         Player.speedX = Player.speedX * 0.5;
@@ -301,11 +304,11 @@ public:
 
             staticCollision(Player);
             if (Player.aSprite.getAnim() == &Idle)
-                Player.aSprite.update(deltaTime), std::cout << "arek;";
+                Player.aSprite.update(dT), std::cout << "arek;";
             else if (((std::abs(Player.speedX) + std::abs(Player.speedY)) / Player.basespeed) > 1)
-                Player.aSprite.update(deltaTime);
+                Player.aSprite.update(dT);
             else
-                Player.aSprite.update(deltaTime * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
+                Player.aSprite.update(dT * (std::abs(Player.speedX) + std::abs(Player.speedY)) / (2 * Player.basespeed));
             Player.move(Player.speedX, Player.speedY);
             view.setCenter(Player.aSprite.getPosition());
             window->setView(view);
@@ -314,7 +317,7 @@ public:
         {
             staticCollision(Player);
             if(Player.aSprite.shouldDestroy()==0)
-                Player.aSprite.update(deltaTime);
+                Player.aSprite.update(dT);
             if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
                 Player.dir = 'R';
             else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
@@ -325,6 +328,19 @@ public:
                 Player.dir = 'U';
         }
         /// Kolizja gdzies tu
+
+        if (Player.speedX < -Player.basespeed)
+            Player.speedX = -Player.basespeed;
+        if (Player.speedY < -Player.basespeed)
+            Player.speedY = -Player.basespeed;
+        if (Player.speedX > Player.basespeed)
+            Player.speedX = Player.basespeed;
+        if (Player.speedY > Player.basespeed)
+            Player.speedY = Player.basespeed;
+
+
+
+
 
         spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
 
@@ -359,7 +375,7 @@ public:
 
         for(int i=0; i<sliceVec.size(); i++)
         {
-            sliceVec[i].update(deltaTime);
+            sliceVec[i].update(dT);
             window->draw(sliceVec[i]);
             sliceVec[i].collide(spEnemy);
 

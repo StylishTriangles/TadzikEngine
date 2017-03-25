@@ -219,12 +219,13 @@ public:
         }
     }
 
-    virtual void draw(double deltaTime){
-        tmpTime += deltaTime;
+    virtual void draw(sf::Time deltaTime){
+        double dT = deltaTime.asMilliseconds();
+        tmpTime += dT;
         for(KeyText& kt: vecKeyTexts){
-            kt.update(deltaTime);
+            kt.update(dT);
         }
-        actSprite.update(deltaTime);
+        actSprite.update(dT);
         if(actSprite.getReplays() != 0){
             setDanceStep(&vecSteps[rand()%vecSteps.size()]);
         }
@@ -236,7 +237,7 @@ public:
         }
 
         for(int i = vecText.size()-1; i>=0; i--){
-            vecText[i].time -= deltaTime;
+            vecText[i].time -= dT;
             if(vecText[i].time < 0.0){
                 vecText.erase(vecText.begin()+i);
             }

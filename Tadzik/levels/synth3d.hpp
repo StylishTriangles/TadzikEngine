@@ -1,4 +1,3 @@
-///Synth3d ver. 2.0 alpha
 #ifndef SYNTH3D_HPP
 #define SYNTH3D_HPP
 
@@ -8,6 +7,10 @@
 #include "../include/Utils.hpp"
 #include <vector>
 #include <cmath>
+#include <fstream>
+#include <queue>
+#include <stack>
+#include <stdlib.h>
 using namespace Utils;
 
 template<typename realType>
@@ -16,43 +19,166 @@ inline realType toRad(realType angle)
     return angle * (realType)0.017453292519943295769;
 }
 
-struct wall
+sf::Vector3f operator/(sf::Vector3f lhs, const sf::Vector3f& rhs)
 {
+    return {lhs.x/rhs.x, lhs.y/rhs.y, lhs.z/rhs.z};
+}
+
+sf::Vector3f operator*(sf::Vector3f lhs, const sf::Vector3f& rhs)
+{
+    return {lhs.x*rhs.x, lhs.y*rhs.y, lhs.z*rhs.z};
+}
+
+class collisionPacket
+{
+public:
+    sf::Vector3f eRadius;
+    sf::Vector3f R3Velocity;
+    sf::Vector3f R3Position;
+    sf::Vector3f velocity;
+    sf::Vector3f normalizedVelocity;
+    sf::Vector3f basePoint;
+    bool foundCollision;
+    double nearestDistance;
+    sf::Vector3f intersectionPoint;
+};
+
+class Wall
+{
+public:
+    Wall();
     std::vector <int> coord;
     std::vector <bool> drawable;
     std::vector <bool> dotDraw;
+    std::vector <std::vector <int> > lineStrip;
     sf::Color color=sf::Color::Green;
     sf::Color trans=sf::Color::Transparent;
     float pSize = 100;
     int grid = 0;
     bool OptAllowed = true;
-    void push_back(int c, bool draw = true, bool dot = true)
-    {
-        coord.push_back(c);
-        drawable.push_back(draw);
-        dotDraw.push_back(dot);
-    }
-    unsigned int size() const
-    {
-        return coord.size();
-    }
+    void push_back(int c, bool draw, bool dot);
+    unsigned int size() const;
+    void clear();
 };
 
-struct object
+Wall::Wall():
+    pSize(100),
+    grid(0),
+    OptAllowed(true)
 {
-    std::vector <wall> wallie;
-    void push_back(wall w)
-    {
-        wallie.push_back(w);
-    }
-    unsigned int size()
-    {
-        return wallie.size();
-    }
-    bool OptAllowed = true;
+}
+
+void Wall::clear()
+{
+    coord.clear();
+    drawable.clear();
+    dotDraw.clear();
+    lineStrip.clear();
+    color=sf::Color::Green;
+    trans=sf::Color::Transparent;
+    pSize = 100;
+    grid = 0;
+    OptAllowed = true;
+}
+
+void Wall::push_back(int c, bool draw = true, bool dot = true)
+{
+    coord.push_back(c);
+    drawable.push_back(draw);
+    dotDraw.push_back(dot);
+}
+
+unsigned int Wall::size() const
+{
+    return coord.size();
+}
+
+class Object
+{
+public:
+    Object();
+    std::string name;
+    std::vector <Wall> wallie;
+    unsigned int size();
+    void push_back(Wall w);
+    void clear();
+    bool OptAllowed;
+    sf::Vector3f velocity;
+    sf::Vector3f position;
 };
+
+Object::Object():
+    OptAllowed(true),
+    velocity({0, 0, 0})
+{
+}
+
+void Object::clear()
+{
+    wallie.clear();
+    OptAllowed = true;
+    name.clear();
+    velocity = {0, 0, 0};
+    position = {0, 0, 0};
+}
+
+void Object::push_back(Wall w)
+{
+    wallie.push_back(w);
+}
+
+unsigned int Object::size()
+{
+    return wallie.size();
+}
+
+class Plane
+{
+public:
+    Plane(const sf::Vector3f& originGiven, const sf::Vector3f& normalGiven);
+    Plane(const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3);
+    float equation[4];
+    sf::Vector3f origin;
+    sf::Vector3f normal;
+    bool isFrontFacingTo(const sf::Vector3f& direction) const;
+    double signedDistanceTo(const sf::Vector3f& point) const;
+};
+
+Plane::Plane(const sf::Vector3f& originGiven, const sf::Vector3f& normalGiven)
+{
+    normal = normalGiven;
+    origin = originGiven;
+    equation[0] = normal.x;
+    equation[1] = normal.y;
+    equation[2] = normal.z;
+    equation[3] = -(normal.x*origin.x+normal.y*origin.y+normal.z*origin.z);
+}
+/// Construct from triangle:
+Plane::Plane(const sf::Vector3f& p1,const sf::Vector3f& p2, const sf::Vector3f& p3)
+{
+    normal = crossProduct((p2-p1), (p3-p1));
+    normalize3f(normal);
+    origin = p1;
+    equation[0] = normal.x;
+    equation[1] = normal.y;
+    equation[2] = normal.z;
+    equation[3] = -(normal.x*origin.x+normal.y*origin.y+normal.z*origin.z);
+}
+bool Plane::isFrontFacingTo(const sf::Vector3f& direction) const
+{
+    double dot = dotProduct(normal, direction);
+    return (dot <= 0);
+}
+double Plane::signedDistanceTo(const sf::Vector3f& point) const
+{
+    return dotProduct(point, normal) + equation[3];
+}
+
+
 
 class SYNTH3D;
+
+class Entity;
 
 class Camera
 {
@@ -62,24 +188,35 @@ public:
     void setPos(sf::Vector3f posGiven); //Ustaw pozycje kamery
     void setAngle(sf::Vector3f aGiven); //Ustaw kat skierowania kamery
     void setEyeDistance(float distance);//Ustaw odleglosc oka od plaszczyzny
+    void setDirection(sf::Vector3f direction, sf::Vector3f origin);
     void update();
+    void printGraph();
+    void printCycle();
+    void enableCycleReduction(bool value);
+    void enableWallIntersect(bool value);
+    void enableRandomSort(bool value);
+    void enableIdentifyWalls(bool value);
+    void enableDistanceCheck(bool value);
+    void compare(int left, int right);
 protected:
     std::vector <sf::Vector2f> halfDotBegin;
     std::vector <sf::Vector2f> circleDefExample;
-    std::vector <sf::Vertex> lineArray;
-    std::vector <sf::Vertex> triangleArray;
+    std::vector <Wall*> wallOrder;
     std::vector <sf::Vertex> quadArray;
-    std::vector <sf::Vertex> stripArray;
+    std::vector <sf::Vertex> debugArray;
+    std::vector <sf::Text> textArray;
     std::vector <sf::Vector3f> spot3d;
-    std::vector <sf::Vector3f> spot2d;
-    std::vector <float> spot3dSquareDist;
+    std::vector <sf::Vector2f> spot2d;
+    std::vector <float> dot;
+    std::vector <sf::Vector2f> wallToPoly(Wall* wallie);
     void initCircleDef(int n);
     void calcTerrain();
     void updateTerrain();
     SYNTH3D* p;
-    float screenSize, viewAngle, eye, scale, minDotSize;
+    float screenSize, viewAngle, scale, minDotSize;
     float sinx, siny, sinz, cosx, cosy, cosz, sinCircle, cosCircle, circleDef;
-    sf::Vector3f position, angle;
+    sf::Vector3f position, angle, vEye;
+    float &eye = vEye.z;
     sf::Vector2f whatever;
     sf::Vector3f planeCross(sf::Vector3f vec1, sf::Vector3f vec2);
     sf::Vector2f flatView(sf::Vector3f vec);
@@ -88,141 +225,700 @@ protected:
     sf::Vector3f vecTransformSin(sf::Vector3f vec, float& sinX, float& sinY, float& sinZ, float& cosX, float& cosY, float& cosZ);
     void calcAngle();
     void drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color, sf::Vector2f& beginning);
+    void debugDrawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color, sf::Vector2f& beginning);
     void drawDot(sf::Vector2f spot, float size, sf::Color color);
     void drawHalfDot(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color);
     void drawDotwBegin(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color);
     void drawSphere(sf::Vector3f spot, float radius, sf::Color color, float outlineThickness, sf::Color outlineColor);
-    void drawWall(wall const& wallie);
+    void drawWall(Wall const& wallie);
     void drawPlane(std::vector <sf::Vector2f>& spot, sf::Color color);
-    void drawGridWall(wall const& wallie, int n);
-    float dotSize(float dot, sf::Vector3f vec);
-    float squareWallDist(wall& wallie);
+    void debugDrawPlane(std::vector <sf::Vector2f>& spot, sf::Color color);
+    void drawGridWall(Wall const& wallie, int n);
+    void wallSort();
+    void cycleReduction(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
+    void createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder);
+    void topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder);
+    void randSort(std::vector <Wall*> tempOrder);
+    void displayGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
+    std::pair<bool, bool> wallSortingAlgorythm(Wall* lhs, Wall* rhs);
+    std::pair<bool, bool> wallSortingAlgorythmDebug(Wall* lhs, Wall* rhs);
+    bool lineIntersect(sf::Vector2f u0, sf::Vector2f v0, sf::Vector2f u1, sf::Vector2f v1);
+    bool polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
+    bool polygonIntersectOld(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
+    bool polygonIntersectOlder(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2);
+    bool wallIntersect(Wall* wallie1, Wall* wallie2);
+    bool wallIntersectOS(Wall* left, Wall* right);
+    bool rightSide(sf::Vector2f line1, sf::Vector2f line2, sf::Vector2f point);
+    int planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
+    bool onPlane(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point);
+    bool activeWall(Wall* wallie);
+    float dotSize(sf::Vector3f vec);
+    void identifyWalls(std::vector <Wall*> wallie);
+    std::string cmdOutput;
+    bool cycleReductionEnabled;
+    bool wallIntersectEnabled;
+    bool randomSortEnabled;
+    bool identifyWallsEnabled;
+    bool topologicalError;
+    bool distanceCheckEnabled;
+    double sinceLastTopologicalError;
+    void findCycle(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
+    std::vector <std::vector <int> > wallSortGraph;
+    std::vector <int> wallSortGraphLevel;
 };
 
 class SYNTH3D: public Scene
 {
 public:
+    virtual bool onConsoleUpdate(std::vector<std::string> args);
     friend class Camera;
-    SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w)
-        :Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-        eyeDistance(-10), terrainSize(150)
-    {}
-
-    virtual void onSceneLoadToMemory()
-    {
-        object cube;
-        std::vector <wall> wallie;
-
-        int scale = 100;
-        /*
-        for(int i=0; i<terrainSize; i++)
-            for(int j=0; j<terrainSize; j++)
-                terrain.push_back({i*scale, 0, j*scale});
-        for(int i=0; i<(terrainSize-1)*(terrainSize-1); i++)
-        {
-            if(i%terrainSize != terrainSize-1)
-            {
-            wall walion;
-            walion.push_back(i);
-            walion.push_back(i+1);
-            walion.push_back(i+terrainSize+1);
-            walion.push_back(i+terrainSize);
-            wallie.push_back(walion);
-            }
-        }
-        */
-        terrain.push_back({0,0,0});
-        terrain.push_back({terrainSize*scale,0,0});
-        terrain.push_back({terrainSize*scale,0,terrainSize*scale});
-        terrain.push_back({0,0,terrainSize*scale});
-
-        wall walion;
-        walion.push_back(0);
-        walion.push_back(1);
-        walion.push_back(2);
-        walion.push_back(3);
-        walion.grid = terrainSize;
-        wallie.push_back(walion);
-
-        for(int i=0; i<wallie.size(); i++)
-            cube.push_back(wallie[i]);
-        world.push_back(cube);
-        OptLines();
-        OptDots();
-        c.update();
-    }
-    virtual void onSceneActivate() {}
-    virtual void draw(double dt)
-    {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-            cameraPos.x-=1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            cameraPos.x+=1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            cameraPos.z+=1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-            cameraPos.z-=1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-            cameraPos.y+=1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-            cameraPos.y-=1;
-
-        // EXPERIMENTAL
-        /*   if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-           {
-               cameraPos.z+= cos(toRad(cameraAngle.y));
-               cameraPos.y+= sin(toRad(cameraAngle.x));
-               cameraPos.x-= sin(toRad(cameraAngle.y));
-           }
-           if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-           {
-               cameraPos.z-= cos(toRad(cameraAngle.y));
-               cameraPos.y-= sin(toRad(cameraAngle.x));
-               cameraPos.x+= sin(toRad(cameraAngle.y));
-           }
-           if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-           {
-               cameraPos.x += cos(toRad(cameraAngle.z));
-               cameraPos.y -= sin(toRad(cameraAngle.z));
-               cameraPos.z += sin(toRad(cameraAngle.y));
-           }
-
-        */
-        // END EXPERIMENTAL
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-            cameraAngle.y+=0.5;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-            cameraAngle.y-=0.5;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            cameraAngle.x-=0.5;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            cameraAngle.x+=0.5;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
-            cameraAngle.z-=0.5;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
-            cameraAngle.z+=0.5;
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
-            eyeDistance+=0.1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
-            eyeDistance-=0.1;
-
-        c.setPos(cameraPos);
-        c.setAngle(cameraAngle);
-        c.setEyeDistance(eyeDistance);
-        c.display();
-    }
-protected:
+    SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w);
+    virtual void onSceneLoadToMemory();
+    void onSceneActivate() {}
+    void draw(sf::Time deltaTime);
+    void checkCollision(collisionPacket* colPackage, int beginning, int ending);
     std::vector <sf::Vector3f> terrain;
-    std::vector <object> world;
+    std::vector <sf::Vector3f> defTerrain;
+    std::vector <Object> world;
+    std::vector <Entity> character;
+protected:
+    sf::Font font;
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
     float eyeDistance;
-    int terrainSize;
+    void loadMap(std::string path);
     void OptLines();
     void OptDots();
+    void showInfo();
+    bool debug;
+    float offsetx, offsety;
+    int tick;
+    double dt;
+    sf::Vector3f catVelocity;
+    sf::Vector3f catAngle;
+    sf::Vector3f characterAcceleration;
+    sf::Vector3f gravity;
+
+    void checkTriangle(collisionPacket* colPackage,
+        const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3);
+    bool checkPointInTriangle(const sf::Vector3f& point,
+        const sf::Vector3f& pa, const sf::Vector3f& pb, const sf::Vector3f& pc);
+    bool getLowestRoot(float a, float b, float c, float maxR, float* root);
 };
+
+class Entity
+{
+public:
+    Entity(SYNTH3D* gameBase);
+    void update(double deltaTime);
+    void importObject(int newElement);
+    void setDirection(sf::Vector3f vec, sf::Vector3f beginning);
+    void setPos(sf::Vector3f vec);
+    void setRotationCenter(sf::Vector3f);
+    void setEllipsoidRadius(sf::Vector3f);
+    void calcRotationCenter();
+    std::vector <std::pair <int, sf::Vector3f> > leftLeg;
+    std::vector <std::pair <int, sf::Vector3f> > rightLeg;
+    void setAcceleration(sf::Vector3f acceleration);
+    void setGravity(sf::Vector3f acceleration);
+    void setSpeed(sf::Vector3f vec);
+    sf::Vector3f ellipsoidCenter;                             ///TUTAJ ZMIANA
+    collisionPacket collisionPackage;
+    sf::Vector3f position;
+protected:
+    SYNTH3D* synth;
+    sf::Vector3f positionBuffor;
+    void movement();
+    void calcAngle();
+    sf::Vector3f vecTransform(sf::Vector3f vec);
+    std::vector <int> element;
+    float sinx, siny, sinz, cosx, cosy, cosz;
+    sf::Vector3f origin, direction;
+    sf::Vector3f dirVec;
+    sf::Vector3f rotationCenter;
+    double dt;
+    float offset, offsetLimit;
+    bool directionSet;
+    int tick;
+    sf::Vector3f velocityVector;
+    sf::Vector3f gravityVector;
+    sf::Vector3f speedVector;
+    sf::Vector3f gravitySpeedVector;
+    float veryCloseDistance;
+    int collisionRecursionDepth;
+    void collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravity);
+    sf::Vector3f collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel);
+};
+
+SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
+    Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
+    eyeDistance(-10), debug(0), offsetx(0), offsety(0), tick(1),
+    gravity({0, -0.1f, 0}), catVelocity({0.0f, 0.0f, 0.2f})
+{
+}
+
+void SYNTH3D::onSceneLoadToMemory()
+{
+    if (!font.loadFromFile("files/fonts/Carnevalee_Freakshow.ttf"))
+    {
+        std::cout << "cannot load font\n";
+    }
+    consoleCommands.push_back("print_graph");
+    consoleCommands.push_back("print_cycle");
+    consoleCommands.push_back("print_info");
+    consoleCommands.push_back("enable_cycleReduction");
+    consoleCommands.push_back("enable_wallIntersect");
+    consoleCommands.push_back("enable_randomSort");
+    consoleCommands.push_back("enable_identifyWalls");
+    consoleCommands.push_back("enable_distanceCheck");
+    consoleCommands.push_back("compare");
+
+    Entity cat(this);
+    character.push_back(cat);
+
+
+    //loadMap("cubeOnSurface");
+    //cameraPos = {369.356f, 418.194f, 125.801f};
+    //cameraAngle = {-21.0601f, -32.5202f, 0};
+
+
+    //loadMap("oblivion_old");
+    //cameraPos = {210, 144, 1092};
+    //cameraAngle = {-6, -137, 0};
+
+    loadMap("catOnSurface_single_wall");
+    //cameraPos = {-40.7f, 69.3f, 169.3f};
+    //cameraAngle = {-5.6f, -122.5f, 0};
+
+    //cameraPos = {26, 34, 32};
+
+    //cameraPos = {26, 116, 30};
+    //cameraAngle = {-34, 8, 0};
+    for(int i=4; i<93; i++)
+        terrain[i].y -= 15;
+    defTerrain = terrain;
+
+    for(int i=1; i<8; i++)
+        character[0].importObject(i);
+    character[0].calcRotationCenter();
+    character[0].setPos({400, 70, 300});
+    character[0].setEllipsoidRadius(sf::Vector3f(80.0f, 80.0f, 80.0f));
+
+    for(int i=3; i<7; i++)
+    {
+        if(i == 5 or i == 4)
+        {
+            for(int j=0; j<4; j++)
+                character[0].leftLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
+        }
+        else
+        {
+            for(int j=0; j<4; j++)
+                character[0].rightLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
+        }
+    }
+
+
+    OptLines();
+    OptDots();
+    c.update();
+}
+
+void SYNTH3D::draw(sf::Time deltaTime)
+{
+    dt = deltaTime.asMilliseconds() / 16.6666f;
+    if(dt == 0.0d)
+        dt = 1.0d;
+    float movementSpeed = 2.0f * dt;
+    float cameraRotationSpeed = 1.0f * dt;
+    float catMovingSpeed = 2.0f * dt;
+    float catRotationSpeed = 1.0f * dt;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+    {
+        movementSpeed = 7.0f * dt;
+        cameraRotationSpeed = 2.0f * dt;
+        catMovingSpeed = 7.0f * dt;
+        catRotationSpeed = 2.0f * dt;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        cameraPos.x-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        cameraPos.x+= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+        cameraPos.z+= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        cameraPos.z-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+        cameraPos.y-= movementSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+        cameraPos.y+= movementSpeed;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        cameraAngle.y+= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        cameraAngle.y-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        cameraAngle.x+= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        cameraAngle.x-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
+        cameraAngle.z-= cameraRotationSpeed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
+        cameraAngle.z+= cameraRotationSpeed;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
+    {
+        sf::Vector3f buffor = catVelocity;
+        float angle = -0.0174524f * catRotationSpeed;
+        catAngle.y -= angle;
+        catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
+        catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+    {
+        sf::Vector3f buffor = catVelocity;
+        float angle = 0.0174524f * catRotationSpeed;
+        catAngle.y -= angle;
+        catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
+        catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+        //character[0].setVelocity(catDirection * catMovingSpeed);
+        character[0].setAcceleration(catVelocity);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+        character[0].setAcceleration(-catVelocity);
+
+    if(character[0].position.y < -1000)
+    {
+        character[0].setPos({400, 70, 300});
+        character[0].setSpeed({0,0,0});
+    }
+    character[0].setGravity(gravity);
+    character[0].setDirection(catVelocity, {0,0,0});
+    character[0].update(dt);
+    //cameraPos = terrain[34];
+
+    c.setPos(cameraPos);
+    //c.setAngle(catAngle * float(180.0f/M_PI));
+    c.setAngle(cameraAngle);
+    c.setEyeDistance(eyeDistance);
+    c.display();
+}
+
+void SYNTH3D::checkCollision(collisionPacket* colPackage, int beginning, int ending)
+{
+    for(int i=0; i<beginning; i++)
+    {
+        for(int j=0; j<world[i].size(); j++)
+        {
+            for(int k=0; k<world[i].wallie[j].size()-2; k++)
+            {
+                sf::Vector3f p1 = terrain[world[i].wallie[j].coord[0]] / colPackage->eRadius;
+                sf::Vector3f p2 = terrain[world[i].wallie[j].coord[k+1]] / colPackage->eRadius;
+                sf::Vector3f p3 = terrain[world[i].wallie[j].coord[k+2]] / colPackage->eRadius;
+                ///ASSUMES: Triangles are in ellipsoid space:
+                checkTriangle(colPackage, p1, p2, p3);
+            }
+        }
+    }
+    for(int i=ending+1; i<world.size(); i++)
+    {
+        for(int j=0; j<world[i].size(); j++)
+        {
+            for(int k=0; k<world[i].wallie[j].size()-2; k++)
+            {
+                sf::Vector3f p1 = terrain[world[i].wallie[j].coord[0]] / colPackage->eRadius;
+                sf::Vector3f p2 = terrain[world[i].wallie[j].coord[k+1]] / colPackage->eRadius;
+                sf::Vector3f p3 = terrain[world[i].wallie[j].coord[k+2]] / colPackage->eRadius;
+                ///ASSUMES: Triangles are in ellipsoid space:
+                checkTriangle(colPackage, p1, p2, p3);
+            }
+        }
+    }
+}
+
+void SYNTH3D::checkTriangle(collisionPacket* colPackage, const sf::Vector3f& p1, const sf::Vector3f& p2, const sf::Vector3f& p3)
+{
+    Plane trianglePlane(p1,p2,p3);
+    if (trianglePlane.isFrontFacingTo( colPackage->normalizedVelocity ))
+    {
+        double t0, t1;
+        bool embeddedInPlane = false;
+        double signedDistToTrianglePlane = trianglePlane.signedDistanceTo(colPackage->basePoint);
+        float normalDotVelocity = dotProduct(trianglePlane.normal, colPackage->velocity);
+        if (normalDotVelocity == 0.0f)
+        {
+            if (fabs(signedDistToTrianglePlane) >= 1.0f)
+            {
+                return;
+            }
+            else
+            {
+                embeddedInPlane = true;
+                t0 = 0.0;
+                t1 = 1.0;
+            }
+        }
+        else
+        {
+            t0=(-1.0-signedDistToTrianglePlane) / normalDotVelocity;
+            t1=( 1.0-signedDistToTrianglePlane) / normalDotVelocity;
+            if (t0 > t1)
+            {
+                double temp = t1;
+                t1 = t0;
+                t0 = temp;
+            }
+            if (t0 > 1.0f || t1 < 0.0f)
+            {
+                return;
+            }
+            if (t0 < 0.0) t0 = 0.0;
+            if (t1 < 0.0) t1 = 0.0;
+            if (t0 > 1.0) t0 = 1.0;
+            if (t1 > 1.0) t1 = 1.0;
+        }
+        sf::Vector3f collisionPoint;
+        bool foundCollison = false;
+        float t = 1.0;
+        if (!embeddedInPlane)
+        {
+            sf::Vector3f planeIntersectionPoint = (colPackage->basePoint-trianglePlane.normal)
+                + float(t0) * colPackage->velocity;
+            if (checkPointInTriangle(planeIntersectionPoint, p1,p2,p3))
+            {
+                foundCollison = true;
+                t = t0;
+                collisionPoint = planeIntersectionPoint;
+            }
+        }
+        if (foundCollison == false)
+        {
+            sf::Vector3f velocity = colPackage->velocity;
+            sf::Vector3f base = colPackage->basePoint;
+            float velocitySquaredLength = vecSquaredLength(velocity);
+            float a,b,c;
+            float newT;
+            a = velocitySquaredLength;
+            b = 2.0*dotProduct(velocity, base-p1);
+            c = vecSquaredLength(p1-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p1;
+            }
+            b = 2.0*dotProduct(velocity, base-p2);
+            c = vecSquaredLength(p2-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p2;
+            }
+            b = 2.0*dotProduct(velocity, base-p3);
+            c = vecSquaredLength(p3-base) - 1.0;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                t = newT;
+                foundCollison = true;
+                collisionPoint = p3;
+            }
+            sf::Vector3f edge = p2-p1;
+            sf::Vector3f baseToVertex = p1 - base;
+            float edgeSquaredLength = vecSquaredLength(edge);
+            float edgeDotVelocity = dotProduct(edge, velocity);
+            float edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p1 + f*edge;
+                }
+            }
+            edge = p3-p2;
+            baseToVertex = p2 - base;
+            edgeSquaredLength = vecSquaredLength(edge);
+            edgeDotVelocity = dotProduct(edge, velocity);
+            edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p2 + f*edge;
+                }
+            }
+            edge = p1-p3;
+            baseToVertex = p3 - base;
+            edgeSquaredLength = vecSquaredLength(edge);
+            edgeDotVelocity = dotProduct(edge, velocity);
+            edgeDotBaseToVertex = dotProduct(edge, baseToVertex);
+            a = edgeSquaredLength*-velocitySquaredLength +
+                edgeDotVelocity*edgeDotVelocity;
+            b = edgeSquaredLength*(2*dotProduct(velocity, baseToVertex))-
+                2.0*edgeDotVelocity*edgeDotBaseToVertex;
+            c = edgeSquaredLength*(1-vecSquaredLength(baseToVertex))+
+                edgeDotBaseToVertex*edgeDotBaseToVertex;
+            if (getLowestRoot(a,b,c, t, &newT))
+            {
+                float f=(edgeDotVelocity*newT-edgeDotBaseToVertex)/
+                        edgeSquaredLength;
+                if (f >= 0.0 && f <= 1.0)
+                {
+                    t = newT;
+                    foundCollison = true;
+                    collisionPoint = p3 + f*edge;
+                }
+            }
+        }
+        if (foundCollison == true)
+        {
+            float distToCollision = t*vecLength(colPackage->velocity);
+            if (colPackage->foundCollision == false ||
+                    distToCollision < colPackage->nearestDistance)
+            {
+                colPackage->nearestDistance = distToCollision;
+                colPackage->intersectionPoint=collisionPoint;
+                colPackage->foundCollision = true;
+            }
+        }
+    }
+}
+
+bool SYNTH3D::checkPointInTriangle(const sf::Vector3f& point, const sf::Vector3f& pa,const sf::Vector3f& pb, const sf::Vector3f& pc)
+{
+    sf::Vector3f e10=pb-pa;
+    sf::Vector3f e20=pc-pa;
+    float a = dotProduct(e10,e10);
+    float b = dotProduct(e10,e20);
+    float c = dotProduct(e20,e20);
+    float ac_bb=(a*c)-(b*b);
+    sf::Vector3f vp(point.x-pa.x, point.y-pa.y, point.z-pa.z);
+    float d = dotProduct(vp,e10);
+    float e = dotProduct(vp,e20);
+    float x = (d*c)-(e*b);
+    float y = (e*a)-(d*b);
+    float z = x+y-ac_bb;
+    return (( ((unsigned int&)z)& ~(((unsigned int&)x)|((unsigned int&)y)) ) & 0x80000000);
+}
+
+bool SYNTH3D::getLowestRoot(float a, float b, float c, float maxR, float* root)
+{
+    float determinant = b*b - 4.0f*a*c;
+    if (determinant < 0.0f) return false;
+    float sqrtD = sqrtf(determinant);
+    float r1 = (-b - sqrtD) / (2*a);
+    float r2 = (-b + sqrtD) / (2*a);
+    if (r1 > r2)
+    {
+        float temp = r2;
+        r2 = r1;
+        r1 = temp;
+    }
+    if (r1 > 0 && r1 < maxR)
+    {
+        *root = r1;
+        return true;
+    }
+    if (r2 > 0 && r2 < maxR)
+    {
+        *root = r2;
+        return true;
+    }
+    return false;
+}
+
+void SYNTH3D::showInfo()
+{
+    printToConsole("Position: " + stringifyf(cameraPos.x) + "   " + stringifyf(cameraPos.y) + "   " + stringifyf(cameraPos.z));
+    printToConsole("Angle: " + stringifyf(cameraAngle.x) + "   " + stringifyf(cameraAngle.y) + "   " + stringifyf(cameraAngle.z));
+    printToConsole("Eye Distance: " + stringifyf(eyeDistance));
+}
+
+void SYNTH3D::loadMap(std::string path)
+{
+    auto first = [](std::string file, std::string word) -> bool
+    {
+        for(int i=0; i<word.size(); i++)
+            if(file[i] != word[i])
+                return false;
+        return true;
+    };
+    auto value = [](std::string file, int a) -> std::pair <float, bool>
+    {
+        a++;
+        float result = 0;
+        int index = 0;
+        int adress = 0;
+        bool endOfFile = false;
+        if(file[0] >= '0' and file[0] <= '9')
+            index = 1;
+        if(index < a)
+            for(int i=0; i<file.size() - 1; i++)
+            {
+                if(file[i] == '\t' and file[i+1] >= '0' and file[i+1] <= '9')
+                    index++;
+                if(index == a)
+                    {
+                        adress = i+1;
+                        break;
+                    }
+            }
+        bool dotIndicator = false;
+        float decimalCounter = 10;
+        while(adress < file.size() and file[adress] != '\t')
+        {
+            if(!dotIndicator and file[adress] != '.')
+            {
+                result *= 10;
+                result += file[adress] - '0';
+            }
+            else if(dotIndicator)
+            {
+                result += (file[adress] - '0') / decimalCounter;
+                decimalCounter *= 10;
+            }
+            if(file[adress] == '.')
+                dotIndicator = true;
+            adress++;
+        }
+        if(adress == file.size())
+            endOfFile = true;
+        return {result, endOfFile};
+    };
+    std::ifstream level;
+    level.open("files/maps/synth3d/"+path+".dat");
+    std::string line;
+    Object tmpObject;
+    ///wall tmpWall; ///Uwaga zeby przy wpisywaniu kilku scian nie bylo nienadpisanych wartosci z poprzedniego
+    int indicator = 0;
+    Wall tmpWall;
+    int VertexCount = 0;
+    if(level.is_open())
+        while(getline(level, line))
+            if(!line.empty() and line[0] != '/' and line[1] != '/')
+            {
+                switch(indicator)
+                {
+                case 0:
+                    tmpObject.name = line;
+                    indicator = 1;
+                    break;
+                case 1:
+                    if(first(line, "opt"))
+                        tmpObject.OptAllowed = (bool)value(line, 0).first;
+                    else if(first(line, "Vertex"))
+                        indicator = 2;
+                    else if(first(line, "Wall"))
+                        indicator = 3;
+                    else if(line == "objectEnd")
+                    {
+                        world.push_back(tmpObject);
+                        tmpObject.clear();
+                        VertexCount = 0;
+                        indicator = 0;
+                    }
+                    break;
+                case 2:
+                    if(line != "end")
+                    {
+                        sf::Vector3f tmp;
+                        tmp.x = value(line, 0).first; ///tomabycfloat
+                        tmp.y = value(line, 1).first;
+                        tmp.z = value(line, 2).first;
+                        terrain.push_back(tmp);
+                        VertexCount++;
+                    }
+                    else
+                        indicator = 1;
+                    break;
+                case 3:
+                    if(line != "end")
+                    {
+                        if(first(line, "size"))
+                            tmpWall.pSize = value(line, 0).first;
+                        else if(first(line, "grid"))
+                            tmpWall.grid = value(line, 0).first;
+                        else if(first(line, "opt"))
+                            tmpWall.OptAllowed = (bool)value(line, 0).first;
+                        else if(first(line, "color"))
+                        {
+                            tmpWall.color.r = value(line, 0).first;
+                            tmpWall.color.g = value(line, 1).first;
+                            tmpWall.color.b = value(line, 2).first;
+                            tmpWall.color.a = value(line, 3).first;
+                        }
+                        else if(first(line, "trans"))
+                        {
+                            tmpWall.trans.r = value(line, 0).first;
+                            tmpWall.trans.g = value(line, 1).first;
+                            tmpWall.trans.b = value(line, 2).first;
+                            tmpWall.trans.a = value(line, 3).first;
+                        }
+                        else if(first(line, "vert"))
+                        {
+                            int i = 0;
+                            bool endOfFile = false;
+                            while(!endOfFile)
+                            {
+                                tmpWall.push_back(value(line, i).first + terrain.size() - VertexCount);
+                                endOfFile = value(line, i).second;
+                                i++;
+                            }
+                        }
+                        else if(first(line, "lMask"))
+                            for(int i=0; i<tmpWall.size(); i++)
+                                tmpWall.drawable[i] = bool(value(line, i).first);
+                        else if(first(line, "dMask"))
+                            for(int i=0; i<tmpWall.size(); i++)
+                                tmpWall.dotDraw[i] = bool(value(line, i).first);
+                        else if(first(line, "lStrip"))
+                        {
+                            std::vector <int> strip;
+                            int i = 0;
+                            bool endOfFile = false;
+                            while(!endOfFile)
+                            {
+                                strip.push_back(value(line, i).first + terrain.size() - VertexCount);
+                                endOfFile = value(line, i).second;
+                                i++;
+                            }
+                            tmpWall.lineStrip.push_back(strip);
+                        }
+                        else if(line[0] == '#')
+                        {
+                            tmpObject.push_back(tmpWall);
+                            tmpWall.clear();
+                        }
+                    }
+                    else
+                        indicator = 1;
+                    break;
+                }
+            }
+}
 
 void SYNTH3D::OptLines()
 {
@@ -312,23 +1008,194 @@ void SYNTH3D::OptDots()
                 }
 }
 
+bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
+{
+    if(!args.empty())
+    {
+        if(args[0].size() >= 5 and args[0].substr(0, 5) == "print")
+        {
+                if(args[0].size() >= 11 and args[0].substr(6, 5) == "graph")
+                {
+                    c.printGraph();
+                    return true;
+                }
+                else if(args[0].size() >= 11 and args[0].substr(6, 5) == "cycle")
+                {
+                    c.printCycle();
+                    return true;
+                }
+                else if(args[0].size() >= 10 and args[0].substr(6, 4) == "info")
+                {
+                    showInfo();
+                    return true;
+                }
+        }
+        else if(args[0].size() >= 6 and args[0].substr(0, 6) == "enable")
+        {
+            if(args.size() == 2)
+            {
+                if(args[0].size() >= 21 and args[0].substr(7, 14) == "cycleReduction")
+                {
+                    c.enableCycleReduction(bool(atoi(args[1].c_str())));
+                    return true;
+                }
+                else if(args[0].size() >= 20 and args[0].substr(7, 13) == "wallIntersect")
+                {
+                    c.enableWallIntersect(bool(atoi(args[1].c_str())));
+                    return true;
+                }
+                else if(args[0].size() >= 17 and args[0].substr(7, 10) == "randomSort")
+                {
+                    c.enableRandomSort(bool(atoi(args[1].c_str())));
+                    return true;
+                }
+                else if(args[0].size() >= 20 and args[0].substr(7, 13) == "identifyWalls")
+                {
+                    c.enableIdentifyWalls(bool(atoi(args[1].c_str())));
+                    return true;
+                }
+                else if(args[0].size() >= 20 and args[0].substr(7, 13) == "distanceCheck")
+                {
+                    c.enableDistanceCheck(bool(atoi(args[1].c_str())));
+                    return true;
+                }
+            }
+        }
+        else if(args[0] == "compare")
+        {
+            if(args.size() == 3)
+            {
+                c.compare(atoi(args[1].c_str()), atoi(args[2].c_str()));
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     position({0, 0, -400}),
-    eye(-80),
-    angle({0,0,0}),
+    angle({0, 0, 0}),
+    vEye({0, 0, -10}),
     screenSize(3),
     scale(100),
-    minDotSize(2)
+    minDotSize(2),
+    topologicalError(false),
+    sinceLastTopologicalError(0),
+    cycleReductionEnabled(false),
+    wallIntersectEnabled(true),
+    randomSortEnabled(false),
+    identifyWallsEnabled(false),
+    distanceCheckEnabled(false)
 {
     initCircleDef(32);
+}
+
+void Camera::printCycle()
+{
+    findCycle(wallSortGraph, wallSortGraphLevel);
+}
+
+void Camera::enableCycleReduction(bool value)
+{
+    cycleReductionEnabled = value;
+}
+
+void Camera::enableWallIntersect(bool value)
+{
+    wallIntersectEnabled = value;
+}
+
+void Camera::enableRandomSort(bool value)
+{
+    randomSortEnabled = value;
+}
+
+void Camera::enableIdentifyWalls(bool value)
+{
+    identifyWallsEnabled = value;
+}
+
+void Camera::enableDistanceCheck(bool value)
+{
+    distanceCheckEnabled = value;
+}
+
+void Camera::compare(int left, int right)
+{
+    if(left != right)
+    {
+        int counter = 0;
+        Wall* leftie;
+        Wall* rightie;
+        bool leftWallFound = false;
+        bool rightWallFound = false;
+        bool beenThereLeft = false;
+        bool beenThereRight = false;
+
+        for(int i=0; i<p->world.size(); i++)
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                if(left == counter and !beenThereLeft)
+                {
+                    leftie = &(p->world[i].wallie[j]);
+                    leftWallFound = true;
+                    p->printToConsole("First object: " + p->world[i].name);
+                    beenThereLeft = true;
+                }
+                if(right == counter and !beenThereRight)
+                {
+                    rightie = &(p->world[i].wallie[j]);
+                    rightWallFound = true;
+                    p->printToConsole("Second object: " + p->world[i].name);
+                    beenThereRight = true;
+                }
+                if(activeWall(&(p->world[i].wallie[j])))
+                    counter++;
+            }
+        if(leftWallFound and rightWallFound)
+        {
+            std::pair <bool, bool> order = wallSortingAlgorythm(leftie, rightie);
+            if(order.second)
+            {
+                if(!order.first)
+                    p->printToConsole("Wall " + stringify(right) + " is in front of wall " + stringify(left), sf::Color::Cyan);
+                else
+                    p->printToConsole("[error] Both walls seem to be in front of each other");
+            }
+            else
+            {
+                if(order.first)
+                {
+                    p->printToConsole("Wall " + stringify(left) + " is in front of wall " + stringify(right), sf::Color::Cyan);
+                }
+                else
+                    p->printToConsole("[error] Both walls seem to be in behind of each other");
+            }
+        }
+        else
+        {
+            if(!leftWallFound and !rightWallFound)
+                p->printToConsole("[error] Couldn't find any of these walls");
+            else if(!leftWallFound)
+                p->printToConsole("[error] Could't find the first wall");
+            else
+                p->printToConsole("[error] Could't find the second wall");
+        }
+    }
+    else
+    {
+        p->printToConsole("[error] Cannot compare wall X with wall X");
+    }
 }
 
 void Camera::updateTerrain()
 {
     spot3d.resize(p->terrain.size());
-    spot3dSquareDist.resize(spot3d.size());
     spot2d.resize(spot3d.size());
+    dot.resize(spot3d.size());
     halfDotBegin.resize(spot3d.size());
 }
 
@@ -381,6 +1248,21 @@ void Camera::setAngle(sf::Vector3f aGiven)
     angle.x = aGiven.x*(M_PI/180);
     angle.y = aGiven.y*(M_PI/180);
     angle.z = aGiven.z*(M_PI/180);
+    calcAngle();
+}
+
+void Camera::setDirection(sf::Vector3f direction, sf::Vector3f origin)
+{
+    sf::Vector3f dirVec = direction - origin;
+    float lengthX = sqrtf(dirVec.y*dirVec.y + dirVec.z*dirVec.z);
+    float lengthY = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
+    float lengthZ = sqrtf(dirVec.x*dirVec.x + dirVec.y*dirVec.y);
+    sinx = dirVec.y / lengthX;
+    cosx = dirVec.z / lengthX;
+    siny = dirVec.x / lengthY;
+    cosy = dirVec.z / lengthY;
+    sinz = dirVec.x / lengthZ;
+    cosz = dirVec.y / lengthZ;
 }
 
 sf::Vector3f Camera::vecTransformAngle(sf::Vector3f vec, sf::Vector3f ang)
@@ -413,7 +1295,8 @@ sf::Vector3f Camera::vecTransform(sf::Vector3f vec)
     //Roll: (z axis)
     vec = target;
     target.x = vec.x*cosz - vec.y*sinz;
-    target.y = vec.x*sinz + vec.y*cosz;
+    //target.y = vec.x*sinz + vec.y*cosz;
+    target.y = -vec.x*sinz - vec.y*cosz;
     return target;
 }
 
@@ -444,32 +1327,27 @@ void Camera::drawSphere(sf::Vector3f spot, float radius, sf::Color color, float 
 {
     int n = 64;
     sf::Vector3f buffor;
-    sf::Vector3f vEye = {0, 0, eye};
     spot -= vEye;
-    float lenght = sqrt(spot.x*spot.x + spot.y*spot.y + spot.z*spot.z);
-    float lenghtZ = sqrt(spot.x*spot.x + spot.y*spot.y);
+    float lenght = sqrtf(spot.x*spot.x + spot.y*spot.y + spot.z*spot.z);
+    float lenghtZ = sqrtf(spot.x*spot.x + spot.y*spot.y);
     float sinZ = spot.y / lenghtZ;
     float cosZ = spot.x / lenghtZ;
     sf::Vector3f temp = spot;
     temp.x =  spot.x*cosZ + spot.y*sinZ;
     temp.y = -spot.x*sinZ + spot.y*cosZ;
     sf::Vector3f line = temp;
-    float lenghtY = sqrt(temp.x*temp.x + temp.z*temp.z);
+    float lenghtY = sqrtf(temp.x*temp.x + temp.z*temp.z);
     float sinY = temp.z / lenghtY;
     float cosY = temp.x / lenghtY;
     line.x = temp.x*cosY + temp.z*sinY;
     line.z = temp.z*cosY - temp.x*sinY;
-    std::cout << "\nX: " << line.x << " Y: " << line.y << " Z: " << line.z;
-    std::cout << "\nL: " << lenght;
     temp = sf::Vector3f(0, radius, 0);
     float sin = radius / lenght;
-    float cos = sqrt(lenght*lenght - radius*radius) / lenght;
+    float cos = sqrtf(lenght*lenght - radius*radius) / lenght;
     buffor.x = temp.x*cos - temp.y*sin;
     buffor.y = temp.x*sin + temp.y*cos;
     buffor.z = 0;
     buffor.x += lenght;
-    // simplifies the simulation for long distances, makes it wrong at close distance
-    //buffor = sf::Vector3f(lenght, radius, 0);
     std::vector <sf::Vector3f> sphere;
     sin = sinf(2*M_PI/n);
     cos = cosf(2*M_PI/n);
@@ -495,18 +1373,11 @@ void Camera::drawSphere(sf::Vector3f spot, float radius, sf::Color color, float 
     for(int i=0; i<sphere.size(); i++)
         if(sphere[i].z >= 0)
             screenBuffor.push_back(flatView(planeCross(sphere[i], vEye)));
+
     if(!screenBuffor.empty())
     {
-        stripArray.push_back(sf::Vertex(screenBuffor[screenBuffor.size()/2]));
-        stripArray.push_back(sf::Vertex(screenBuffor[screenBuffor.size()/2], color));
-        for(int i = 1; i<screenBuffor.size()/2; i++)
-        {
-            stripArray.push_back(sf::Vertex(screenBuffor[screenBuffor.size()/2 + i], color));
-            stripArray.push_back(sf::Vertex(screenBuffor[screenBuffor.size()/2 - i], color));
-        }
-        stripArray.push_back(sf::Vertex(screenBuffor[0], color));
-        stripArray.push_back(sf::Vertex(screenBuffor[0]));
-        sf::Vector2f whatever;
+        drawPlane(screenBuffor, color);
+        /* Zrob punkty pomiedzy liniami moze, uzyj wlasnego draw line zeby znac te punkty
         if(outlineThickness != 0)
             for(int i=0; i<screenBuffor.size(); i++)
                 drawLine(screenBuffor[i],
@@ -515,20 +1386,28 @@ void Camera::drawSphere(sf::Vector3f spot, float radius, sf::Color color, float 
                          dotSize(outlineThickness, sphere[(i+1)%sphere.size()]),
                          outlineColor,
                          whatever);
+        */
     }
 }
 
-float Camera::dotSize(float dot, sf::Vector3f vec)
+float Camera::dotSize(sf::Vector3f vec)
 {
-    return -eye*dot/(vec.z - eye);
+    return -eye/(vec.z - eye);
 }
 
 void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color, sf::Vector2f& beginning)
 {
+    if((vec1.x > -size1 and vec1.x < p->window->getSize().x + size1 and vec1.y > -size1 and vec1.y < p->window->getSize().y + size1) or
+       (vec2.x > -size2 and vec2.x < p->window->getSize().x + size2 and vec2.y > -size2 and vec2.y < p->window->getSize().y + size2) or
+       lineIntersect(vec1, vec2, {0, 0}, {0, p->window->getSize().y + std::max(size1, size2)}) or
+       lineIntersect(vec1, vec2, {0, p->window->getSize().y + std::max(size1, size2)}, {p->window->getSize().x + std::max(size1, size2), p->window->getSize().y + std::max(size1, size2)}) or
+       lineIntersect(vec1, vec2, {p->window->getSize().x + std::max(size1, size2), p->window->getSize().y + std::max(size1, size2)}, {p->window->getSize().x + std::max(size1, size2), 0}) or
+       lineIntersect(vec1, vec2, {p->window->getSize().x + std::max(size1, size2), 0}, {0, 0}))
+    {
         sf::Vector2f norm;
         float temp, lenght;
         norm = (vec1 - vec2);
-        lenght = sqrt(norm.x*norm.x + norm.y*norm.y);
+        lenght = sqrtf(norm.x*norm.x + norm.y*norm.y);
         norm.x /= lenght, norm.y /= lenght;
         temp = norm.x, norm.x = -norm.y, norm.y = temp;
         beginning = norm*size1;
@@ -536,10 +1415,35 @@ void Camera::drawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float s
         quadArray.push_back(sf::Vertex(vec2 + norm*size2, color));
         quadArray.push_back(sf::Vertex(vec2 - norm*size2, color));
         quadArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    }
+}
+
+void Camera::debugDrawLine(sf::Vector2f vec1, sf::Vector2f vec2, float size1, float size2, sf::Color color, sf::Vector2f& beginning)
+{
+    if((vec1.x > -size1 and vec1.x < p->window->getSize().x + size1 and vec1.y > -size1 and vec1.y < p->window->getSize().y + size1) or
+       (vec2.x > -size2 and vec2.x < p->window->getSize().x + size2 and vec2.y > -size2 and vec2.y < p->window->getSize().y + size2) or
+       lineIntersect(vec1, vec2, {0, 0}, {0, p->window->getSize().y + std::max(size1, size2)}) or
+       lineIntersect(vec1, vec2, {0, p->window->getSize().y + std::max(size1, size2)}, {p->window->getSize().x + std::max(size1, size2), p->window->getSize().y + std::max(size1, size2)}) or
+       lineIntersect(vec1, vec2, {p->window->getSize().x + std::max(size1, size2), p->window->getSize().y + std::max(size1, size2)}, {p->window->getSize().x + std::max(size1, size2), 0}) or
+       lineIntersect(vec1, vec2, {p->window->getSize().x + std::max(size1, size2), 0}, {0, 0}))
+    {
+        sf::Vector2f norm;
+        float temp, lenght;
+        norm = (vec1 - vec2);
+        lenght = sqrtf(norm.x*norm.x + norm.y*norm.y);
+        norm.x /= lenght, norm.y /= lenght;
+        temp = norm.x, norm.x = -norm.y, norm.y = temp;
+        beginning = norm*size1;
+        debugArray.push_back(sf::Vertex(vec1 + norm*size1, color));
+        debugArray.push_back(sf::Vertex(vec2 + norm*size2, color));
+        debugArray.push_back(sf::Vertex(vec2 - norm*size2, color));
+        debugArray.push_back(sf::Vertex(vec1 - norm*size1, color));
+    }
 }
 
 void Camera::drawHalfDot(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color)
 {
+    /*
     if(spot.x > -size and spot.x < p->window->getSize().x + size and spot.y > -size and spot.y < p->window->getSize().y + size)
     {
         std::vector <sf::Vector2f> halfCircle;
@@ -548,7 +1452,8 @@ void Camera::drawHalfDot(sf::Vector2f& spot, sf::Vector2f beginning, float& size
     {
         halfCircle.push_back(beginning);
         beginning.x = temp.x*cosCircle + temp.y*sinCircle;
-        beginning.y = -temp.x*sinCircle + temp.y*cosCircle;
+        beginning.y = -temp.x
+        *sinCircle + temp.y*cosCircle;
         temp = beginning;
     }
         stripArray.push_back(sf::Vertex(spot + halfCircle[halfCircle.size()/2]));
@@ -562,10 +1467,12 @@ void Camera::drawHalfDot(sf::Vector2f& spot, sf::Vector2f beginning, float& size
         stripArray.push_back(sf::Vertex(spot + halfCircle[0], color));
         stripArray.push_back(sf::Vertex(spot + halfCircle[0]));
     }
+    */
 }
 
 void Camera::drawDotwBegin(sf::Vector2f& spot, sf::Vector2f beginning, float& size, sf::Color color)
 {
+    /*
     if(spot.x > -size and spot.x < p->window->getSize().x + size and spot.y > -size and spot.y < p->window->getSize().y + size)
     {
         std::vector <sf::Vector2f> fullCircle;
@@ -587,36 +1494,32 @@ void Camera::drawDotwBegin(sf::Vector2f& spot, sf::Vector2f beginning, float& si
         stripArray.push_back(sf::Vertex(spot + fullCircle[0], color));
         stripArray.push_back(sf::Vertex(spot + fullCircle[0]));
     }
+    */
 }
 
 void Camera::drawDot(sf::Vector2f spot, float size, sf::Color color)
 {
     if(spot.x > -size and spot.x < p->window->getSize().x + size and spot.y > -size and spot.y < p->window->getSize().y + size)
-    {
-        stripArray.push_back(sf::Vertex(spot + circleDefExample[circleDefExample.size()/2]*size));
-        stripArray.push_back(sf::Vertex(spot + circleDefExample[circleDefExample.size()/2]*size, color));
-        for(int i = 1; i<circleDefExample.size()/2; i++)
-        {
-            stripArray.push_back(sf::Vertex(spot + circleDefExample[circleDefExample.size()/2 + i]*size, color));
-            stripArray.push_back(sf::Vertex(spot + circleDefExample[circleDefExample.size()/2 - i]*size, color));
-        }
-        stripArray.push_back(sf::Vertex(spot + circleDefExample[0]*size, color));
-        stripArray.push_back(sf::Vertex(spot + circleDefExample[0]*size));
-    }
+        for(int i=circleDefExample.size()/2, j=i-1; j>0; i++, j--)
+            {
+                quadArray.push_back(sf::Vertex(spot + circleDefExample[j-1]*size, color));
+                quadArray.push_back(sf::Vertex(spot + circleDefExample[j]*size, color));
+                quadArray.push_back(sf::Vertex(spot + circleDefExample[i]*size, color));
+                quadArray.push_back(sf::Vertex(spot + circleDefExample[i+1]*size, color));
+            }
 }
 
 void Camera::calcTerrain()
 {
-    sf::Vector3f vEye = {0, 0, eye};
     for(int i=0; i<p->terrain.size(); i++)
     {
         spot3d[i] = vecTransform(p->terrain[i] - position);
-        spot2d[i] = planeCross(spot3d[i], vEye);
-        spot3dSquareDist[i] = spot3d[i].x*spot3d[i].x + spot3d[i].y*spot3d[i].y + spot3d[i].z*spot3d[i].z;
+        spot2d[i] = flatView(planeCross(spot3d[i], vEye));
+        dot[i] = dotSize(spot3d[i]);
     }
 }
 
-void Camera::drawGridWall(wall const& wallie, int n)
+void Camera::drawGridWall(Wall const& wallie, int n)
 {
     ///      1>
     ///  #########
@@ -628,7 +1531,6 @@ void Camera::drawGridWall(wall const& wallie, int n)
 
     sf::Vector3f line[4];
     sf::Vector3f point[4][n];
-    sf::Vector3f vEye = sf::Vector3f(0, 0, eye);
     sf::Vector2f buffor;
 
     line[0] = spot3d[ wallie.coord[1] ] - spot3d[ wallie.coord[0] ];
@@ -652,8 +1554,8 @@ void Camera::drawGridWall(wall const& wallie, int n)
         if(point[0][i].z >= 0 and point[2][i].z >= 0)
             drawLine(flatView(planeCross(point[0][i], vEye)),
                      flatView(planeCross(point[2][i], vEye)),
-                     dotSize(wallie.pSize, point[0][i]),
-                     dotSize(wallie.pSize, point[2][i]),
+                     dotSize(point[0][i])*wallie.pSize,
+                     dotSize(point[2][i])*wallie.pSize,
                      wallie.color,
                      whatever);
         else if(point[0][i].z < 0 and point[2][i].z < 0)
@@ -662,14 +1564,14 @@ void Camera::drawGridWall(wall const& wallie, int n)
             drawLine(buffor = flatView(planeCross(point[0][i],point[2][i])),
                      flatView(planeCross(point[2][i], vEye)),
                      wallie.pSize,
-                     dotSize(wallie.pSize, point[2][i]),
+                     dotSize(point[2][i])*wallie.pSize,
                      wallie.color,
                      whatever),
             drawDot(buffor, wallie.pSize, wallie.color);
         else
             drawLine(flatView(planeCross(point[0][i], vEye)),
                      buffor = flatView(planeCross(point[0][i], point[2][i])),
-                     dotSize(wallie.pSize, point[0][i]),
+                     dotSize(point[0][i])*wallie.pSize,
                      wallie.pSize,
                      wallie.color,
                      whatever),
@@ -678,8 +1580,8 @@ void Camera::drawGridWall(wall const& wallie, int n)
         if(point[1][i].z >= 0 and point[3][i].z >= 0)
             drawLine(flatView(planeCross(point[1][i], vEye)),
                      flatView(planeCross(point[3][i], vEye)),
-                     dotSize(wallie.pSize, point[1][i]),
-                     dotSize(wallie.pSize, point[3][i]),
+                     dotSize(point[1][i])*wallie.pSize,
+                     dotSize(point[3][i])*wallie.pSize,
                      wallie.color,
                      whatever);
         else if(point[1][i].z < 0 and point[3][i].z < 0)
@@ -688,14 +1590,14 @@ void Camera::drawGridWall(wall const& wallie, int n)
             drawLine(buffor = flatView(planeCross(point[1][i], point[3][i])),
                      flatView(planeCross(point[3][i], vEye)),
                      wallie.pSize,
-                     dotSize(wallie.pSize, point[3][i]),
+                     dotSize(point[3][i])*wallie.pSize,
                      wallie.color,
                      whatever),
             drawDot(buffor, wallie.pSize, wallie.color);
         else
             drawLine(flatView(planeCross(point[1][i], vEye)),
                      buffor = flatView(planeCross(point[1][i], point[3][i])),
-                     dotSize(wallie.pSize, point[1][i]),
+                     dotSize(point[1][i])*wallie.pSize,
                      wallie.pSize,
                      wallie.color,
                      whatever),
@@ -706,21 +1608,109 @@ void Camera::drawGridWall(wall const& wallie, int n)
 void Camera::drawPlane(std::vector <sf::Vector2f>& spot, sf::Color color)
 {
         if(spot.size() == 4)
-            quadArray.push_back(sf::Vertex(spot[0], color)),
-            quadArray.push_back(sf::Vertex(spot[1], color)),
-            quadArray.push_back(sf::Vertex(spot[2], color)),
+        {
+            quadArray.push_back(sf::Vertex(spot[0], color));
+            quadArray.push_back(sf::Vertex(spot[1], color));
+            quadArray.push_back(sf::Vertex(spot[2], color));
             quadArray.push_back(sf::Vertex(spot[3], color));
+        }
         else
-            for(int i=1; i<spot.size()-1; i++)
-                triangleArray.push_back(sf::Vertex(spot[0], color)),
-                triangleArray.push_back(sf::Vertex(spot[i], color)),
-                triangleArray.push_back(sf::Vertex(spot[i+1], color));
+        {
+            if(spot.size()%2 == 1)
+            {
+            quadArray.push_back(sf::Vertex(spot[0], color));
+            quadArray.push_back(sf::Vertex(spot[0], color));
+            quadArray.push_back(sf::Vertex(spot[spot.size() - 1], color));
+            quadArray.push_back(sf::Vertex(spot[spot.size() - 2], color));
+            }
+            for(int i=spot.size()/2, j=i-1; j>0; i++, j--)
+            {
+                quadArray.push_back(sf::Vertex(spot[j-1], color));
+                quadArray.push_back(sf::Vertex(spot[j], color));
+                quadArray.push_back(sf::Vertex(spot[i], color));
+                quadArray.push_back(sf::Vertex(spot[i+1], color));
+            }
+        }
 }
 
-void Camera::drawWall(wall const& wallie)
+void Camera::debugDrawPlane(std::vector <sf::Vector2f>& spot, sf::Color color)
+{
+        if(spot.size() == 4)
+        {
+            debugArray.push_back(sf::Vertex(spot[0], color));
+            debugArray.push_back(sf::Vertex(spot[1], color));
+            debugArray.push_back(sf::Vertex(spot[2], color));
+            debugArray.push_back(sf::Vertex(spot[3], color));
+        }
+        else
+        {
+            if(spot.size()%2 == 1)
+            {
+            debugArray.push_back(sf::Vertex(spot[0], color));
+            debugArray.push_back(sf::Vertex(spot[0], color));
+            debugArray.push_back(sf::Vertex(spot[spot.size() - 1], color));
+            debugArray.push_back(sf::Vertex(spot[spot.size() - 2], color));
+            }
+            for(int i=spot.size()/2, j=i-1; j>0; i++, j--)
+            {
+                debugArray.push_back(sf::Vertex(spot[j-1], color));
+                debugArray.push_back(sf::Vertex(spot[j], color));
+                debugArray.push_back(sf::Vertex(spot[i], color));
+                debugArray.push_back(sf::Vertex(spot[i+1], color));
+            }
+        }
+}
+
+
+std::vector <sf::Vector2f> Camera::wallToPoly(Wall* wallie)
 {
     std::vector <sf::Vector2f> spot;
-    std::vector <float> dot;
+    std::vector <int> usefulSpot;
+    for(int i=0; i<wallie->size(); i++)
+    {
+        if(spot3d[ wallie->coord[i] ].z >= 0)
+            usefulSpot.push_back(i);
+    }
+    if(!usefulSpot.empty())
+    {
+        if(usefulSpot.size() == wallie->size())
+        {
+            for(int i=0; i<usefulSpot.size(); i++)
+                spot.push_back(spot2d[wallie->coord[i]]);
+        }
+        else
+        {
+            int first;
+            usefulSpot.clear();
+            for(int i=0, j=0; i<2*wallie->size(); i++)
+                if(spot3d[ wallie->coord[i%wallie->size()] ].z < 0 or j > 0)
+                {
+                    if(j == 0)
+                        j = 1;
+                    if(spot3d[ wallie->coord[i%wallie->size()] ].z >= 0 and j != 3)
+                    {
+                        usefulSpot.push_back(i%wallie->size());
+                        if(j != 2)
+                            first = (i-1)%wallie->size();
+                        j = 2;
+                    }
+                    else if(j == 2)
+                        j = 3;
+                }
+            spot.push_back(flatView(planeCross(spot3d[wallie->coord[  usefulSpot[0]    ] ],
+                                               spot3d[wallie->coord[ (usefulSpot[0] - 1)%wallie->size() ]])));
+            for(int i=0; i<usefulSpot.size(); i++)
+                spot.push_back(spot2d[ wallie->coord[usefulSpot[i]] ]);
+            spot.push_back(flatView(planeCross(spot3d[ wallie->coord [usefulSpot[ usefulSpot.size() - 1 ]    ] ],
+                                               spot3d[ wallie->coord[(usefulSpot[ usefulSpot.size() - 1 ] + 1)%wallie->size()] ])));
+        }
+    }
+    return spot;
+}
+
+void Camera::drawWall(Wall const& wallie)
+{
+    std::vector <sf::Vector2f> spot;
     std::vector <int> usefulSpot;
     for(int i=0; i<wallie.size(); i++)
     {
@@ -732,8 +1722,7 @@ void Camera::drawWall(wall const& wallie)
         if(usefulSpot.size() == wallie.size())
         {
             for(int i=0; i<usefulSpot.size(); i++)
-                spot.push_back(flatView(spot2d[wallie.coord[i]])),
-                dot.push_back(dotSize(wallie.pSize, spot3d[wallie.coord[i]]));
+                spot.push_back(spot2d[wallie.coord[i]]);
             if(wallie.trans != sf::Color::Transparent)
                 drawPlane(spot, wallie.trans);
             if(wallie.grid > 1 and wallie.size() == 4)
@@ -742,18 +1731,26 @@ void Camera::drawWall(wall const& wallie)
                 if(wallie.drawable[i])
                     drawLine(spot[i],
                              spot[(i+1)%spot.size()],
-                             dot[i],
-                             dot[(i+1)%spot.size()],
+                             dot[wallie.coord[i]]*wallie.pSize,
+                             dot[wallie.coord[(i+1)%spot.size()]]*wallie.pSize,
                              wallie.color,
                              halfDotBegin[wallie.coord[i]]);
+            if(!wallie.lineStrip.empty())
+                for(int i=0; i<wallie.lineStrip.size(); i++)
+                    for(int j=0; j<wallie.lineStrip[i].size()-1; j++)
+                    {
+                        drawDot(spot2d[wallie.lineStrip[i][j]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, wallie.color);
+                        drawLine(spot2d[wallie.lineStrip[i][j]], spot2d[wallie.lineStrip[i][j+1]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, dot[ wallie.lineStrip[i][j+1] ] * wallie.pSize, wallie.color, whatever);
+                    }
             for(int i=0; i<spot.size(); i++)
-                if(dot[i] > minDotSize and wallie.dotDraw[i])
-                    drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot[i], wallie.color);
+                if(dot[wallie.coord[i]]*wallie.pSize > minDotSize and wallie.dotDraw[i])
+                  //drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot[i], wallie.color);
                   //drawDotwBegin(spot[i], halfDotBegin[wallie.coord[(i+first*indicator)%wallie.size()]], dot[i], sf::Color::Magenta);
-                  //drawDot(spot[i], dot[i], wallie.color);
+                  drawDot(spot[i], dot[wallie.coord[i]]*wallie.pSize, wallie.color);
         }
         else
         {
+            std::vector <float> dot2d;
             int first;
             usefulSpot.clear();
             for(int i=0, j=0; i<2*wallie.size(); i++)
@@ -773,15 +1770,15 @@ void Camera::drawWall(wall const& wallie)
                 }
             spot.push_back(flatView(planeCross(spot3d[wallie.coord[  usefulSpot[0]    ] ],
                                                spot3d[wallie.coord[ (usefulSpot[0] - 1)%wallie.size() ]])));
-            dot.push_back(wallie.pSize);
+            dot2d.push_back(wallie.pSize);
             for(int i=0; i<usefulSpot.size(); i++)
             {
-                spot.push_back(flatView(spot2d[ wallie.coord[usefulSpot[i]] ]));
-                dot.push_back(dotSize(wallie.pSize, spot3d[ wallie.coord[usefulSpot[i]] ]));
+                spot.push_back(spot2d[ wallie.coord[usefulSpot[i]] ]);
+                dot2d.push_back(dot[ wallie.coord[usefulSpot[i]] ]*wallie.pSize);
             }
             spot.push_back(flatView(planeCross(spot3d[ wallie.coord [usefulSpot[ usefulSpot.size() - 1 ]    ] ],
                                                spot3d[ wallie.coord[(usefulSpot[ usefulSpot.size() - 1 ] + 1)%wallie.size()] ])));
-            dot.push_back(wallie.pSize);
+            dot2d.push_back(wallie.pSize);
             if(wallie.trans != sf::Color::Transparent)
                 drawPlane(spot, wallie.trans);
             if(wallie.grid > 1 and wallie.size() == 4)
@@ -790,57 +1787,1093 @@ void Camera::drawWall(wall const& wallie)
                 if(wallie.drawable[(i+first)%wallie.size()])
                     drawLine(spot[i],
                          spot[(i+1)%spot.size()],
-                         dot[i],
-                         dot[(i+1)%spot.size()],
+                         dot2d[i],
+                         dot2d[(i+1)%spot.size()],
                          wallie.color,
                          halfDotBegin[wallie.coord[(i+first)%wallie.size()]]);
+            if(!wallie.lineStrip.empty())
+                for(int i=0; i<wallie.lineStrip.size(); i++)
+                    for(int j=0; j<wallie.lineStrip[i].size()-1; j++)
+                    {
+                        if(spot3d[wallie.lineStrip[i][j]].z > 0)
+                        {
+                            drawDot(spot2d[wallie.lineStrip[i][j]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, wallie.color);
+                            if(spot3d[wallie.lineStrip[i][j+1]].z > 0)
+                                drawLine(spot2d[wallie.lineStrip[i][j]], spot2d[wallie.lineStrip[i][j+1]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, dot[ wallie.lineStrip[i][j+1] ] * wallie.pSize, wallie.color, whatever);
+                            else
+                            {
+                                drawLine(spot2d[wallie.lineStrip[i][j]],
+                                         flatView(planeCross(spot3d[wallie.lineStrip[i][j]], spot3d[wallie.lineStrip[i][j+1]])),
+                                         dot[ wallie.lineStrip[i][j] ] * wallie.pSize,
+                                         wallie.pSize,
+                                         wallie.color,
+                                         whatever);
+                                drawDot(flatView(planeCross(spot3d[wallie.lineStrip[i][j]], spot3d[wallie.lineStrip[i][j+1]])), wallie.pSize, wallie.color);
+                            }
+                        }
+                        else if(spot3d[wallie.lineStrip[i][j+1]].z > 0)
+                        {
+                            drawLine(spot2d[wallie.lineStrip[i][j+1]],
+                                         flatView(planeCross(spot3d[wallie.lineStrip[i][j+1]], spot3d[wallie.lineStrip[i][j]])),
+                                         dot[ wallie.lineStrip[i][j+1] ] * wallie.pSize,
+                                         wallie.pSize,
+                                         wallie.color,
+                                         whatever);
+                            drawDot(flatView(planeCross(spot3d[wallie.lineStrip[i][j+1]], spot3d[wallie.lineStrip[i][j]])), wallie.pSize, wallie.color);
+                        }
+                    }
             for(int i=0; i<spot.size(); i++)
-                if(dot[i] > minDotSize and wallie.dotDraw[(i+first)%wallie.size()])
-                  //drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot[i], wallie.color);
-                    drawDotwBegin(spot[i], halfDotBegin[wallie.coord[(i+first)%wallie.size()]], dot[i], wallie.color);
-                  //drawDot(spot[i], dot[i], wallie.color);
+                if(dot2d[i] > minDotSize and wallie.dotDraw[(i+first)%wallie.size()])
+                  //drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot2d[i], wallie.color);
+                  //drawDotwBegin(spot[i], halfDotBegin[wallie.coord[(i+first)%wallie.size()]], dot2d[i], wallie.color);
+                  drawDot(spot[i], dot2d[i], wallie.color);
         }
     }
 }
 
-float Camera::squareWallDist(wall& wallie)
+bool Camera::lineIntersect(sf::Vector2f u0, sf::Vector2f v0, sf::Vector2f u1, sf::Vector2f v1)
 {
-    float summary = 0;
-    for(int i=0; i<wallie.size(); i++)
+    v0 -= u0;
+    v1 -= u1;
+    float det = v1.x*v0.y - v0.x*v1.y;
+    if(det != 0)
+    {
+        float s = (1/det) *  (  (u0.x - u1.x)*v0.y - (u0.y - u1.y)*v0.x);
+        float t = (1/det) * -( -(u0.x - u1.x)*v1.y + (u0.y - u1.y)*v1.x);
+        if(s >= 0 and s <= 1 and t >= 0 and t <= 1)
+            return true;
+    }
+    return false;
+}
+
+bool Camera::rightSide(sf::Vector2f line1, sf::Vector2f line2, sf::Vector2f point)
+{
+    sf::Vector2f v1 = line2 - line1;
+    sf::Vector2f p = point - line1;
+    return v1.x*p.y - v1.y*p.x < 0;
+}
+
+bool Camera::onPlane(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point)
+{
+    sf::Vector3f planeTop = top - center;
+    sf::Vector3f planeSide = side - center;
+    sf::Vector3f planeNormal;
+    planeNormal.x = planeSide.y*planeTop.z - planeTop.y*planeSide.z;
+    planeNormal.y = planeSide.z*planeTop.x - planeTop.z*planeSide.x;
+    planeNormal.z = planeSide.x*planeTop.y - planeTop.x*planeSide.y;
+    sf::Vector3f posVector = point - center;
+    float dotProduct = planeNormal.x*posVector.x + planeNormal.y*posVector.y + planeNormal.z*posVector.z;
+    float epsilon = 3.0f;
+    if(dotProduct < epsilon and dotProduct > -epsilon)
+        return true;
+    return false;
+}
+
+bool Camera::activeWall(Wall* wallie)
+{
+    sf::Vector3f planeTop = spot3d[wallie->coord[1]] - spot3d[wallie->coord[0]];
+    sf::Vector3f planeSide = spot3d[wallie->coord[2]] - spot3d[wallie->coord[0]];
+    sf::Vector3f planeNormal;
+    planeNormal.x = planeSide.y*planeTop.z - planeTop.y*planeSide.z;
+    planeNormal.y = planeSide.z*planeTop.x - planeTop.z*planeSide.x;
+    planeNormal.z = planeSide.x*planeTop.y - planeTop.x*planeSide.y;
+    sf::Vector3f posVector = vEye - spot3d[wallie->coord[0]];
+    float dotProduct = planeNormal.x*posVector.x + planeNormal.y*posVector.y + planeNormal.z*posVector.z;
+    if(dotProduct > 0.0f)
+        return true;
+    return false;
+}
+
+int Camera::planeSide(sf::Vector3f& center, sf::Vector3f& top, sf::Vector3f& side, sf::Vector3f& point)
+{
+    sf::Vector3f planeTop = top - center;
+    sf::Vector3f planeSide = side - center;
+    sf::Vector3f planeNormal;
+    planeNormal.x = planeSide.y*planeTop.z - planeTop.y*planeSide.z;
+    planeNormal.y = planeSide.z*planeTop.x - planeTop.z*planeSide.x;
+    planeNormal.z = planeSide.x*planeTop.y - planeTop.x*planeSide.y;
+    sf::Vector3f posVector = point - center;
+    float dotProduct = planeNormal.x*posVector.x + planeNormal.y*posVector.y + planeNormal.z*posVector.z;
+    float epsilon = 3.0f;
+    if(dotProduct > epsilon)
+        return 1;
+    else if(dotProduct < -epsilon)
+        return -1;
+    return 0;
+}
+
+bool Camera::wallIntersect(Wall* wallie1, Wall* wallie2)
+{
+    int leftBelowZero = 0;
+    int rightBelowZero = 0;
+    for(int i=0; i<wallie1->size(); i++)
+        if(spot3d[wallie1->coord[i]].z < 0)
         {
-            summary += spot3dSquareDist[wallie.coord[i]];
+            leftBelowZero++;
         }
-    return summary/float(wallie.size());
+    for(int i=0; i<wallie2->size(); i++)
+        if(spot3d[wallie2->coord[i]].z < 0)
+        {
+            rightBelowZero++;
+        }
+    if(leftBelowZero == 0 and rightBelowZero == 0)
+        return wallIntersectOS(wallie1, wallie2);
+
+    if(leftBelowZero == wallie1->size() or rightBelowZero == wallie2->size())
+        return false;
+
+    std::vector <sf::Vector2f> poly1 = wallToPoly(wallie1);
+    std::vector <sf::Vector2f> poly2 = wallToPoly(wallie2);
+
+    return polygonIntersect(poly1, poly2);
+}
+
+bool Camera::polygonIntersectOlder(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2)
+{
+    sf::Vector2f center1, center2;
+    float maxSquareRad1, maxSquareRad2;
+    for(int i=0; i<poly1.size(); i++)
+        center1 += poly1[i];
+    center1 /= float(poly1.size());
+    for(int i=0; i<poly1.size(); i++)
+        maxSquareRad1 = std::max(maxSquareRad1, poly1[i].x*poly1[i].x + poly1[i].y+poly1[i].y);
+    for(int i=0; i<poly2.size(); i++)
+        center2 += poly2[i];
+    center2 /= float(poly2.size());
+    for(int i=0; i<poly2.size(); i++)
+        maxSquareRad2 = std::max(maxSquareRad2, poly2[i].x*poly2[i].x + poly2[i].y+poly2[i].y);
+    float squareCenterDist = (center1.x-center2.x)*(center1.x-center2.x) +
+                             (center1.y-center2.y)*(center1.y-center2.y);
+    if(sqrtf(squareCenterDist) >= sqrtf(maxSquareRad1) + sqrtf(maxSquareRad2))
+        return false;
+
+    for(int i=0; i<poly2.size(); i++)
+    {
+        bool pointInside = true;
+        for(int j=0; j<poly1.size(); j++)
+            if(rightSide(poly1[j], poly1[(j+1)%poly1.size()], poly2[i]) !=
+               rightSide(poly1[j], poly1[(j+1)%poly1.size()], center1))
+            {
+                pointInside = false;
+                break;
+            }
+        if(pointInside)
+            return true;
+    }
+    for(int i=0; i<poly1.size(); i++)
+    {
+        bool pointInside = true;
+        for(int j=0; j<poly2.size(); j++)
+            if(rightSide(poly2[j], poly2[(j+1)%poly2.size()], poly1[i]) !=
+               rightSide(poly2[j], poly2[(j+1)%poly2.size()], center2))
+            {
+                pointInside = false;
+                break;
+            }
+        if(pointInside)
+            return true;
+    }
+
+    for(int i=0; i<poly1.size(); i++)
+    {
+        for(int j=0; j<poly2.size(); j++)
+        {
+            if(lineIntersect( poly1[i], poly1[(i+1)%poly1.size()], poly2[j], poly2[(j+1)%poly2.size()] ))
+                return true;
+        }
+    }
+    return false;
+}
+
+bool Camera::polygonIntersectOld(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2)
+{
+    sf::Vector2f center1, center2;
+    float maxSquareRad1, maxSquareRad2;
+    for(int i=0; i<poly1.size(); i++)
+        center1 += poly1[i];
+    center1 /= float(poly1.size());
+    for(int i=0; i<poly1.size(); i++)
+        maxSquareRad1 = std::max(maxSquareRad1, poly1[i].x*poly1[i].x + poly1[i].y+poly1[i].y);
+    for(int i=0; i<poly2.size(); i++)
+        center2 += poly2[i];
+    center2 /= float(poly2.size());
+    for(int i=0; i<poly2.size(); i++)
+        maxSquareRad2 = std::max(maxSquareRad2, poly2[i].x*poly2[i].x + poly2[i].y+poly2[i].y);
+    float squareCenterDist = (center1.x-center2.x)*(center1.x-center2.x) +
+                             (center1.y-center2.y)*(center1.y-center2.y);
+
+    if(sqrtf(squareCenterDist) >= sqrtf(maxSquareRad1) + sqrtf(maxSquareRad2))
+        return false;
+
+    for(int i=0; i<poly2.size(); i++)
+    {
+        bool pointInside = true;
+        for(int j=0; j<poly1.size(); j++)
+            if(rightSide(poly1[j], poly1[(j+1)%poly1.size()], poly2[i]) !=
+               rightSide(poly1[j], poly1[(j+1)%poly1.size()], center1))
+            {
+                pointInside = false;
+                break;
+            }
+        if(pointInside)
+            return true;
+    }
+    for(int i=0; i<poly1.size(); i++)
+    {
+        bool pointInside = true;
+        for(int j=0; j<poly2.size(); j++)
+            if(rightSide(poly2[j], poly2[(j+1)%poly2.size()], poly1[i]) !=
+               rightSide(poly2[j], poly2[(j+1)%poly2.size()], center2))
+            {
+                pointInside = false;
+                break;
+            }
+        if(pointInside)
+            return true;
+    }
+    return false;
+}
+
+bool Camera::polygonIntersect(std::vector <sf::Vector2f> poly1, std::vector <sf::Vector2f> poly2)
+{
+    for(int i=0; i<poly1.size(); i++)
+    {
+        bool firstSide = rightSide(poly1[i], poly1[(i+1)%poly1.size()], poly2[0]);
+        bool allOnOneSide = true;
+        for(int j=1; j<poly2.size(); j++)
+            if(firstSide != rightSide(poly1[i], poly1[(i+1)%poly1.size()], poly2[j]))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%poly1.size(); j<poly1.size() + (i+2)%poly1.size(); j++)
+                if(poly1[j%poly1.size()] != poly1[i] and
+                   poly1[j%poly1.size()] != poly1[(i+1)%poly1.size()])
+                {
+                   opositePoint = poly1[j%poly1.size()];
+                   break;
+                }
+            if(firstSide != rightSide(poly1[i], poly1[(i+1)%poly1.size()], opositePoint))
+                return false;
+        }
+    }
+
+    for(int i=0; i<poly2.size(); i++)
+    {
+        bool firstSide = rightSide(poly2[i], poly2[(i+1)%poly2.size()], poly1[0]);
+        bool allOnOneSide = true;
+        for(int j=1; j<poly1.size(); j++)
+            if(firstSide != rightSide(poly2[i], poly2[(i+1)%poly2.size()], poly1[j]))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%poly2.size(); j<poly2.size() + (i+2)%poly2.size(); j++)
+                if(poly2[j%poly2.size()] != poly2[i] and
+                   poly2[j%poly2.size()] != poly2[(i+1)%poly2.size()])
+                {
+                   opositePoint = poly2[j%poly2.size()];
+                   break;
+                }
+            if(firstSide != rightSide(poly2[i], poly2[(i+1)%poly2.size()], opositePoint))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool Camera::wallIntersectOS(Wall* left, Wall* right)
+{
+    for(int i=0; i<left->size(); i++)
+    {
+        bool firstSide = rightSide(spot2d[left->coord[i]], spot2d[left->coord[(i+1)%left->size()]], spot2d[right->coord[0]]);
+        bool allOnOneSide = true;
+        for(int j=1; j<right->size(); j++)
+            if(firstSide != rightSide(spot2d[left->coord[i]], spot2d[left->coord[(i+1)%left->size()]], spot2d[right->coord[j]]))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%left->size(); j<left->size() + (i+2)%left->size(); j++)
+                if(spot2d[left->coord[j%left->size()]] != spot2d[left->coord[i]] and
+                   spot2d[left->coord[j%left->size()]] != spot2d[left->coord[(i+1)%left->size()]])
+                {
+                   opositePoint = spot2d[left->coord[j%left->size()]];
+                   break;
+                }
+            if(firstSide != rightSide(spot2d[left->coord[i]], spot2d[left->coord[(i+1)%left->size()]], opositePoint))
+                return false;
+        }
+    }
+
+    for(int i=0; i<right->size(); i++)
+    {
+        bool firstSide = rightSide(spot2d[right->coord[i]], spot2d[right->coord[(i+1)%right->size()]], spot2d[left->coord[0]]);
+        bool allOnOneSide = true;
+        for(int j=1; j<left->size(); j++)
+            if(firstSide != rightSide(spot2d[right->coord[i]], spot2d[right->coord[(i+1)%right->size()]], spot2d[left->coord[j]]))
+            {
+                allOnOneSide = false;
+                break;
+            }
+        if(allOnOneSide)
+        {
+            sf::Vector2f opositePoint;
+            for(int j = (i+2)%right->size(); j<right->size() + (i+2)%right->size(); j++)
+                if(spot2d[right->coord[j%right->size()]] != spot2d[right->coord[i]] and
+                   spot2d[right->coord[j%right->size()]] != spot2d[right->coord[(i+1)%right->size()]])
+                {
+                   opositePoint = spot2d[right->coord[j%right->size()]];
+                   break;
+                }
+            if(firstSide != rightSide(spot2d[right->coord[i]], spot2d[right->coord[(i+1)%right->size()]], opositePoint))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+std::pair<bool, bool> Camera::wallSortingAlgorythm(Wall* lhs, Wall* rhs)
+{
+    std::vector <int> leftWall;
+    std::vector <int> rightWall;
+    for(int i=0; i<lhs->size(); i++)
+    {
+        int value = planeSide(spot3d[rhs->coord[0]], spot3d[rhs->coord[1]], spot3d[rhs->coord[2]], spot3d[lhs->coord[i]]);
+        if(value != 0)
+            leftWall.push_back(value);
+    }
+    if(leftWall.empty())
+        return {false, false};
+    for(int i=0; i<rhs->size(); i++)
+    {
+        int value = planeSide(spot3d[lhs->coord[0]], spot3d[lhs->coord[1]], spot3d[lhs->coord[2]], spot3d[rhs->coord[i]]);
+        if(value != 0)
+            rightWall.push_back(value);
+    }
+    if(rightWall.empty())
+        return {false, false};
+
+    bool leftAllOnOneSide = true;
+    bool rightAllOnOneSide = true;
+    for(int i=1; i<leftWall.size(); i++)
+        if(leftWall[0] != leftWall[i])
+        {
+            leftAllOnOneSide = false;
+            break;
+        }
+    for(int i=1; i<rightWall.size(); i++)
+        if(rightWall[0] != rightWall[i])
+        {
+            rightAllOnOneSide = false;
+            break;
+        }
+
+    bool leftWallFirst = false;
+    bool rightWallFirst = false;
+    if(leftAllOnOneSide)
+        if(leftWall[0] == 1)
+            leftWallFirst = true;
+        else
+            rightWallFirst = true;
+    if(rightAllOnOneSide)
+        if(rightWall[0] == 1)
+            rightWallFirst = true;
+        else
+            leftWallFirst = true;
+
+    if(leftWallFirst != rightWallFirst)
+        return {leftWallFirst, rightWallFirst};
+    else if(distanceCheckEnabled and !leftWallFirst)
+    {
+        sf::Vector3f leftCenter;
+        sf::Vector3f rightCenter;
+        for(int i=0; i<lhs->size(); i++)
+            leftCenter += spot3d[lhs->coord[i]];
+        leftCenter /= float(lhs->size());
+        leftCenter -= vEye;
+        for(int i=0; i<rhs->size(); i++)
+            rightCenter += spot3d[rhs->coord[i]];
+        leftCenter /= float(lhs->size());
+        leftCenter -= vEye;
+        if( leftCenter.x* leftCenter.x +  leftCenter.y* leftCenter.y +  leftCenter.z* leftCenter.z <
+           rightCenter.x*rightCenter.x + rightCenter.y*rightCenter.y + rightCenter.z*rightCenter.z)
+            return {true, false};
+        else
+            return {false, true};
+    }
+    return {false, false};
+}
+
+/*
+std::pair<bool, bool> Camera::wallSortingAlgorythm(Wall* lhs, Wall* rhs)
+{
+    ///True - to z prawej jest blizej
+    std::vector <int> leftWall;
+    std::vector <int> rightWall;
+
+    int leftC = lhs->coord[0];
+    int leftT;
+    int leftS;
+    for(int i=1; i<lhs->size(); i++)
+        if(leftC != lhs->coord[i])
+        {
+            leftT = lhs->coord[i];
+            if((i+1) < lhs->size())
+                for(int j=i+1; j<lhs->size(); j++)
+                    if(leftC != lhs->coord[j] and leftT != lhs->coord[j])
+                    {
+                        leftS = lhs->coord[j];
+                        break;
+                    }
+            else
+                return {false, false};
+            break;
+        }
+    int rightC = rhs->coord[0];
+    int rightT;
+    int rightS;
+    for(int i=1; i<rhs->size(); i++)
+        if(rightC != rhs->coord[i])
+        {
+            rightT = rhs->coord[i];
+            if((i+1) < lhs->size())
+                for(int j=i+1; j<rhs->size(); j++)
+                    if(rightC != rhs->coord[j] and rightT != rhs->coord[j])
+                    {
+                        rightS = rhs->coord[j];
+                        break;
+                    }
+            else
+                return {false, false};
+            break;
+        }
+
+    for(int i=0; i<lhs->size(); i++)
+    {
+        int value = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], spot3d[lhs->coord[i]]);
+        if(value != 0)
+            leftWall.push_back(value);
+    }
+    if(leftWall.empty())
+        return {false, false};
+
+    for(int i=0; i<rhs->size(); i++)
+    {
+        int value = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], spot3d[rhs->coord[i]]);
+        if(value != 0)
+            rightWall.push_back(value);
+    }
+    if(rightWall.empty())
+        return {false, false};
+    int leftWallEyePos = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], vEye);
+    int rightWallEyePos = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], vEye);
+    if(rightWallEyePos == 0 and leftWallEyePos == 0)
+        return {false, false};
+
+    bool leftAllOnOneSide = true;
+    bool rightAllOnOneSide = true;
+    for(int i=1; i<leftWall.size(); i++)
+        if(leftWall[0] != leftWall[i])
+        {
+            leftAllOnOneSide = false;
+            break;
+        }
+    for(int i=1; i<rightWall.size(); i++)
+        if(rightWall[0] != rightWall[i])
+        {
+            rightAllOnOneSide = false;
+            break;
+        }
+
+
+    bool leftWallFirst = false;
+    bool rightWallFirst = false;
+    if(leftAllOnOneSide)
+        if(leftWall[0] == rightWallEyePos)
+            leftWallFirst = true;
+        else
+            rightWallFirst = true;
+
+    if(rightAllOnOneSide)
+        if(rightWall[0] == leftWallEyePos)
+            rightWallFirst = true;
+        else
+            leftWallFirst = true;
+
+    if(leftWallFirst != rightWallFirst)
+        return {leftWallFirst, rightWallFirst};
+    return {false, false};
+
+}
+*/
+
+void Camera::cycleReduction(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
+{
+    int visited[graph.size()][graph.size()];
+    int father[graph.size()];
+    memset(visited, -1, sizeof(int) * graph.size() * graph.size());
+
+    for(int i=0; i<graph.size(); i++)
+        if(!graph[i].empty() and visited[i][ graph[i][0] ] == -1)
+        {
+            std::stack <int> s;
+            s.push(i);
+            while(!s.empty())
+            {
+                int n = s.top();
+                s.pop();
+                for(int j=graph[n].size() - 1; j>=0; j--)
+                {
+                    if(visited[n][ graph[n][j] ] == -1)
+                    {
+                        s.push(graph[n][j]);
+                        visited[n][graph[n][j]] = i;
+
+                        father[graph[n][j]] = n;
+                    }
+                    else if(visited[n][ graph[n][j] ] == i and visited[father[n]][n] != -2)
+                    {
+                        graphLevel[n]--;
+                        visited[father[n]][n] = -2;
+                        for(int i=graph[ father[n] ].size()-1; i>=0; i--)
+                            if(graph[ father[n] ][i] == n)
+                            {
+                                graph[ father[n] ].erase(graph[ father[n] ].begin() + i);
+                                break;
+                            }
+                    }
+                }
+            }
+        }
+}
+
+void Camera::createGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder)
+{
+    graph.resize(tempOrder.size());
+    for(int i=0; i<tempOrder.size(); i++)
+        for(int j=i+1; j<tempOrder.size(); j++)
+            if(!wallIntersectEnabled or wallIntersect(tempOrder[i], tempOrder[j]))
+            {
+                std::pair <bool, bool> order = wallSortingAlgorythm(tempOrder[i], tempOrder[j]);
+                if(order.first)
+                {
+                    graph[j].push_back(i);
+                    graphLevel[i]++;
+                }
+                if(order.second)
+                {
+                    graph[i].push_back(j);
+                    graphLevel[j]++;
+                }
+            }
+}
+
+void Camera::printGraph()
+{
+    displayGraph(wallSortGraph, wallSortGraphLevel);
+    p->printToConsole(cmdOutput);
+}
+
+void Camera::identifyWalls(std::vector <Wall*> wallie)
+{
+    for(int j=0; j<wallie.size(); j++)
+    {
+        std::vector <sf::Vector2f> polygon = wallToPoly(wallie[j]);
+        if(!polygon.empty())
+        {
+            sf::Vector2f centerPosition2d;
+            for(int i=0; i<polygon.size(); i++)
+                centerPosition2d += polygon[i];
+            centerPosition2d /= float(polygon.size());
+
+            sf::Vector3f centerPosition3d;
+            for(int i=0; i<wallie[j]->size(); i++)
+                centerPosition3d += spot3d[wallie[j]->coord[i]];
+            centerPosition3d /= float(wallie[j]->size());
+
+            ///##############################
+            int pSide = 0;
+            pSide = planeSide(spot3d[wallie[j]->coord[0]], spot3d[wallie[j]->coord[1]], spot3d[wallie[j]->coord[2]], vEye);
+            ///##############################
+
+            sf::Text t;
+            int characterSize = 30; //roundf(dotSize(300, centerPosition3d));
+            if(characterSize > 0)
+            {
+                if(characterSize > 50)
+                    characterSize = 50;
+                t.setCharacterSize(characterSize);
+                t.setFont(p->font);
+                t.setOutlineThickness(2);
+                if(pSide == 1)
+                    t.setColor(sf::Color::Blue);
+                if(pSide == -1)
+                    t.setColor(sf::Color::Red);
+                t.setString(stringify(j));
+                //t.setString(stringify(pSide));
+                t.setPosition(centerPosition2d);
+                textArray.push_back(t);
+            }
+        }
+    }
+}
+
+void Camera::topologicalSort(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel, std::vector <Wall*> tempOrder)
+{
+    std::queue <int> que;
+    for(int i=0; i<graphLevel.size(); i++)
+        if(graphLevel[i] == 0)
+            que.push(i);
+
+    cmdOutput += "\nWall Order:\n";
+    if(que.empty())
+    {
+        std::cout << "\nERROR: Topological sort queue empty";
+        p->printToConsole("[error] Topological sort queue empty");
+    }
+    int counter = 0;
+    while(!que.empty())
+    {
+            wallOrder.push_back(tempOrder[que.front()]);
+            cmdOutput += stringify(que.front()) + " ";
+            if(counter%40 == 39)
+                cmdOutput+= "\n";
+            counter++;
+            for(int i=0; i<graph[que.front()].size(); i++)
+            {
+                graphLevel[graph[que.front()][i]]--;
+                if(graphLevel[graph[que.front()][i]] == 0)
+                    que.push(graph[que.front()][i]);
+            }
+        que.pop();
+    }
+    if(counter < tempOrder.size() and !topologicalError and sinceLastTopologicalError > 5000.0d)
+    {
+        std::cout << "\nERROR: Topological sort failure";
+        p->printToConsole("[error] Topological sort failure");
+        sinceLastTopologicalError = 0.0d;
+        topologicalError = true;
+    }
+    else
+    {
+        sinceLastTopologicalError += p->dt;
+    }
+    if(counter == tempOrder.size())
+    {
+        topologicalError = false;
+    }
+}
+
+void Camera::randSort(std::vector <Wall*> tempOrder)
+{
+    while(!tempOrder.empty())
+    {
+        int randomValue = rand()%tempOrder.size();
+        wallOrder.push_back(tempOrder[randomValue]);
+        tempOrder.erase(tempOrder.begin() + randomValue);
+    }
+}
+
+void Camera::displayGraph(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
+{
+    for(int i=0; i<graph.size(); i++)
+    {
+        cmdOutput += "\nWall " + stringify(i) + " results:";
+        for(int j=0; j<graph[i].size(); j++)
+            cmdOutput += " " + stringify(graph[i][j]);
+    }
+}
+
+void Camera::findCycle(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
+{
+    for(int i=0; i<graph.size(); i++)
+    {
+        bool visited[graph.size()];
+        memset(visited, 0, sizeof(bool) * graph.size());
+        std::stack <int> s;
+        s.push(i);
+        while(!s.empty())
+        {
+            int n = s.top();
+            s.pop();
+            for(int j=0; j<graph[n].size(); j++)
+            {
+                if(!visited[graph[n][j]])
+                {
+                    s.push(graph[n][j]);
+                    visited[graph[n][j]] = true;
+                }
+                if(graph[n][j] == i)
+                {
+                    p->printToConsole("Found cycle starting: " + stringify(i), sf::Color::Cyan);
+                }
+            }
+        }
+    }
+}
+
+void Camera::wallSort()
+{
+    ///poza ekranem nie dodawaj do tempOrder
+    std::vector <std::vector <int> > graph;
+    std::vector <Wall*> tempOrder;
+    wallOrder.clear();
+    for(int i=0; i<p->world.size(); i++)
+        for(int j=0; j<p->world[i].size(); j++)
+        {
+            if(activeWall(&(p->world[i].wallie[j])))
+                tempOrder.push_back(&(p->world[i].wallie[j]));
+        }
+    std::vector <int> graphLevel;
+    graphLevel.resize(tempOrder.size());
+
+    if(!randomSortEnabled)
+    {
+        createGraph(graph, graphLevel, tempOrder);
+
+        if(cycleReductionEnabled)
+        {
+            cycleReduction(graph, graphLevel);
+        }
+
+        wallSortGraph = graph;
+        wallSortGraphLevel = graphLevel;
+
+        topologicalSort(graph, graphLevel, tempOrder);
+    }
+    else
+        randSort(tempOrder);
+
+    if(identifyWallsEnabled)
+        identifyWalls(tempOrder);
 }
 
 void Camera::display()
 {
-    //std::cout << "X: " << position.x << " Y: " << position.y << " Z: " << position.z << " Yaw: " << angle.y*180/M_PI << " Pitch: " << angle.x*180/M_PI << "\n" << " Eye: " << eye;
-    struct tempType
-    {
-        int i;
-        int j;
-        float dist;
-    };
-    std::vector <tempType> wallOrder;
-    calcAngle();
+    cmdOutput.clear();
     calcTerrain();
-    for(int i=0; i<p->world.size(); i++)
-        for(int j=0; j<p->world[i].size(); j++)
-            wallOrder.push_back({i, j, squareWallDist(p->world[i].wallie[j])});
-    std::sort(wallOrder.begin(), wallOrder.end(), [](const tempType &left, const tempType &right) {return left.dist > right.dist;});
-    triangleArray.clear(), quadArray.clear(), stripArray.clear();
+    wallSort();
+    sf::Vector3f place = sf::Vector3f(100, 50, 300);
+    //place = vecTransform(place);
+    place = vecTransform(place);
+    drawSphere(place, 10, sf::Color::Magenta);
+
+
     for(int i=0; i<wallOrder.size(); i++)
-        drawWall(p->world[wallOrder[i].i].wallie[wallOrder[i].j]);
-    sf::Vector3f place = sf::Vector3f(100, -150, 300);
-    place = vecTransform(place - position);
-    drawSphere(place, 50, sf::Color::Magenta);
+        drawWall(*wallOrder[i]);
+
+    /*
+    std::vector <sf::Vector2f> collisionSpot2d;
+
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[0]]);
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[1]]);
+    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[2]]);
+
+    debugDrawPlane(collisionSpot2d, sf::Color::Red);
+    */
+
+    place = vecTransform(p->character[0].ellipsoidCenter - position);
+    sf::Color color = sf::Color::Yellow;
+    color.a = 120;
+    drawSphere(place, 80, color);
+
+
 
     p->window->clear();
-    p->window->draw(&triangleArray[0], triangleArray.size(), sf::Triangles);
     p->window->draw(&quadArray[0], quadArray.size(), sf::Quads);
-    p->window->draw(&stripArray[0], stripArray.size(), sf::TriangleStrip);
-    std::cout << "\nTriangle Array size: " << triangleArray.size() << "\nQuad Array size: " << quadArray.size() << "\nStrip Array size: " << stripArray.size();
+    p->window->draw(&debugArray[0], debugArray.size(), sf::Quads);
+    for(int i=0; i<textArray.size(); i++)
+        p->window->draw(textArray[i]);
+    quadArray.clear();
+    debugArray.clear();
+    textArray.clear();
 }
+
+Entity::Entity(SYNTH3D* gameBase):
+    position({0,0,0}), directionSet(false), tick(1), offsetLimit(15.0f),
+    sinx(0.0f), siny(0.0f), sinz(0.0f),
+    cosx(1.0f), cosy(1.0f), cosz(1.0f),
+    offset(0.0f), dt(0), veryCloseDistance(0.00005f),
+    velocityVector({0, 0, 0}), gravityVector({0, 0, 0}),
+    speedVector({0, 0, 0}), gravitySpeedVector({0, 0, 0})
+{
+    synth = gameBase;
+}
+
+void Entity::collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravity)
+{
+    collisionPackage.R3Position = position;
+    collisionPackage.R3Position.y += rotationCenter.y;
+    collisionPackage.R3Velocity = vel;
+    sf::Vector3f eSpacePosition = collisionPackage.R3Position / collisionPackage.eRadius;
+    sf::Vector3f eSpaceVelocity = collisionPackage.R3Velocity / collisionPackage.eRadius;
+    collisionRecursionDepth = 0;
+    sf::Vector3f finalPosition = collideWithWorld(eSpacePosition, eSpaceVelocity);
+
+    collisionPackage.R3Position = finalPosition*collisionPackage.eRadius;
+    collisionPackage.R3Velocity = gravity;
+    eSpaceVelocity = gravity/collisionPackage.eRadius;
+    collisionRecursionDepth = 0;
+    finalPosition = collideWithWorld(finalPosition, eSpaceVelocity);
+
+    finalPosition = finalPosition * collisionPackage.eRadius;
+    finalPosition.y -= rotationCenter.y;
+
+    position = finalPosition;
+}
+
+sf::Vector3f Entity::collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel)
+{
+    if (collisionRecursionDepth>5)
+        return pos;
+    collisionPackage.velocity = vel;
+    collisionPackage.normalizedVelocity = vel;
+    normalize3f(collisionPackage.normalizedVelocity);
+    collisionPackage.basePoint = pos;
+    collisionPackage.foundCollision = false;
+    synth->checkCollision(&collisionPackage, element[0], element[element.size() - 1]);
+    if (collisionPackage.foundCollision == false)
+    {
+        return pos + vel;
+    }
+    sf::Vector3f destinationPoint = pos + vel;
+    sf::Vector3f newBasePoint = pos;
+    if (collisionPackage.nearestDistance >= veryCloseDistance)
+    {
+        sf::Vector3f V = vel;
+        vecSetLength(V, collisionPackage.nearestDistance - veryCloseDistance);
+        newBasePoint = collisionPackage.basePoint + V;
+        normalize3f(V);
+        //collisionPackage.intersectionPoint = collisionPackage.intersectionPoint - veryCloseDistance * V;
+        collisionPackage.intersectionPoint -= veryCloseDistance * V;
+    }
+    sf::Vector3f slidePlaneOrigin = collisionPackage.intersectionPoint;
+    sf::Vector3f slidePlaneNormal = newBasePoint - collisionPackage.intersectionPoint;
+    normalize3f(slidePlaneNormal);
+    Plane slidingPlane(slidePlaneOrigin, slidePlaneNormal);
+    sf::Vector3f newDestinationPoint = destinationPoint -
+        float(slidingPlane.signedDistanceTo(destinationPoint)) * slidePlaneNormal;
+    sf::Vector3f newVelocityVector = newDestinationPoint - collisionPackage.intersectionPoint;
+    if (vecLength(newVelocityVector) < veryCloseDistance)
+    {
+        return newBasePoint;
+    }
+    collisionRecursionDepth++;
+    return collideWithWorld(newBasePoint, newVelocityVector);
+}
+
+void Entity::setAcceleration(sf::Vector3f acceleration)
+{
+    velocityVector = acceleration;
+}
+
+void Entity::setGravity(sf::Vector3f acceleration)
+{
+    gravityVector = acceleration;
+}
+
+void Entity::update(double deltaTime)
+{
+    dt = deltaTime;
+    positionBuffor = position;
+
+    sf::Vector3f velocity = (speedVector + velocityVector) * float(dt);
+    sf::Vector3f gravity = (gravitySpeedVector + gravityVector) * float(dt);
+
+    velocityVector = sf::Vector3f(0, 0, 0);
+    gravityVector =  sf::Vector3f(0, 0, 0);
+
+    collideAndSlide(velocity, gravity);
+
+    speedVector = sf::Vector3f(position.x - positionBuffor.x, 0, position.z - positionBuffor.z) / float(dt);
+    gravitySpeedVector = sf::Vector3f(0, position.y - positionBuffor.y, 0) / float(dt);
+
+
+    if(!directionSet)
+    {
+        if(position != positionBuffor)
+        {
+            setDirection(position, positionBuffor);
+            calcAngle();
+        }
+    }
+    else
+    {
+        directionSet = false;
+        calcAngle();
+    }
+    movement();
+    for(int i=0; i<element.size(); i++)
+        for(int j=0; j<synth->world[element[i]].size(); j++)
+            for(int k=0; k<synth->world[element[i]].wallie[j].size(); k++)
+            {
+                sf::Vector3f flatRotationCenter = {rotationCenter.x, 0, rotationCenter.z};
+                synth->terrain[synth->world[element[i]].wallie[j].coord[k]] = vecTransform(synth->defTerrain[synth->world[element[i]].wallie[j].coord[k]]);
+                synth->terrain[synth->world[element[i]].wallie[j].coord[k]] += position - flatRotationCenter;
+                for(int l=0; l<synth->world[element[i]].wallie[j].lineStrip.size(); l++)
+                    for(int m=0; m<synth->world[element[i]].wallie[j].lineStrip[l].size(); m++)
+                    {
+                        synth->terrain[synth->world[element[i]].wallie[j].lineStrip[l][m]] = vecTransform(synth->defTerrain[synth->world[element[i]].wallie[j].lineStrip[l][m]]);
+                        synth->terrain[synth->world[element[i]].wallie[j].lineStrip[l][m]] += position - flatRotationCenter;
+                    }
+            }
+    ellipsoidCenter = position;
+    ellipsoidCenter.y += rotationCenter.y;
+}
+
+void Entity::importObject(int newElement)
+{
+    element.push_back(newElement);
+}
+
+void Entity::setDirection(sf::Vector3f vec, sf::Vector3f beginning)
+{
+    origin = beginning;
+    direction = vec;
+    directionSet = true;
+}
+
+void Entity::setPos(sf::Vector3f vec)
+{
+    positionBuffor = vec;
+    position = vec;
+}
+
+void Entity::setSpeed(sf::Vector3f vec)
+{
+    speedVector = sf::Vector3f(vec.x, 0, vec.z);
+    gravitySpeedVector = sf::Vector3f(0, vec.y, 0);
+}
+
+void Entity::setRotationCenter(sf::Vector3f vec)
+{
+    rotationCenter = vec;
+}
+
+void Entity::setEllipsoidRadius(sf::Vector3f radius)
+{
+    collisionPackage.eRadius = radius;
+}
+
+void Entity::movement()
+{
+    if(position != positionBuffor)
+    {
+        sf::Vector3f movementVec = position - positionBuffor;
+        float distance = sqrtf(movementVec.x*movementVec.x + movementVec.y*movementVec.y + movementVec.z*movementVec.z);
+        offset += distance*tick;
+        if(offset > offsetLimit)
+        {
+            tick = -tick;
+            offset = offsetLimit - fmodf(offset, offsetLimit);
+        }
+        else if(offset < -offsetLimit)
+        {
+            tick = -tick;
+            offset = -offsetLimit - fmodf(offset, -offsetLimit);
+        }
+    }
+    else
+    {
+        if(offset > 0)
+        {
+            if(offset < dt)
+                offset = 0;
+            else
+                offset-= dt;
+        }
+        else
+        {
+            if(offset > -dt)
+                offset = 0;
+            else
+                offset+= dt;
+        }
+    }
+    for(int i=0; i<leftLeg.size(); i++)
+        synth->defTerrain[leftLeg[i].first] = leftLeg[i].second + sf::Vector3f(0, 0, offset);
+    for(int i=0; i<rightLeg.size(); i++)
+        synth->defTerrain[rightLeg[i].first] = rightLeg[i].second - sf::Vector3f(0, 0, offset);
+}
+
+void Entity::calcAngle()
+{
+    ///CIALO OBRACA SIE TYLKO W PLASZCZYZNIE BEZ Y, GLOWA EWENTUALNIE BARDZIEJ
+    //dirVec = direction - position;
+    dirVec = direction - origin;
+    float length = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
+    siny = dirVec.x / length;
+    cosy = dirVec.z / length;
+    /*
+    float lengthX = sqrtf(dirVec.y*dirVec.y + dirVec.z*dirVec.z);
+    float lengthY = sqrtf(dirVec.x*dirVec.x + dirVec.z*dirVec.z);
+    float lengthZ = sqrtf(dirVec.x*dirVec.x + dirVec.y*dirVec.y);
+    sinx = dirVec.z / lengthX;
+    cosx = dirVec.y / lengthX;
+    siny = dirVec.z / lengthY;
+    cosy = dirVec.x / lengthY;
+    sinz = dirVec.x / lengthZ;
+    cosz = dirVec.y / lengthZ;
+    */
+}
+
+void Entity::calcRotationCenter()
+{
+    if(!element.empty() and synth->world[element[0]].size() > 0 and synth->world[element[0]].wallie[0].size() > 0)
+    {
+        sf::Vector3f first = synth->defTerrain[synth->world[element[0]].wallie[0].coord[0]];
+        float minx = first.x, maxx = first.x;
+        float miny = first.y, maxy = first.y;
+        float minz = first.z, maxz = first.z;
+        for(int i=0; i<element.size(); i++)
+            for(int j=0; j<synth->world[element[i]].size(); j++)
+                for(int k=0; k<synth->world[element[i]].wallie[j].size(); k++)
+                {
+                    sf::Vector3f temp = synth->defTerrain[synth->world[element[i]].wallie[j].coord[k]];
+                    maxx = std::max(maxx, temp.x);
+                    minx = std::min(minx, temp.x);
+                    maxy = std::max(maxy, temp.y);
+                    miny = std::min(miny, temp.y);
+                    maxz = std::max(maxz, temp.z);
+                    minz = std::min(minz, temp.z);
+                }
+        rotationCenter = {(maxx+minx)/2, (maxy+miny)/2, (maxz+minz)/2};
+    }
+}
+
+sf::Vector3f Entity::vecTransform(sf::Vector3f vec)
+{
+    vec -= rotationCenter;
+    sf::Vector3f target = vec;
+    //Yaw: (y axis)
+    target.x = -vec.x*cosy - vec.z*siny;
+    target.z = -vec.z*cosy + vec.x*siny;
+    /*
+    //Pitch; (x axis)
+    vec = target;
+    target.y = vec.y*cosx - vec.z*sinx;
+    target.z = vec.y*sinx + vec.z*cosx;
+    //Roll: (z axis)
+    vec = target;
+    target.x = vec.x*cosz - vec.y*sinz;
+    //target.y = vec.x*sinz + vec.y*cosz;
+    target.y = -vec.x*sinz - vec.y*cosz;
+    */
+    target += rotationCenter;
+    return target;
+}
+
 
 #endif //SYNTH3D_HPP
