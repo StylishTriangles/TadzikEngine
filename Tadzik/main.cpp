@@ -74,7 +74,6 @@ int main(){
 sceneManager.setActiveScene("RPG");
     //sceneManager.setActiveScene("ISAYPARTY");
 
-
     sf::Clock deltaClock;
     while(window.isOpen()){
         sf::Event event;
