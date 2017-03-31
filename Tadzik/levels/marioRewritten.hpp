@@ -84,13 +84,15 @@ public:
         sf::FloatRect prevGlobalBounds;
         MARIO2* game;
         direction currentDirection = RIGHT;
+        bool canJump = false;
     };
 
     class Tile: public ARO::AnimSprite {
     public:
-        Tile(ARO::Anim* a, sf::Vector2f pos) {
+        Tile(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) {
             setPosition(pos);
             setAnimation(a);
+            game = g;
         }
         virtual void onHitBelow() {
 
@@ -101,12 +103,16 @@ public:
         virtual void onCollision(MovingEntity* m, float area) {
 
         }
+        virtual void updateTile() {
+
+        }
         bool collidable = true;
+        MARIO2* game;
     };
 
     class Tile_Breakable: public Tile {
     public:
-        Tile_Breakable(ARO::Anim* a, sf::Vector2f pos) : Tile(a, pos) {
+        Tile_Breakable(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
             setLooped(false);
         }
         void onHitBelow() {
@@ -116,10 +122,9 @@ public:
 
     class Tile_PowerUp: public Tile {
     public:
-        Tile_PowerUp(ARO::Anim* a, sf::Vector2f pos, MARIO2* g, ARO::Anim* d) : Tile(a, pos) {
+        Tile_PowerUp(ARO::Anim* a, sf::Vector2f pos, ARO::Anim* d, MARIO2* g) : Tile(a, pos, g) {
             setLooped(false);
             deactivated = d;
-            game = g;
         }
         void onHitBelow() {
             if (active) {
@@ -129,20 +134,54 @@ public:
             }
         }
         ARO::Anim* deactivated;
-        MARIO2* game;
         bool active = true;
     };
 
     class Tile_Water: public Tile {
     public:
-        Tile_Water(ARO::Anim* a, sf::Vector2f pos) : Tile(a, pos) {
+        Tile_Water(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
             setLooped(true);
             collidable = false;
         }
         void onCollision(MovingEntity* m, float area) {
             m->velocity.y*=0.99;
             m->velocity.y-=0.5*(area/(32*32));
+            if (m->velocity.y<0 && area/(32*32)<0.5)
+                m->canJump = true;
         }
+    };
+
+    class Tile_Timed: public Tile {
+    public:
+        Tile_Timed(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
+            setPlaySpeed(0.0000001);
+        }
+        ~Tile_Timed() {
+            game->vecEffects.push_back(Effect(*this, game, sf::Vector2f(Utils::randFloat(-5, 5), -5)));
+        }
+        void onHitAbove() {
+            if (!primed) {
+                primed = true;
+                timeElapsed.restart();
+            }
+        }
+        void onHitBelow() {
+            if (!primed) {
+                primed = true;
+                timeElapsed.restart();
+            }
+        }
+        void updateTile() {
+            if (primed) {
+                if (timeElapsed.getElapsedTime()>decayTime)
+                    m_destroy = true;
+                else
+                    setFrame(animation->frames*(timeElapsed.getElapsedTime()/decayTime));
+            }
+        }
+        bool primed = false;
+        sf::Clock timeElapsed;
+        sf::Time decayTime = sf::seconds(1);
     };
 
     class Powerup: public MovingEntity {
@@ -258,6 +297,8 @@ public:
                         break;
                     }
                     else {
+                        isDead = true;
+                        deadTime.restart();
                         setScale(1.5, 1.5);
                         canJump = false;
                         lastHit.restart();
@@ -293,19 +334,21 @@ public:
 
         void jump() {
             if (canJump) {
-                velocity.y = -13;
+                velocity.y = -jumpHeight;
                 canJump = false;
                 setAnimation(spriteSheets[level][JUMP]);
                 currentAnimationType=JUMP;
             }
         }
 
-        bool canJump = true;
         animationType currentAnimationType=RUN;
         sf::Clock lastHit;
         sf::Time invincibilityTime = sf::milliseconds(500);
         int level = 0;
+        int jumpHeight = 13;
         std::vector <std::vector <ARO::Anim*> > spriteSheets;
+        bool isDead;
+        sf::Clock deadTime;
     };
 
     class Enemy: public MovingEntity {
@@ -359,12 +402,20 @@ public:
     };
 
     void gameOver() {
+        TADZIK.setScale(1.5, 1.5);
+        TADZIK.setRotation(0);
+        TADZIK.isDead = false;
+        TADZIK.velocity = sf::Vector2f(0.001,0);
         for (int i=0; i<vecTiles.size(); i++)
             delete vecTiles[i];
         for (int i=0; i<vecEnemies.size(); i++)
             delete vecEnemies[i];
+        for (int i=0; i<vecPowerups.size(); i++)
+            delete vecPowerups[i];
         vecTiles.clear();
         vecEnemies.clear();
+        vecPowerups.clear();
+        vecEffects.clear();
         loadMap("files/maps/mario/map2.png");
     }
 
@@ -375,7 +426,7 @@ public:
         for (int x=0; x<mapa.getSize().x; x++) {
             for (int y=0; y<mapa.getSize().y; y++) {
                 if (mapa.getPixel(x, y)==sf::Color(0, 0, 0)) {
-                    vecTiles.push_back(new Tile(&aFloorTile, sf::Vector2f(x*tileSize, y*tileSize)));
+                    vecTiles.push_back(new Tile(&aFloorTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(100, 100, 100)) {
                     spFloorTile.setPosition(x*tileSize, y*tileSize);
@@ -386,7 +437,7 @@ public:
                     vecHitboxlessFront.push_back(spFloorTile);
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(200, 100, 100)) {
-                    vecTiles.push_back(new Tile_Breakable(&aBreakableTile, sf::Vector2f(x*tileSize, y*tileSize)));
+                    vecTiles.push_back(new Tile_Breakable(&aBreakableTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(255, 0, 0)) {
                     vecEnemies.push_back(new NME_Snek(&aSnekWalk, sf::Vector2f(x*tileSize, y*tileSize), this));
@@ -395,14 +446,16 @@ public:
                     TADZIK.setPosition(x*tileSize, y*tileSize);
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(200, 0, 100)) {
-                    vecTiles.push_back(new Tile_PowerUp(&aPowerUpTile, sf::Vector2f(x*tileSize, y*tileSize), this, &aPowerUpTile_ ));
+                    vecTiles.push_back(new Tile_PowerUp(&aPowerUpTile, sf::Vector2f(x*tileSize, y*tileSize), &aPowerUpTile_, this));
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(0, 0, 255)) {
-                    vecTiles.push_back(new Tile_Water(&aWater, sf::Vector2f(x*tileSize, y*tileSize)));
+                    vecTiles.push_back(new Tile_Water(&aWater, sf::Vector2f(x*tileSize, y*tileSize), this));
+                }
+                else if(mapa.getPixel(x, y)==sf::Color(255, 100, 0)) {
+                    vecTiles.push_back(new Tile_Timed(&aTimedTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
             }
         }
-        std::cout << "MAP LOADED";
     }
 
     void onSceneLoadToMemory() {
@@ -417,6 +470,8 @@ public:
         aPowerUpTile.setSpriteSheet(&texPowerUpTile, 32, sf::seconds(1000000));
         aPowerUpTile_.setSpriteSheet(&texPowerUpTile_, 32, sf::seconds(1000000));
         spFloorTile.setTexture(texFloorTile);
+        spsTimedTile.loadFromFile("files/textures/mario/timedTile.png");
+        aTimedTile.setSpriteSheet(&spsTimedTile, 32, sf::seconds(1000000));
 
         spBackground.setTexture(texBackground);
         texBackground.setRepeated(true);
@@ -506,20 +561,33 @@ public:
         }
         rGame.setView(gameView);
 
-        ///INPUT Z KLAWIATURY
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))) {
-            TADZIK.velocity.x-=1;
+        if (TADZIK.isDead) {
+            if (TADZIK.deadTime.getElapsedTime().asSeconds()>1) {
+                gameOver();
+                rGame.clear();
+            }
+            else {
+                TADZIK.setRotation((TADZIK.deadTime.getElapsedTime()/sf::seconds(1))*720);
+                TADZIK.setScale(TADZIK.getScale().x*0.95, TADZIK.getScale().y*0.95);
+            }
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))) {
-            TADZIK.velocity.x+=1;
+        else {
+            ///INPUT Z KLAWIATURY
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))) {
+                TADZIK.velocity.x-=1;
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))) {
+                TADZIK.velocity.x+=1;
+            }
+            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))) {
+                TADZIK.jump();
+            }
+            TADZIK.updatePlayer(deltaTime);
         }
-        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))) {
-            TADZIK.jump();
-        }
-        TADZIK.updatePlayer(deltaTime);
 
         ///OGARNIANIE KLOCKUF
         for (auto a=vecTiles.begin(); a!=vecTiles.end(); a++) {
+            (*a)->updateTile();
             if ((*a)->shouldDestroy()) {
                 delete *a;
                 vecTiles.erase(a);
@@ -533,8 +601,7 @@ public:
 
         ///GAME OVER
         if (TADZIK.getGlobalBounds().top>windowSize.y) {
-            gameOver();
-            rGame.clear();
+            TADZIK.isDead = true;
         }
 
         ///EFEKTY
@@ -569,9 +636,8 @@ public:
         for (auto a:vecEnemies)
             rGame.draw(*a);
         rGame.draw(TADZIK);
+        //Utils::drawBoundingBox(TADZIK, &rGame);
         for (auto a:vecHitboxlessFront)
-            rGame.draw(a);
-        for (auto a:vecWater)
             rGame.draw(a);
         for (auto a:vecEffects)
             rGame.draw(a);
@@ -591,6 +657,7 @@ protected:
     sf::Texture spsSnekWalk;
     sf::Texture spsPowerup;
     sf::Texture spsWater;
+    sf::Texture spsTimedTile;
 
     std::vector <sf::Texture> spsTadzikRun;
     std::vector <sf::Texture> spsTadzikIdle;
@@ -607,6 +674,7 @@ protected:
     ARO::Anim aPowerUpTile;
     ARO::Anim aPowerUpTile_;
     ARO::Anim aWater;
+    ARO::Anim aTimedTile;
 
     ARO::Anim aPowerup;
 
@@ -621,7 +689,6 @@ protected:
     std::vector <Effect> vecEffects;
     std::vector <sf::Sprite> vecHitboxlessFront;
     std::vector <sf::Sprite> vecHitboxlessBack;
-    std::vector <Tile_Water> vecWater;
 
     sf::Vector2f windowSize;
     sf::Vector2f mapSize;

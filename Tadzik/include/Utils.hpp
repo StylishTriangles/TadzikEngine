@@ -9,7 +9,7 @@
 namespace Utils{
 
 sf::FloatRect getBiggerBoundingBox(sf::Sprite& sp);
-void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window);
+void drawBoundingBox(sf::Sprite& sp, sf::RenderTarget* target);
 float randFloat(float from, float to);
 int randInt(int from, int to);
 sf::Vector2i randVector2i (sf::IntRect i);
