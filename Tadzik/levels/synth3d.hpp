@@ -47,6 +47,7 @@ class Wall
 {
 public:
     Wall();
+    std::string name;
     std::vector <int> coord;
     std::vector <bool> drawable;
     std::vector <bool> dotDraw;
@@ -79,6 +80,7 @@ void Wall::clear()
     pSize = 100;
     grid = 0;
     OptAllowed = true;
+    name.clear();
 }
 
 void Wall::push_back(int c, bool draw = true, bool dot = true)
@@ -103,13 +105,15 @@ public:
     void push_back(Wall w);
     void clear();
     bool OptAllowed;
-    sf::Vector3f velocity;
-    sf::Vector3f position;
+    int beginning;
+    int finish;
+    void calcStartAndFinish();
 };
 
 Object::Object():
     OptAllowed(true),
-    velocity({0, 0, 0})
+    beginning(2000000),
+    finish(0)
 {
 }
 
@@ -118,18 +122,62 @@ void Object::clear()
     wallie.clear();
     OptAllowed = true;
     name.clear();
-    velocity = {0, 0, 0};
-    position = {0, 0, 0};
 }
 
 void Object::push_back(Wall w)
 {
     wallie.push_back(w);
+    for(int i=0; i<w.size(); i++)
+    {
+        if(w.coord[i] < beginning)
+            beginning = w.coord[i];
+        if(w.coord[i] > finish)
+            finish = w.coord[i];
+    }
+    for(int i=0; i<w.lineStrip.size(); i++)
+    {
+        for(int j=0; j<w.lineStrip[i].size(); j++)
+        {
+            if(w.coord[i] < beginning)
+                beginning = w.coord[i];
+            if(w.coord[i] > finish)
+                finish = w.coord[i];
+        }
+    }
 }
 
 unsigned int Object::size()
 {
     return wallie.size();
+}
+
+void Object::calcStartAndFinish()
+{
+    beginning = 2000000000;
+    finish = 0;
+    for(int j=0; j<size(); j++)
+    {
+        for(int k=0; k < wallie[j].size(); k++)
+        {
+            if(wallie[j].coord[k] > finish)
+                finish = wallie[j].coord[k];
+            if(wallie[j].coord[k] < beginning)
+                beginning = wallie[j].coord[k];
+        }
+    }
+    for(int j=0; j<size(); j++)
+    {
+        for(int k=0; k<wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<wallie[j].lineStrip[k].size(); m++)
+            {
+                if(wallie[j].lineStrip[k][m] > finish)
+                    finish = wallie[j].lineStrip[k][m];
+                if(wallie[j].lineStrip[k][m] < beginning)
+                    beginning = wallie[j].lineStrip[k][m];
+            }
+        }
+    }
 }
 
 class Plane
@@ -174,9 +222,110 @@ double Plane::signedDistanceTo(const sf::Vector3f& point) const
     return dotProduct(point, normal) + equation[3];
 }
 
-
-
 class SYNTH3D;
+
+class ObjectUtility
+{
+public:
+    ObjectUtility(SYNTH3D* parent, sf::Vector2u setWindowSize);
+    void show();
+protected:
+    SYNTH3D* p;
+    sf::Vector2u windowSize;
+    void showRightWindow();
+    void showCreationWindow();
+    void showLeftWindow();
+    void showTopWindow();
+    void showTopWindowAlternative();
+    void showBottomWindow();
+    void showErrorMessage();
+    void showWallCreationWindow();
+    void moveObject(int deltaX, int deltaY, int deltaZ);
+    void calcObjectBoundaries(int& minx, int& maxx, int& miny, int& maxy, int& minz, int& maxz);
+    void resizeObject(float sizeX, float sizeY, float sizeZ, sf::Vector3f center);
+    void calcStartAndFinish(int& start, int& finish);
+    void calcStartAndFinishSafe(int& start, int& finish);
+    int calcObjectSize();
+    void saveObject();
+    sf::Vector3f rotateVector(sf::Vector3f vec, sf::Vector3f angle, sf::Vector3f center);
+    void rotateObject(sf::Vector3f angle, sf::Vector3f center);
+    void alignToGrid(int gridSize);
+    void alignObject();
+    void alignAll();
+    void representVectorAsThreeOthers(sf::Vector3f destination, sf::Vector3f vec1, sf::Vector3f vec2, sf::Vector3f vec3,
+                                      float& a, float& b, float& c);
+    void makeBackup();
+    void restoreBackup();
+    void deleteTerrainPoint(int index);
+
+    unsigned int xButtonInterval;
+    unsigned int yButtonInterval;
+
+    unsigned int rightWindowWidth;
+    ImVec4 rightActiveButtonColor;
+    ImVec4 rightActiveButtonColorSemi;
+    ImVec4 rightNewButtonColor;
+    ImVec4 rightWindowBackgroundColor;
+    sf::Vector2u rightWindowSize;
+
+    unsigned int leftWindowWidth;
+    ImVec4 leftActiveButtonColor;
+    ImVec4 leftActiveButtonColorSemi;
+    ImVec4 leftNewButtonColor;
+    ImVec4 leftWindowBackgroundColor;
+    sf::Vector2u leftWindowSize;
+
+    unsigned int topWindowHeight;
+    ImVec4 topActiveButtonColor;
+    ImVec4 topActiveButtonColorSemi;
+    ImVec4 topNewButtonColor;
+    ImVec4 topWindowBackgroundColor;
+    sf::Vector2u topWindowSize;
+
+    unsigned int bottomWindowHeight;
+    ImVec4 bottomActiveButtonColor;
+    ImVec4 bottomActiveButtonColorSemi;
+    ImVec4 bottomNewButtonColor;
+    ImVec4 bottomWindowBackgroundColor;
+    sf::Vector2u bottomWindowSize;
+
+    sf::Vector2u creationWindowSize;
+    sf::Vector2u errorWindowSize;
+
+    int editModeActiveObject;
+    bool createObjectModeActive;
+    bool createObjectModeJustActivated;
+    bool errorMessageActivate;
+    bool errorMessageJustActivated;
+    std::string errorMessage;
+
+    char* editModeActiveObjectName;
+    char filename[100];
+
+    std::vector <sf::Vector3f> object;
+    std::vector <Object> worldBackup;
+    std::vector <sf::Vector3f> terrainBackup;
+    std::vector <sf::Vector3f> defTerrainBackup;
+    bool backupMade;
+
+    int selectedCenter;
+    float currentAngle;
+    int rotationAxis;
+    sf::Vector3f personalCenter;
+    int gridSize;
+    int currentWall;
+    int objectGrid;
+    float objectColor[4];
+    float objectTrans[4];
+    float objectPointSize;
+    bool createWallModeActive;
+    bool createWallModeJustActivated;
+    Wall tempWall;
+    Object tempObject;
+    int creationModeActiveObject;
+    std::vector <bool> selectedObject;
+    std::vector <bool> activeObject;
+};
 
 class Entity;
 
@@ -281,17 +430,22 @@ public:
     std::vector <sf::Vector3f> defTerrain;
     std::vector <Object> world;
     std::vector <Entity> character;
+    void saveMap(std::string path);
 protected:
     sf::Font font;
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
     float eyeDistance;
+    float mouseSpeed;
     void loadMap(std::string path);
+    void loadEntities(std::string path);
     void OptLines();
     void OptDots();
     void showInfo();
     bool debug;
+    bool grabbedMouse;
+    bool gBuffor;
     float offsetx, offsety;
     int tick;
     double dt;
@@ -305,6 +459,11 @@ protected:
     bool checkPointInTriangle(const sf::Vector3f& point,
         const sf::Vector3f& pa, const sf::Vector3f& pb, const sf::Vector3f& pc);
     bool getLowestRoot(float a, float b, float c, float maxR, float* root);
+
+    sf::Vector2i getDeltaMouse();
+    sf::Vector2i bufforMousePos;
+
+    ObjectUtility editMap;
 };
 
 class Entity
@@ -326,11 +485,18 @@ public:
     sf::Vector3f ellipsoidCenter;                             ///TUTAJ ZMIANA
     collisionPacket collisionPackage;
     sf::Vector3f position;
+    std::string name;
+    void moveLeft(float speed);
+    void moveRight(float speed);
+    void moveForward(float speed);
+    void moveBackward(float speed);
+    void jump(float speed);
 protected:
     SYNTH3D* synth;
     sf::Vector3f positionBuffor;
     void movement();
     void calcAngle();
+    void calcVelocity(sf::Vector3f& velocity);
     sf::Vector3f vecTransform(sf::Vector3f vec);
     std::vector <int> element;
     float sinx, siny, sinz, cosx, cosy, cosz;
@@ -340,21 +506,1665 @@ protected:
     double dt;
     float offset, offsetLimit;
     bool directionSet;
+    bool standingOnSurface;
+    bool velocitySet;
     int tick;
     sf::Vector3f velocityVector;
     sf::Vector3f gravityVector;
     sf::Vector3f speedVector;
     sf::Vector3f gravitySpeedVector;
-    float veryCloseDistance;
+    float maxSpeedSquared;
+    float maxSpeed;
+    float veryCloseDistanceVelocity;
+    float veryCloseDistanceGravity;
     int collisionRecursionDepth;
     void collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravity);
-    sf::Vector3f collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel);
+    sf::Vector3f collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel, float veryCloseDistance);
 };
+
+ObjectUtility::ObjectUtility(SYNTH3D* parent, sf::Vector2u setWindowSize) :
+    xButtonInterval(20), yButtonInterval(20),
+
+    rightWindowWidth(180),
+    rightActiveButtonColor(sfColorToImColor(sf::Color(255, 255, 0, 255))),
+    rightActiveButtonColorSemi(sfColorToImColor(sf::Color(255, 255, 0, 122))),
+    rightNewButtonColor(sfColorToImColor(sf::Color(0, 122, 122, 255))),
+    rightWindowBackgroundColor(sfColorToImColor(sf::Color(255, 0, 255, 47))),
+    rightWindowSize(sf::Vector2u(rightWindowWidth, setWindowSize.y - 2*yButtonInterval)),
+
+    leftWindowWidth(340),
+    leftActiveButtonColor(sfColorToImColor(sf::Color(255, 255, 0, 255))),
+    leftActiveButtonColorSemi(sfColorToImColor(sf::Color(255, 255, 0, 122))),
+    leftNewButtonColor(sfColorToImColor(sf::Color(0, 122, 122, 255))),
+    leftWindowBackgroundColor(sfColorToImColor(sf::Color(255, 0, 255, 47))),
+    leftWindowSize(sf::Vector2u(leftWindowWidth, setWindowSize.y - 2*yButtonInterval)),
+
+
+    topWindowHeight(110),
+    topActiveButtonColor(sfColorToImColor(sf::Color(255, 255, 0, 255))),
+    topActiveButtonColorSemi(sfColorToImColor(sf::Color(255, 255, 0, 122))),
+    topNewButtonColor(sfColorToImColor(sf::Color(0, 122, 122, 255))),
+    topWindowBackgroundColor(sfColorToImColor(sf::Color(255, 0, 255, 47))),
+    topWindowSize(sf::Vector2u(setWindowSize.x - leftWindowWidth - rightWindowWidth - 3*xButtonInterval, topWindowHeight)),
+
+    bottomWindowHeight(80),
+    bottomActiveButtonColor(sfColorToImColor(sf::Color(255, 255, 0, 255))),
+    bottomActiveButtonColorSemi(sfColorToImColor(sf::Color(255, 255, 0, 122))),
+    bottomNewButtonColor(sfColorToImColor(sf::Color(0, 122, 122, 255))),
+    bottomWindowBackgroundColor(sfColorToImColor(sf::Color(255, 0, 255, 47))),
+    bottomWindowSize(sf::Vector2u(setWindowSize.x - leftWindowWidth - rightWindowWidth - 3*xButtonInterval, bottomWindowHeight)),
+
+    creationWindowSize(sf::Vector2u(400, 200)),
+    editModeActiveObject(-1), createObjectModeActive(false), createObjectModeJustActivated(false),
+
+    editModeActiveObjectName("default"),
+
+    errorWindowSize(sf::Vector2u(400, 200)),
+    errorMessageActivate(false),
+    errorMessageJustActivated(false),
+    errorMessage("No Errors"),
+
+    selectedCenter(1),
+    currentAngle(0),
+    rotationAxis(0),
+    personalCenter({0, 0, 0}),
+    gridSize(5),
+    backupMade(false),
+    currentWall(-1),
+    objectGrid(0),
+    objectColor({0, 1.0f, 0, 1.0f}),
+    objectTrans({0, 0.0f, 0, 1.0f}),
+    objectPointSize(100.0f),
+    createWallModeActive(false),
+    createWallModeJustActivated(false),
+    creationModeActiveObject(-1)
+{
+    windowSize = setWindowSize;
+    p = parent;
+    filename[0] = '\0';
+}
+
+void ObjectUtility::show()
+{
+    createObjectModeJustActivated = false;
+    showRightWindow();
+    showBottomWindow();
+    bool alternativeTopWindow = false;
+    if(createObjectModeActive)
+    {
+        if(createObjectModeJustActivated)
+        {
+            createObjectModeJustActivated = false;
+            ImGui::SetNextWindowPos(sf::Vector2u((p->window->getSize().x - creationWindowSize.x)/2, (p->window->getSize().y - creationWindowSize.y)/2));
+            ImGui::SetNextWindowSize(creationWindowSize);
+            tempObject.clear();
+        }
+        showCreationWindow();
+    }
+    if(activeObject.size() > 1)
+    {
+        alternativeTopWindow = true;
+        showTopWindowAlternative();
+    }
+    if(editModeActiveObject >=0 and editModeActiveObject < p->world.size())
+    {
+        showLeftWindow();
+        if(calcObjectSize() >= 0 and !alternativeTopWindow)
+            showTopWindow();
+    }
+    if(createWallModeActive)
+    {
+        showWallCreationWindow();
+    }
+    if(errorMessageActivate)
+    {
+        if(errorMessageJustActivated)
+        {
+            errorMessageJustActivated = false;
+            ImGui::SetNextWindowPos(sf::Vector2u((p->window->getSize().x - errorWindowSize.x)/2, (p->window->getSize().y - errorWindowSize.y)/2));
+            ImGui::SetNextWindowSize(errorWindowSize);
+        }
+        showErrorMessage();
+    }
+}
+
+void ObjectUtility::showRightWindow()
+{
+    ImGui::SetNextWindowPos(sf::Vector2u(p->window->getSize().x - rightWindowSize.x - xButtonInterval,yButtonInterval));
+    ImGui::SetNextWindowSize(rightWindowSize);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, rightWindowBackgroundColor);
+    ImGui::Begin("Object Selection");
+    if(ImGui::Button("Align All", sf::Vector2u(rightWindowWidth - 20,20)))
+    {
+        alignAll();
+    }
+    ImGui::PushStyleColor(ImGuiCol_Button, rightNewButtonColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, rightActiveButtonColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, rightActiveButtonColorSemi);
+    if(ImGui::Button("Create New", sf::Vector2u(rightWindowWidth - 20,20)))
+    //if(ImGui::Button("Create", sf::Vector2u(rightWindowWidth/2 - 14,20)))
+    {
+        createObjectModeActive = true;
+        createObjectModeJustActivated = true;
+        editModeActiveObject = -1;
+    }
+    ImGui::PopStyleColor();
+    ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+    //if(ImGui::Button("Delete", sf::Vector2u(rightWindowWidth/2 - 14,20)))
+    if(ImGui::Button("Delete Selected", sf::Vector2u(rightWindowWidth - 20,20)))
+    {
+        if(editModeActiveObject >=0 and editModeActiveObject < p->world.size())
+        {
+            p->world.erase(p->world.begin() + editModeActiveObject);
+        }
+        editModeActiveObject = -1;
+        currentAngle = 0;
+        currentWall = -1;
+    }
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    for(int i=0; i<p->world.size(); i++)
+    {
+        bool popStyle = false;
+        if(i == editModeActiveObject)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, rightActiveButtonColor);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, rightActiveButtonColor);
+            popStyle = true;
+        }
+        else
+        {
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, rightActiveButtonColor);
+        }
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, rightActiveButtonColorSemi);
+        if(ImGui::Button(p->world[i].name.c_str(), sf::Vector2u(rightWindowWidth - 20,20)))
+        {
+            editModeActiveObject = i;
+            currentAngle = 0;
+            currentWall = -1;
+        }
+        if(popStyle)
+        {
+            ImGui::PopStyleColor();
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+    ImGui::Separator();
+    if(ImGui::TreeNode("Move objects"))
+    {
+        selectedObject.resize(p->world.size());
+        activeObject.clear();
+        for(int i=0; i<p->world.size(); i++)
+        {
+            bool tempBool = selectedObject[i];
+            ImGui::Selectable(p->world[i].name.c_str(), &tempBool);
+            selectedObject[i] = tempBool;
+            if(selectedObject[i])
+            {
+                activeObject.push_back(i);
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+}
+
+void ObjectUtility::showCreationWindow()
+{
+    ImGui::Begin("Creation Menu");
+    char name[50];
+    strcpy(name, tempObject.name.c_str());
+    ImGui::InputText("Object name", name, 50);
+    tempObject.name = name;
+    if(ImGui::Button("Create Blank Object", sf::Vector2u(creationWindowSize.x - 15,20)))
+    {
+        if(tempObject.name.size() > 0)
+        {
+            p->world.push_back(tempObject);
+            tempObject.clear();
+        }
+        else
+        {
+            errorMessage = "Object has got to have a name!\n(It's no woman, treat it with respect hehe)";
+            errorMessageActivate = true;
+            errorMessageJustActivated = true;
+        }
+    }
+    if(ImGui::Button("Create Cube", sf::Vector2u(creationWindowSize.x - 15,20)))
+    {
+        if(tempObject.name.size() > 0)
+        {
+            Wall wall[6];
+            wall[0].push_back(p->terrain.size() + 0);
+            wall[0].push_back(p->terrain.size() + 1);
+            wall[0].push_back(p->terrain.size() + 2);
+            wall[0].push_back(p->terrain.size() + 3);
+
+            wall[1].push_back(p->terrain.size() + 4);
+            wall[1].push_back(p->terrain.size() + 5);
+            wall[1].push_back(p->terrain.size() + 1);
+            wall[1].push_back(p->terrain.size() + 0);
+
+            wall[2].push_back(p->terrain.size() + 1);
+            wall[2].push_back(p->terrain.size() + 5);
+            wall[2].push_back(p->terrain.size() + 6);
+            wall[2].push_back(p->terrain.size() + 2);
+
+            wall[3].push_back(p->terrain.size() + 3);
+            wall[3].push_back(p->terrain.size() + 2);
+            wall[3].push_back(p->terrain.size() + 6);
+            wall[3].push_back(p->terrain.size() + 7);
+
+            wall[4].push_back(p->terrain.size() + 4);
+            wall[4].push_back(p->terrain.size() + 0);
+            wall[4].push_back(p->terrain.size() + 3);
+            wall[4].push_back(p->terrain.size() + 7);
+
+            wall[5].push_back(p->terrain.size() + 7);
+            wall[5].push_back(p->terrain.size() + 6);
+            wall[5].push_back(p->terrain.size() + 5);
+            wall[5].push_back(p->terrain.size() + 4);
+            tempObject.beginning = p->terrain.size();
+            tempObject.finish = p->terrain.size() + 7;
+            p->terrain.push_back(sf::Vector3f(0, 0, 0));
+            p->terrain.push_back(sf::Vector3f(0, 100, 0));
+            p->terrain.push_back(sf::Vector3f(100, 100, 0));
+            p->terrain.push_back(sf::Vector3f(100, 0, 0));
+            p->terrain.push_back(sf::Vector3f(0, 0, 100));
+            p->terrain.push_back(sf::Vector3f(0, 100, 100));
+            p->terrain.push_back(sf::Vector3f(100, 100, 100));
+            p->terrain.push_back(sf::Vector3f(100, 0, 100));
+            for(int i=0; i<6; i++)
+                tempObject.push_back(wall[i]);
+            p->world.push_back(tempObject);
+            tempObject.clear();
+        }
+        else
+        {
+            errorMessage = "Object has got to have a name!\n(It's no woman, treat it with respect hehe)";
+            errorMessageActivate = true;
+            errorMessageJustActivated = true;
+        }
+    }
+    std::string nameList;
+    for(int i=0; i<p->world.size(); i++)
+    {
+        nameList += p->world[i].name + '\0';
+    }
+    nameList += '\0';
+    ImGui::Combo(":", &creationModeActiveObject, nameList.c_str());
+    ImGui::SameLine();
+    if(ImGui::Button("Copy", ImVec2(creationWindowSize.x - 292, 20)))
+    {
+        if(creationModeActiveObject >=0 and creationModeActiveObject < p->world.size())
+        {
+            for(int i=0; i<p->world[creationModeActiveObject].size(); i++)
+            {
+                tempObject.push_back(p->world[creationModeActiveObject].wallie[i]);
+            }
+            for(int i=0; i<tempObject.size(); i++)
+            {
+                for(int j=0; j<tempObject.wallie[i].size(); j++)
+                {
+                    tempObject.wallie[i].coord[j] += p->terrain.size() - p->world[creationModeActiveObject].beginning;
+                }
+                for(int j=0; j<tempObject.wallie[i].lineStrip.size(); j++)
+                    for(int k=0; k<tempObject.wallie[i].lineStrip[j].size(); k++)
+                    {
+                        tempObject.wallie[i].lineStrip[j][k] += p->terrain.size() - p->world[creationModeActiveObject].beginning;
+                    }
+            }
+            tempObject.beginning = p->terrain.size();
+            tempObject.finish = p->world[creationModeActiveObject].finish - p->world[creationModeActiveObject].beginning + p->terrain.size();
+            for(int i=p->world[creationModeActiveObject].beginning; i<=p->world[creationModeActiveObject].finish; i++)
+            {
+                p->terrain.push_back(p->terrain[i]);
+                p->defTerrain.push_back(p->defTerrain[i]);
+            }
+            p->world.push_back(tempObject);
+            tempObject.clear();
+        }
+    }
+    if(ImGui::Button("Close", sf::Vector2u(creationWindowSize.x - 15,20)))
+    {
+        createObjectModeActive = false;
+        tempObject.clear();
+    }
+    ImGui::Separator();
+    ImGui::End();
+}
+
+void ObjectUtility::showLeftWindow()
+{
+    ImGui::SetNextWindowPos(sf::Vector2u(xButtonInterval, yButtonInterval));
+    ImGui::SetNextWindowSize(leftWindowSize);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, leftWindowBackgroundColor);
+    ImGui::Begin("Object Menu");
+    char name[100];
+    strcpy(name, p->world[editModeActiveObject].name.c_str());
+    ImGui::InputText("Edit name", name, 100);
+    p->world[editModeActiveObject].name = name;
+    std::string objectSize = "Size: " + stringify(p->world[editModeActiveObject].size());
+    ImGui::Text(objectSize.c_str());
+    if(p->world[editModeActiveObject].OptAllowed)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(0, 122, 0)));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+        if(ImGui::Button("Optimization On",sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            p->world[editModeActiveObject].OptAllowed = !p->world[editModeActiveObject].OptAllowed;
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122, 0, 0)));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+        if(ImGui::Button("Optimization Off",sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            p->world[editModeActiveObject].OptAllowed = !p->world[editModeActiveObject].OptAllowed;
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+    int a;
+    ImGui::Combo("Pick center", &selectedCenter, "lowest XYZ\0object center\0my own\0\0");
+    if(selectedCenter == 2)
+    {
+        int center[3];
+        center[0] = personalCenter.x;
+        center[1] = personalCenter.y;
+        center[2] = personalCenter.z;
+        ImGui::DragInt3("Edit center", center, 0.05);
+        personalCenter = sf::Vector3f(center[0], center[1], center[2]);
+    }
+    ImGui::Text("Rotation:");
+    if(ImGui::RadioButton("X axis", rotationAxis == 0))
+    {
+        currentAngle = 0;
+        rotationAxis = 0;
+    }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("Y axis", rotationAxis == 1))
+    {
+        currentAngle = 0;
+        rotationAxis = 1;
+    }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("Z axis", rotationAxis == 2))
+    {
+        currentAngle = 0;
+        rotationAxis = 2;
+    }
+    if(ImGui::Button("Align to a grid of", ImVec2(200,20)))
+    {
+        alignToGrid(gridSize);
+    }
+    ImGui::SameLine();
+    ImGui::InputInt("", &gridSize);
+    if(ImGui::Button("Align Object", ImVec2(200,20)))
+    {
+        alignObject();
+    }
+    if(ImGui::Button("Set walls grid to", ImVec2(200,20)))
+    {
+        for(int i=0; i<p->world[editModeActiveObject].wallie.size(); i++)
+        {
+            p->world[editModeActiveObject].wallie[i].grid = objectGrid;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::InputInt("", &objectGrid);
+    if(ImGui::Button("Set Color", ImVec2(70,20)))
+    {
+        for(int i=0; i<p->world[editModeActiveObject].wallie.size(); i++)
+        {
+            p->world[editModeActiveObject].wallie[i].color.r = objectColor[0] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].color.g = objectColor[1] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].color.b = objectColor[2] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].color.a = objectColor[3] * 255.0f;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::ColorEdit4("C", objectColor);
+    if(ImGui::Button("Set Trans", ImVec2(70,20)))
+    {
+        for(int i=0; i<p->world[editModeActiveObject].wallie.size(); i++)
+        {
+            p->world[editModeActiveObject].wallie[i].trans.r = objectTrans[0] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].trans.g = objectTrans[1] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].trans.b = objectTrans[2] * 255.0f;
+            p->world[editModeActiveObject].wallie[i].trans.a = objectTrans[3] * 255.0f;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::ColorEdit4("T", objectTrans);
+    if(ImGui::Button("Invert walls", ImVec2(leftWindowWidth - 10,20)))
+    {
+        for(int i=0; i<p->world[editModeActiveObject].wallie.size(); i++)
+        {
+            std::vector <int> invertedWall;
+            std::vector <bool> invertedDrawable;
+            std::vector <bool> invertedDotDraw;
+            for(int j=p->world[editModeActiveObject].wallie[i].size()-1; j>=0; j--)
+            {
+                invertedWall.push_back(p->world[editModeActiveObject].wallie[i].coord[j]);
+            }
+            for(int j=p->world[editModeActiveObject].wallie[i].size()-2; j>=0; j--)
+            {
+                invertedDrawable.push_back(p->world[editModeActiveObject].wallie[i].drawable[j]);
+                invertedDotDraw.push_back(p->world[editModeActiveObject].wallie[i].dotDraw[j]);
+            }
+            invertedDrawable.push_back(p->world[editModeActiveObject].wallie[i].drawable[p->world[editModeActiveObject].wallie[i].size()-1]);
+            invertedDotDraw.push_back(p->world[editModeActiveObject].wallie[i].dotDraw[p->world[editModeActiveObject].wallie[i].size()-1]);
+            p->world[editModeActiveObject].wallie[i].coord = invertedWall;
+            p->world[editModeActiveObject].wallie[i].drawable = invertedDrawable;
+            p->world[editModeActiveObject].wallie[i].dotDraw = invertedDotDraw;
+        }
+    }
+    if(ImGui::Button("Set point size", ImVec2(110,20)))
+    {
+        for(int i=0; i<p->world[editModeActiveObject].wallie.size(); i++)
+        {
+            p->world[editModeActiveObject].wallie[i].pSize = objectPointSize;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::DragFloat("c", &objectPointSize, 1.0f, 1.0f, 1000.0f);
+    ImGui::Text("");
+    ImGui::TextColored(ImVec4(255, 255, 0, 255), "Walls:");
+    ImGui::Separator();
+    std::string nameList;
+    for(int i=0; i<p->world[editModeActiveObject].size(); i++)
+    {
+        std::string s;
+        if(p->world[editModeActiveObject].wallie[i].name.size() > 0)
+            s = p->world[editModeActiveObject].wallie[i].name;
+        else
+            s = "Wall " + stringify(i);
+        nameList += s + '\0';
+    }
+    nameList += "none\0";
+    nameList += '\0';
+    ImGui::Combo("Pick wall", &currentWall, nameList.c_str());
+    if(currentWall == p->world[editModeActiveObject].size())
+        currentWall = -1;
+    if(currentWall >=0 and currentWall < p->world[editModeActiveObject].size())
+    {
+        std::string sizeOfWall;
+        sizeOfWall = "Size: " + stringify(calcObjectSize());
+        ImGui::Text(sizeOfWall.c_str());
+        Wall& wallie = p->world[editModeActiveObject].wallie[currentWall];
+        char wallName[32];
+        strcpy(wallName, wallie.name.c_str());
+        ImGui::InputText("Change name", wallName, 32);
+        wallie.name = wallName;
+        float col4[4];
+        col4[0] = wallie.color.r / 255.0f; col4[1] = wallie.color.g / 255.0f;
+        col4[2] = wallie.color.b / 255.0f; col4[3] = wallie.color.a / 255.0f;
+        ImGui::ColorEdit4("color", col4);
+        wallie.color.r = col4[0] * 255.0f; wallie.color.g = col4[1] * 255.0f;
+        wallie.color.b = col4[2] * 255.0f; wallie.color.a = col4[3] * 255.0f;
+
+        col4[0] = wallie.trans.r / 255.0f; col4[1] = wallie.trans.g / 255.0f;
+        col4[2] = wallie.trans.b / 255.0f; col4[3] = wallie.trans.a / 255.0f;
+        ImGui::ColorEdit4("trans", col4);
+        wallie.trans.r = col4[0] * 255.0f; wallie.trans.g = col4[1] * 255.0f;
+        wallie.trans.b = col4[2] * 255.0f; wallie.trans.a = col4[3] * 255.0f;
+
+        ImGui::DragFloat("Point size", &wallie.pSize, 1.0f, 1.0f, 1000.0f);
+
+        if(ImGui::TreeNode("Coord"))
+        {
+            int start;
+            int finish;
+            calcStartAndFinishSafe(start, finish);
+            int objectCount;
+            objectCount = calcObjectSize();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, leftNewButtonColor);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+            if(ImGui::Button("Create", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+            {
+                if(!wallie.coord.empty())
+                {
+                    if(wallie.coord[wallie.size()-1] == finish)
+                    {
+                        wallie.push_back(finish);
+                    }
+                    else
+                    {
+                        wallie.push_back(wallie.coord[wallie.size()-1] + 1);
+                    }
+                }
+                else
+                {
+                    wallie.push_back(start);
+                }
+            }
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+            if(ImGui::Button("Delete", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+            {
+                if(!wallie.coord.empty())
+                    wallie.coord.erase(wallie.coord.begin() + wallie.size() - 1);
+            }
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+
+            for(int i=0; i<wallie.size(); i++)
+            {
+                int falseCoord = wallie.coord[i] - start;
+                ImGui::SliderInt(stringify(i).c_str(), &falseCoord, 0, objectCount - 1);
+                wallie.coord[i] = falseCoord + start;
+            }
+            ImGui::TreePop();
+        }
+
+        if(ImGui::TreeNode("Draw mask"))
+        {
+            int density = 4;
+            ImGui::Columns(density, NULL, false);
+            for(int i=0; i<wallie.size(); i++)
+            {
+                std::string tempButtonName;
+                tempButtonName = "L" + stringify(i) + ": " + stringify(int(wallie.drawable[i]));
+                if(ImGui::SmallButton(tempButtonName.c_str()))
+                {
+                    wallie.drawable[i] = !wallie.drawable[i];
+                }
+                tempButtonName = "D" + stringify(i) + ": " + stringify(int(wallie.dotDraw[i]));
+                if(ImGui::SmallButton(tempButtonName.c_str()))
+                {
+                    wallie.dotDraw[i] = !wallie.dotDraw[i];
+                }
+                ImGui::NextColumn();
+                if(i%density == 7)
+                {
+                    ImGui::Columns(1);
+                    ImGui::Separator();
+                    ImGui::Columns(density, NULL, false);
+                }
+            }
+            ImGui::Columns(1);
+            ImGui::TreePop();
+        }
+
+        if(ImGui::TreeNode("Points"))
+        {
+            ImGui::Columns(4, NULL, false);
+            int lineBeginning = 0;
+            int i = editModeActiveObject;
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                for(int k=0; k < p->world[i].wallie[j].size(); k++)
+                {
+                    if(p->world[i].wallie[j].coord[k] > lineBeginning)
+                        lineBeginning = p->world[i].wallie[j].coord[k];
+                }
+            }
+            int start, finish;
+            calcStartAndFinishSafe(start, finish);
+            ImGui::Selectable("X", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("Y", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("Z", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("ID", false);
+            ImGui::NextColumn();
+            for(int i=start; i<=finish; i++)
+            {
+                bool activePoint = false;
+                for(int j=0; j<wallie.coord.size(); j++)
+                {
+                    if(wallie.coord[j] == i)
+                    {
+                        activePoint = true;
+                        break;
+                    }
+                }
+                ImGui::Selectable(stringifyf(p->terrain[i].x).c_str(), activePoint);
+                ImGui::NextColumn();
+                ImGui::Selectable(stringifyf(p->terrain[i].y).c_str(), activePoint);
+                ImGui::NextColumn();
+                ImGui::Selectable(stringifyf(p->terrain[i].z).c_str(), activePoint);
+                ImGui::NextColumn();
+                ImGui::Selectable(stringify(i - start).c_str(), activePoint);
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::TreePop();
+        }
+        if (ImGui::TreeNode("Edit Points"))
+        {
+            int lineBeginning = 0;
+            int i = editModeActiveObject;
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                for(int k=0; k < p->world[i].wallie[j].size(); k++)
+                {
+                    if(p->world[i].wallie[j].coord[k] > lineBeginning)
+                        lineBeginning = p->world[i].wallie[j].coord[k];
+                }
+            }
+            int start, finish;
+            calcStartAndFinishSafe(start, finish);
+            for(int i=start; i<=finish; i++)
+            {
+                std::string s = "nr " + stringify(i - start);
+                float singlePoint[3];
+                singlePoint[0] = p->terrain[i].x;
+                singlePoint[1] = p->terrain[i].y;
+                singlePoint[2] = p->terrain[i].z;
+                ImGui::DragFloat3(s.c_str(), singlePoint, 0.02f);
+                p->terrain[i].x = singlePoint[0];
+                p->terrain[i].y = singlePoint[1];
+                p->terrain[i].z = singlePoint[2];
+            }
+            ImGui::TreePop();
+
+        }
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+        ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+        if(ImGui::Button("Delete Selected Wall", sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            if(currentWall >=0 and currentWall < p->world[editModeActiveObject].wallie.size())
+            {
+                p->world[editModeActiveObject].wallie.erase(p->world[editModeActiveObject].wallie.begin() + currentWall);
+                currentWall = -1;
+            }
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, leftNewButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+        if(ImGui::Button("Create New Wall", sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            createWallModeJustActivated = true;
+            createWallModeActive = true;
+        }
+        if(ImGui::Button("Create New Point", sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            int start = p->world[editModeActiveObject].beginning;
+            int finish = p->world[editModeActiveObject].finish;
+            if(start > finish)
+            {
+                if(editModeActiveObject > 0)
+                {
+                    start = p->world[editModeActiveObject - 1].finish + 1;
+                }
+                else
+                {
+                    start = 0;
+                }
+                finish = start - 1;
+                p->world[editModeActiveObject].beginning = start;
+                p->world[editModeActiveObject].finish = finish;
+            }
+            p->terrain.insert(p->terrain.begin() + finish + 1, sf::Vector3f(0, 0, 0));
+            p->defTerrain.insert(p->defTerrain.begin() + finish + 1, sf::Vector3f(0, 0, 0));
+            p->world[editModeActiveObject].finish++;
+            for(int i=editModeActiveObject + 1; i<p->world.size(); i++)
+            {
+                p->world[i].beginning++;
+                p->world[i].finish++;
+                for(int j=0; j<p->world[i].size(); j++)
+                {
+                    for(int m=0; m<p->world[i].wallie[j].size(); m++)
+                    {
+                        p->world[i].wallie[j].coord[m]++;
+                    }
+                    for(int m=0; m<p->world[i].wallie[j].lineStrip.size(); m++)
+                    {
+                        for(int n=0; n<p->world[i].wallie[j].lineStrip[m].size(); n++)
+                        {
+                            p->world[i].wallie[j].lineStrip[m][n]++;
+                        }
+                    }
+                }
+            }
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+        ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+        if(ImGui::Button("Delete Last Point", sf::Vector2u(leftWindowWidth - 10,20)))
+        {
+            if((p->world[editModeActiveObject].finish - p->world[editModeActiveObject].beginning) >= 1)
+                deleteTerrainPoint(p->world[editModeActiveObject].finish);
+            else
+            {
+                errorMessage = "Please do not delete the last one!\n(You can always add one / modify)";
+                errorMessageActivate = true;
+                errorMessageJustActivated = true;
+            }
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        if (ImGui::TreeNode("Edit Points"))
+        {
+            int lineBeginning = 0;
+            int i = editModeActiveObject;
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                for(int k=0; k < p->world[i].wallie[j].size(); k++)
+                {
+                    if(p->world[i].wallie[j].coord[k] > lineBeginning)
+                        lineBeginning = p->world[i].wallie[j].coord[k];
+                }
+            }
+            int start, finish;
+            calcStartAndFinishSafe(start, finish);
+            for(int i=start; i<=finish; i++)
+            {
+                std::string s = "nr " + stringify(i - start);
+                float singlePoint[3];
+                singlePoint[0] = p->terrain[i].x;
+                singlePoint[1] = p->terrain[i].y;
+                singlePoint[2] = p->terrain[i].z;
+                ImGui::InputFloat3(s.c_str(), singlePoint, 0);
+                p->terrain[i].x = singlePoint[0];
+                p->terrain[i].y = singlePoint[1];
+                p->terrain[i].z = singlePoint[2];
+            }
+            ImGui::TreePop();
+
+        }
+        if(ImGui::TreeNode("Delete Points (experimental)"))
+        {
+            ImGui::Columns(4, NULL, false);
+            int lineBeginning = 0;
+            int i = editModeActiveObject;
+            for(int j=0; j<p->world[i].size(); j++)
+            {
+                for(int k=0; k < p->world[i].wallie[j].size(); k++)
+                {
+                    if(p->world[i].wallie[j].coord[k] > lineBeginning)
+                        lineBeginning = p->world[i].wallie[j].coord[k];
+                }
+            }
+            int start, finish;
+            calcStartAndFinishSafe(start, finish);
+            ImGui::Selectable("X", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("Y", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("Z", false);
+            ImGui::NextColumn();
+            ImGui::Selectable("ID", false);
+            ImGui::NextColumn();
+            for(int i=start; i<=finish; i++)
+            {
+                bool activePoint = false;
+                ImGui::Selectable(stringifyf(p->terrain[i].x).c_str(), activePoint);
+                ImGui::NextColumn();
+                ImGui::Selectable(stringifyf(p->terrain[i].y).c_str(), activePoint);
+                ImGui::NextColumn();
+                ImGui::Selectable(stringifyf(p->terrain[i].z).c_str(), activePoint);
+                ImGui::NextColumn();
+
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+                ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+                if(ImGui::Button(stringify(i - start).c_str(), ImVec2(60, 20)))
+                {
+                    if((p->world[editModeActiveObject].finish - p->world[editModeActiveObject].beginning) >= 1)
+                        deleteTerrainPoint(i);
+                    else
+                    {
+                        errorMessage = "Please do not delete the last one!\n(You can always add one / modify)";
+                        errorMessageActivate = true;
+                        errorMessageJustActivated = true;
+                    }
+                }
+                ImGui::PopStyleColor();
+                ImGui::PopStyleColor();
+                ImGui::PopStyleColor();
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::TreePop();
+        }
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+}
+
+void ObjectUtility::showTopWindowAlternative()
+{
+    ImGui::SetNextWindowPos(sf::Vector2u(1.5*xButtonInterval + leftWindowWidth,yButtonInterval));
+    ImGui::SetNextWindowSize(topWindowSize);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, topWindowBackgroundColor);
+    ImGui::Begin("Edit Object");
+
+    int position[3];
+    int minx, maxx, miny, maxy, minz, maxz;
+    int bufforObject = editModeActiveObject;
+    editModeActiveObject = 0;
+    calcObjectBoundaries(minx, maxx, miny, maxy, minz, maxz);
+    for(int i=1; i<activeObject.size(); i++)
+    {
+        int tempMinx, tempMaxx, tempMiny, tempMaxy, tempMinz, tempMaxz;
+        editModeActiveObject = activeObject[i];
+        calcObjectBoundaries(tempMinx, tempMaxx, tempMiny, tempMaxy, tempMinz, tempMaxz);
+        minx = std::min(tempMinx, minx);
+        maxx = std::max(tempMaxx, maxx);
+        miny = std::min(tempMiny, miny);
+        maxy = std::max(tempMaxy, maxy);
+        minz = std::min(tempMinz, minz);
+        maxz = std::max(tempMaxz, maxz);
+    }
+
+    editModeActiveObject = bufforObject;
+    sf::Vector3f center;
+    if(selectedCenter == 1)
+    {
+        center.x = minx + (maxx - minx)*0.5f;
+        center.y = miny + (maxy - miny)*0.5f;
+        center.z = minz + (maxz - minz)*0.5f;
+    }
+    else if(selectedCenter == 2)
+    {
+        center = personalCenter;
+    }
+    else
+    {
+        center.x = minx;
+        center.y = miny;
+        center.z = minz;
+    }
+
+    position[0] = center.x;
+    position[1] = center.y;
+    position[2] = center.z;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+            position[2] += 1;
+        else
+            position[1] += 1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+            position[2] += -1;
+        else
+            position[1] += -1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        position[0] += 1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        position[0] += -1;
+
+    if(ImGui::DragInt3("Edit Position XYZ", position, 0.04))
+    {
+        int buffor = editModeActiveObject;
+        for(int i=0; i<activeObject.size(); i++)
+        {
+            editModeActiveObject = activeObject[i];
+            moveObject(position[0] - center.x, position[1] - center.y, position[2] - center.z);
+        }
+        editModeActiveObject = buffor;
+    }
+
+    ImGui::Separator();
+    int sizeOfObject[3];
+    sizeOfObject[0] = maxx - minx;
+    sizeOfObject[1] = maxy - miny;
+    sizeOfObject[2] = maxz - minz;
+    float divideX = float(maxx - minx);
+    float divideY = float(maxy - miny);
+    float divideZ = float(maxz - minz);
+    bool zeroX = false;
+    bool zeroY = false;
+    bool zeroZ = false;
+    if(sizeOfObject[0] == 0)
+    {
+        zeroX = true;
+    }
+    if(sizeOfObject[1] == 0)
+    {
+        zeroY = true;
+    }
+    if(sizeOfObject[2] == 0)
+    {
+        zeroZ = true;
+    }
+    if(ImGui::DragInt3("Edit Size XYZ", sizeOfObject, 0.02))
+    {
+        if(zeroX == true)
+        {
+            divideX = 1;
+            sizeOfObject[0] = 1;
+        }
+        if(zeroY == true)
+        {
+            divideY = 1;
+            sizeOfObject[1] = 1;
+        }
+        if(zeroZ == true)
+        {
+            divideZ = 1;
+            sizeOfObject[2] = 1;
+        }
+        int buffor = editModeActiveObject;
+        for(int i=0; i<activeObject.size(); i++)
+        {
+            editModeActiveObject = activeObject[i];
+            resizeObject(float(sizeOfObject[0])/divideX,
+                         float(sizeOfObject[1])/divideY,
+                         float(sizeOfObject[2])/divideZ,
+                         center);
+        }
+        editModeActiveObject = buffor;
+    }
+    ImGui::Separator();
+    float tempAngle = currentAngle;
+    ImGui::SliderAngle("Rotate", &currentAngle, -200.0f, 200.0f);
+    if(tempAngle != currentAngle)
+    {
+        sf::Vector3f angle = sf::Vector3f(0, 0, 0);
+        if(rotationAxis == 0)
+            angle.x = currentAngle - tempAngle;
+        else if(rotationAxis == 1)
+            angle.y = currentAngle - tempAngle;
+        else
+            angle.z = currentAngle - tempAngle;
+
+        int buffor = editModeActiveObject;
+        for(int i=0; i<activeObject.size(); i++)
+        {
+            editModeActiveObject = activeObject[i];
+            rotateObject(angle,center);
+        }
+        editModeActiveObject = buffor;
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+}
+
+void ObjectUtility::showTopWindow()
+{
+    ImGui::SetNextWindowPos(sf::Vector2u(1.5*xButtonInterval + leftWindowWidth,yButtonInterval));
+    ImGui::SetNextWindowSize(topWindowSize);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, topWindowBackgroundColor);
+    ImGui::Begin("Edit Object");
+
+    int position[3];
+    int minx, maxx, miny, maxy, minz, maxz;
+    calcObjectBoundaries(minx, maxx, miny, maxy, minz, maxz);
+    sf::Vector3f center;
+    if(selectedCenter == 1)
+    {
+        center.x = minx + (maxx - minx)*0.5f;
+        center.y = miny + (maxy - miny)*0.5f;
+        center.z = minz + (maxz - minz)*0.5f;
+    }
+    else if(selectedCenter == 2)
+    {
+        center = personalCenter;
+    }
+    else
+    {
+        center.x = minx;
+        center.y = miny;
+        center.z = minz;
+    }
+
+    position[0] = center.x;
+    position[1] = center.y;
+    position[2] = center.z;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+            position[2] += 1;
+        else
+            position[1] += 1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+            position[2] += -1;
+        else
+            position[1] += -1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        position[0] += 1;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        position[0] += -1;
+
+    if(ImGui::DragInt3("Edit Position XYZ", position, 0.04))
+    {
+        moveObject(position[0] - center.x, position[1] - center.y, position[2] - center.z);
+    }
+
+    ImGui::Separator();
+    int sizeOfObject[3];
+    sizeOfObject[0] = maxx - minx;
+    sizeOfObject[1] = maxy - miny;
+    sizeOfObject[2] = maxz - minz;
+    float divideX = float(maxx - minx);
+    float divideY = float(maxy - miny);
+    float divideZ = float(maxz - minz);
+    bool zeroX = false;
+    bool zeroY = false;
+    bool zeroZ = false;
+    if(sizeOfObject[0] == 0)
+    {
+        zeroX = true;
+    }
+    if(sizeOfObject[1] == 0)
+    {
+        zeroY = true;
+    }
+    if(sizeOfObject[2] == 0)
+    {
+        zeroZ = true;
+    }
+    if(ImGui::DragInt3("Edit Size XYZ", sizeOfObject, 0.02))
+    {
+        if(zeroX == true)
+        {
+            divideX = 1;
+            sizeOfObject[0] = 1;
+        }
+        if(zeroY == true)
+        {
+            divideY = 1;
+            sizeOfObject[1] = 1;
+        }
+        if(zeroZ == true)
+        {
+            divideZ = 1;
+            sizeOfObject[2] = 1;
+        }
+        resizeObject(float(sizeOfObject[0])/divideX,
+                 float(sizeOfObject[1])/divideY,
+                 float(sizeOfObject[2])/divideZ,
+                 center);
+    }
+    ImGui::Separator();
+    float tempAngle = currentAngle;
+    ImGui::SliderAngle("Rotate", &currentAngle, -200.0f, 200.0f);
+    if(tempAngle != currentAngle)
+    {
+        sf::Vector3f angle = sf::Vector3f(0, 0, 0);
+        if(rotationAxis == 0)
+            angle.x = currentAngle - tempAngle;
+        else if(rotationAxis == 1)
+            angle.y = currentAngle - tempAngle;
+        else
+            angle.z = currentAngle - tempAngle;
+        rotateObject(angle,center);
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+}
+
+void ObjectUtility::showBottomWindow()
+{
+    ImGui::SetNextWindowPos(sf::Vector2u(1.5*xButtonInterval + leftWindowWidth, p->window->getSize().y - bottomWindowHeight - yButtonInterval));
+    ImGui::SetNextWindowSize(bottomWindowSize);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, bottomWindowBackgroundColor);
+    ImGui::Begin("Save Menu");
+    ImGui::InputText("", filename, 100);
+    ImGui::SameLine();
+    if(ImGui::Button("Save", ImVec2(60, 20)))
+    {
+        std::string s = filename;
+        std::string path = "files/maps/synth3d/" + s + ".dat";
+        if(fileExists(path))
+        {
+            errorMessage = "This file already exists!";
+            errorMessageActivate = true;
+            errorMessageJustActivated = true;
+        }
+        else
+        {
+            p->saveMap(s);
+            errorMessage = "Everything went fine!\nYour map is saved";
+            errorMessageActivate = true;
+            errorMessageJustActivated = true;
+        }
+    }
+    if(ImGui::Button("Make Backup", ImVec2(bottomWindowSize.x/2 - 14, 20)))
+    {
+        makeBackup();
+        p->saveMap("backup");
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Restore Backup", ImVec2(bottomWindowSize.x/2 - 14, 20)))
+    {
+        restoreBackup();
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+}
+
+void ObjectUtility::showErrorMessage()
+{
+    ImGui::Begin("ERROR");
+    ImGui::Text(errorMessage.c_str());
+    if(ImGui::Button("Understood", sf::Vector2u(100,20)))
+    {
+        errorMessage = "No Errors";
+        errorMessageActivate = false;
+    }
+    ImGui::End();
+}
+
+void ObjectUtility::showWallCreationWindow()
+{
+    int start;
+    int finish;
+    calcStartAndFinishSafe(start, finish);
+    int objectCount;
+    objectCount = calcObjectSize();
+    Wall& wallie = tempWall;
+
+    if(createWallModeJustActivated)
+    {
+        createWallModeJustActivated = false;
+        tempWall.clear();
+        for(int i=0; i<4; i++)
+        {
+            if(!wallie.coord.empty())
+            {
+                if(wallie.coord[wallie.size()-1] == finish)
+                {
+                    wallie.push_back(finish);
+                }
+                else
+                {
+                    wallie.push_back(wallie.coord[wallie.size()-1] + 1);
+                }
+            }
+            else
+            {
+                wallie.push_back(start);
+            }
+        }
+    }
+    ImGui::PushStyleColor(ImGuiCol_Button, leftNewButtonColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+    if(ImGui::Button("Add point", sf::Vector2u(100,20)))
+    {
+        if(!wallie.coord.empty())
+        {
+            if(wallie.coord[wallie.size()-1] == finish)
+            {
+                wallie.push_back(finish);
+            }
+            else
+            {
+                wallie.push_back(wallie.coord[wallie.size()-1] + 1);
+            }
+        }
+        else
+        {
+            wallie.push_back(start);
+        }
+    }
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+    if(ImGui::Button("Delete last", sf::Vector2u(100,20)))
+    {
+        if(!wallie.coord.empty())
+            wallie.coord.erase(wallie.coord.begin() + wallie.size() - 1);
+    }
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+
+    for(int i=0; i<wallie.size(); i++)
+    {
+        int falseCoord = wallie.coord[i] - start;
+        ImGui::SliderInt(stringify(i).c_str(), &falseCoord, 0, objectCount - 1);
+        wallie.coord[i] = falseCoord + start;
+    }
+    if(ImGui::Button("Close", ImVec2(60, 20)))
+    {
+        createWallModeActive = false;
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Apply", ImVec2(60, 20)))
+    {
+        if(tempWall.size() > 2)
+        {
+            p->world[editModeActiveObject].push_back(tempWall);
+        }
+        else
+        {
+            errorMessage = "I dont know why but this sure will crash the app\nso you better add some random points just to\nmodify them later";
+            errorMessageActivate = true;
+            errorMessageJustActivated = true;
+        }
+    }
+}
+
+void ObjectUtility::moveObject(int deltaX, int deltaY, int deltaZ)
+{
+    /*
+    int start = 2000000000;
+    int finish = 0;
+    int i = editModeActiveObject;
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k < p->world[i].wallie[j].size(); k++)
+        {
+            if(p->world[i].wallie[j].coord[k] > finish)
+                finish = p->world[i].wallie[j].coord[k];
+            if(p->world[i].wallie[j].coord[k] < start)
+                start = p->world[i].wallie[j].coord[k];
+        }
+    }
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k<p->world[i].wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].lineStrip[k].size(); m++)
+            {
+                if(p->world[i].wallie[j].lineStrip[k][m] > finish)
+                    finish = p->world[i].wallie[j].lineStrip[k][m];
+                if(p->world[i].wallie[j].lineStrip[k][m] < start)
+                    start = p->world[i].wallie[j].lineStrip[k][m];
+            }
+        }
+    }
+    */
+    for(int m=p->world[editModeActiveObject].beginning; m <= p->world[editModeActiveObject].finish; m++)
+    {
+        p->terrain[m].x += deltaX;
+        p->terrain[m].y += deltaY;
+        p->terrain[m].z += deltaZ;
+    }
+}
+
+void ObjectUtility::calcObjectBoundaries(int& minx, int& maxx, int& miny, int& maxy, int& minz, int& maxz)
+{
+        sf::Vector3f first = p->terrain[p->world[editModeActiveObject].beginning];
+        float minxF = first.x;
+        float maxxF = first.x;
+        float minyF = first.y;
+        float maxyF = first.y;
+        float minzF = first.z;
+        float maxzF = first.z;
+        for(int j=p->world[editModeActiveObject].beginning + 1; j<=p->world[editModeActiveObject].finish; j++)
+        {
+            sf::Vector3f temp = p->terrain[j];
+            maxxF = std::max(maxxF, temp.x);
+            minxF = std::min(minxF, temp.x);
+            maxyF = std::max(maxyF, temp.y);
+            minyF = std::min(minyF, temp.y);
+            maxzF = std::max(maxzF, temp.z);
+            minzF = std::min(minzF, temp.z);
+        }
+        minx = int(roundf(minxF));
+        maxx = int(roundf(maxxF));
+        miny = int(roundf(minyF));
+        maxy = int(roundf(maxyF));
+        minz = int(roundf(minzF));
+        maxz = int(roundf(maxzF));
+}
+
+void ObjectUtility::resizeObject(float sizeX, float sizeY, float sizeZ, sf::Vector3f center)
+{
+    /*
+    int start = 2000000000;
+    int finish = 0;
+    int i = editModeActiveObject;
+    for(int j=0; j<p->world[editModeActiveObject].size(); j++)
+            for(int k=0; k<p->world[editModeActiveObject].wallie[j].size(); k++)
+            {
+                if(p->world[i].wallie[j].coord[k] > finish)
+                    finish = p->world[i].wallie[j].coord[k];
+                if(p->world[i].wallie[j].coord[k] < start)
+                    start = p->world[i].wallie[j].coord[k];
+            }
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k<p->world[i].wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].lineStrip[k].size(); m++)
+            {
+                if(p->world[i].wallie[j].lineStrip[k][m] > finish)
+                    finish = p->world[i].wallie[j].lineStrip[k][m];
+                if(p->world[i].wallie[j].lineStrip[k][m] < start)
+                    start = p->world[i].wallie[j].lineStrip[k][m];
+            }
+        }
+    }
+    */
+    for(int m=p->world[editModeActiveObject].beginning; m <= p->world[editModeActiveObject].finish; m++)
+    {
+        p->terrain[m].x = center.x + (p->terrain[m].x - center.x)*sizeX;
+        p->terrain[m].y = center.y + (p->terrain[m].y - center.y)*sizeY;
+        p->terrain[m].z = center.z + (p->terrain[m].z - center.z)*sizeZ;
+    }
+}
+
+void ObjectUtility::calcStartAndFinish(int& start, int& finish)
+{
+    start = p->world[editModeActiveObject].beginning;
+    finish = p->world[editModeActiveObject].finish;
+    /*
+    start = 2000000000;
+    finish = 0;
+    int i = editModeActiveObject;
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k < p->world[i].wallie[j].size(); k++)
+        {
+            if(p->world[i].wallie[j].coord[k] > finish)
+                finish = p->world[i].wallie[j].coord[k];
+            if(p->world[i].wallie[j].coord[k] < start)
+                start = p->world[i].wallie[j].coord[k];
+        }
+    }
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k<p->world[i].wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].lineStrip[k].size(); m++)
+            {
+                if(p->world[i].wallie[j].lineStrip[k][m] > finish)
+                    finish = p->world[i].wallie[j].lineStrip[k][m];
+                if(p->world[i].wallie[j].lineStrip[k][m] < start)
+                    start = p->world[i].wallie[j].lineStrip[k][m];
+            }
+        }
+    }*/
+}
+
+void ObjectUtility::calcStartAndFinishSafe(int& start, int& finish)
+{
+    start = p->world[editModeActiveObject].beginning;
+    finish = p->world[editModeActiveObject].finish;
+/*
+    int tempStart, tempFinish;
+    int counter = 0;
+    while(1==1)
+    {
+        editModeActiveObject--;
+        counter++;
+        if(editModeActiveObject < 0)
+        {
+            tempFinish = -1;
+            break;
+        }
+        calcStartAndFinish(tempStart, tempFinish);
+        if(tempFinish >= tempStart)
+            break;
+    }
+    editModeActiveObject += counter;
+    start = tempFinish + 1;
+    counter = 0;
+    while(1==1)
+    {
+        editModeActiveObject++;
+        counter++;
+        if(editModeActiveObject >= p->world.size())
+        {
+            tempStart = p->terrain.size();
+            break;
+        }
+        calcStartAndFinish(tempStart, tempFinish);
+        if(tempFinish >= tempStart)
+            break;
+    }
+    finish = tempStart - 1;
+    editModeActiveObject -= counter;
+    */
+}
+
+int ObjectUtility::calcObjectSize()
+{
+    int start, finish;
+    calcStartAndFinishSafe(start, finish);
+    return finish - start + 1;
+}
+
+void ObjectUtility::saveObject()
+{
+    int start;
+    int finish;
+    calcStartAndFinish(start, finish);
+    object.clear();
+    for(int m=start; m<=finish; m++)
+    {
+        object.push_back(p->terrain[m]);
+    }
+}
+
+sf::Vector3f ObjectUtility::rotateVector(sf::Vector3f vec, sf::Vector3f angle, sf::Vector3f center)
+{
+    vec -= center;
+    sf::Vector3f target = vec;
+    //Yaw: (y axis)
+    target.x = vec.x*cosf(angle.y) + vec.z*sinf(angle.y);
+    target.z = vec.z*cosf(angle.y) - vec.x*sinf(angle.y);
+    //Pitch; (x axis)
+    vec = target;
+    target.y = vec.y*cosf(angle.x) - vec.z*sinf(angle.x);
+    target.z = vec.y*sinf(angle.x) + vec.z*cosf(angle.x);
+    //Roll: (z axis)
+    vec = target;
+    target.x = vec.x*cosf(angle.z) - vec.y*sinf(angle.z);
+    target.y = vec.x*sinf(angle.z) + vec.y*cosf(angle.z);
+    return target + center;
+}
+
+void ObjectUtility::rotateObject(sf::Vector3f angle, sf::Vector3f center)
+{
+    int start, finish;
+    calcStartAndFinishSafe(start, finish);
+    for(int i=start; i<=finish; i++)
+    {
+        p->terrain[i] = rotateVector(p->terrain[i], angle, center);
+    }
+}
+
+void ObjectUtility::alignToGrid(int gridSize)
+{
+    int start = 2000000000;
+    int finish = 0;
+    int i = editModeActiveObject;
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k < p->world[i].wallie[j].size(); k++)
+        {
+            if(p->world[i].wallie[j].coord[k] > finish)
+                finish = p->world[i].wallie[j].coord[k];
+            if(p->world[i].wallie[j].coord[k] < start)
+                start = p->world[i].wallie[j].coord[k];
+        }
+    }
+    std::vector <std::pair <float, float> > lineStrip;
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k<p->world[i].wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].lineStrip[k].size(); m++)
+            {
+                float a, b, c;
+                sf::Vector3f destinationVector = p->terrain[p->world[i].wallie[j].lineStrip[k][m]] -
+                                                 p->terrain[p->world[i].wallie[j].coord[0]];
+                sf::Vector3f vec1 = p->terrain[p->world[i].wallie[j].coord[1]] -
+                                    p->terrain[p->world[i].wallie[j].coord[0]];
+                sf::Vector3f vec2 = p->terrain[p->world[i].wallie[j].coord[p->world[i].wallie[j].size()-1]] -
+                                    p->terrain[p->world[i].wallie[j].coord[0]];
+                sf::Vector3f vec3 = crossProduct(vec1, vec2);
+                representVectorAsThreeOthers(destinationVector, vec1, vec2, vec3, a, b, c);
+                lineStrip.push_back({a, b});
+            }
+        }
+    }
+    for(int n=start; n<=finish; n++)
+    {
+        if(fmodf(p->terrain[n].x, float(gridSize)) > float(gridSize)/2.0f)
+            p->terrain[n].x = p->terrain[n].x - fmodf(p->terrain[n].x, float(gridSize)) + float(gridSize);
+        else
+            p->terrain[n].x = p->terrain[n].x - fmodf(p->terrain[n].x, float(gridSize));
+
+        if(fmodf(p->terrain[n].y, float(gridSize)) > float(gridSize)/2.0f)
+            p->terrain[n].y = p->terrain[n].y - fmodf(p->terrain[n].y, float(gridSize)) + float(gridSize);
+        else
+            p->terrain[n].y = p->terrain[n].y - fmodf(p->terrain[n].y, float(gridSize));
+
+        if(fmodf(p->terrain[n].z, float(gridSize)) > float(gridSize)/2.0f)
+
+            p->terrain[n].z = p->terrain[n].z - fmodf(p->terrain[n].z, float(gridSize)) + float(gridSize);
+        else
+            p->terrain[n].z = p->terrain[n].z - fmodf(p->terrain[n].z, float(gridSize));
+    }
+
+    start = 2000000000;
+    finish = 0;
+    int counter = 0;
+    for(int j=0; j<p->world[i].size(); j++)
+    {
+        for(int k=0; k<p->world[i].wallie[j].lineStrip.size(); k++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].lineStrip[k].size(); m++)
+            {
+                sf::Vector3f vec1 = p->terrain[p->world[i].wallie[j].coord[1]] -
+                                    p->terrain[p->world[i].wallie[j].coord[0]];
+                sf::Vector3f vec2 = p->terrain[p->world[i].wallie[j].coord[p->world[i].wallie[j].size()-1]] -
+                                    p->terrain[p->world[i].wallie[j].coord[0]];
+                p->terrain[p->world[i].wallie[j].lineStrip[k][m]] = p->terrain[p->world[i].wallie[j].coord[0]] +
+                lineStrip[counter].first*vec1 + lineStrip[counter].second*vec2;
+                counter++;
+            }
+        }
+    }
+}
+
+void ObjectUtility::representVectorAsThreeOthers(sf::Vector3f destination,
+                                  sf::Vector3f vec1, sf::Vector3f vec2, sf::Vector3f vec3,
+                                  float& a, float& b, float& c)
+{
+    float equationDet = det3f(vec1, vec2, vec3);
+    float aDet = det3f(destination, vec2, vec3);
+    float bDet = det3f(vec1, destination, vec3);
+    float cDet = det3f(vec1, vec2, destination);
+    a = aDet / equationDet;
+    b = bDet / equationDet;
+    c = cDet / equationDet;
+}
+
+void ObjectUtility::alignObject()
+{
+    int start, finish;
+    calcStartAndFinishSafe(start, finish);
+    for(int i=start; i<=finish; i++)
+    {
+        p->terrain[i].x = roundf(p->terrain[i].x);
+        p->terrain[i].y = roundf(p->terrain[i].y);
+        p->terrain[i].z = roundf(p->terrain[i].z);
+    }
+}
+
+void ObjectUtility::alignAll()
+{
+    for(int i=0; i<p->terrain.size(); i++)
+    {
+        p->terrain[i].x = roundf(p->terrain[i].x);
+        p->terrain[i].y = roundf(p->terrain[i].y);
+        p->terrain[i].z = roundf(p->terrain[i].z);
+    }
+}
+
+void ObjectUtility::makeBackup()
+{
+    worldBackup = p->world;
+    terrainBackup = p->terrain;
+    defTerrainBackup = p->defTerrain;
+    backupMade = true;
+}
+
+void ObjectUtility::restoreBackup()
+{
+    if(backupMade)
+    {
+        p->world = worldBackup;
+        p->terrain = terrainBackup;
+        p->defTerrain = defTerrainBackup;
+    }
+    else
+    {
+        errorMessage = "No backup made!";
+        errorMessageActivate = true;
+        errorMessageJustActivated = true;
+    }
+}
+
+void ObjectUtility::deleteTerrainPoint(int index)
+{
+    ///Fix NAN
+    p->terrain.erase(p->terrain.begin() + index);
+    p->defTerrain.erase(p->defTerrain.begin() + index);
+    if(index == p->world[editModeActiveObject].beginning)
+    {
+        p->world[editModeActiveObject].beginning++;
+    }
+    p->world[editModeActiveObject].finish--;
+    for(int i=editModeActiveObject+1; i<p->world.size(); i++)
+    {
+        p->world[i].beginning--;
+        p->world[i].finish--;
+    }
+    for(int i=0; i<p->world.size(); i++)
+    {
+        for(int j=0; j<p->world[i].size(); j++)
+        {
+            for(int m=0; m<p->world[i].wallie[j].size(); m++)
+            {
+                if(p->world[i].wallie[j].coord[m] >= index and p->world[i].wallie[j].coord[m] > p->world[i].beginning)
+                {
+                    if(p->world[i].wallie[j].coord[m] > 0)
+                        p->world[i].wallie[j].coord[m]--;
+                }
+            }
+            for(int m=0; m<p->world[i].wallie[j].lineStrip.size(); m++)
+            {
+                for(int n=0; n<p->world[i].wallie[j].lineStrip[m].size(); n++)
+                {
+                    if(p->world[i].wallie[j].lineStrip[m][n] >= index and p->world[i].wallie[j].lineStrip[m][n] > p->world[i].beginning)
+                    {
+                        if(p->world[i].wallie[j].lineStrip[m][n] > 0)
+                            p->world[i].wallie[j].lineStrip[m][n]--;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
     Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
-    eyeDistance(-10), debug(0), offsetx(0), offsety(0), tick(1),
-    gravity({0, -0.1f, 0}), catVelocity({0.0f, 0.0f, 0.2f})
+    eyeDistance(-6), debug(0), offsetx(0), offsety(0), tick(1),
+    gravity({0, -0.7f, 0}), catVelocity({0.0f, 0.0f, 1.0f}), mouseSpeed(7.5f),
+    grabbedMouse(true), gBuffor(false), editMap(this, window->getSize())
 {
 }
 
@@ -374,60 +2184,27 @@ void SYNTH3D::onSceneLoadToMemory()
     consoleCommands.push_back("enable_distanceCheck");
     consoleCommands.push_back("compare");
 
-    Entity cat(this);
-    character.push_back(cat);
-
-
-    //loadMap("cubeOnSurface");
-    //cameraPos = {369.356f, 418.194f, 125.801f};
-    //cameraAngle = {-21.0601f, -32.5202f, 0};
-
-
-    //loadMap("oblivion_old");
-    //cameraPos = {210, 144, 1092};
-    //cameraAngle = {-6, -137, 0};
-
-    loadMap("catOnSurface_single_wall");
-    //cameraPos = {-40.7f, 69.3f, 169.3f};
-    //cameraAngle = {-5.6f, -122.5f, 0};
-
-    //cameraPos = {26, 34, 32};
-
-    //cameraPos = {26, 116, 30};
-    //cameraAngle = {-34, 8, 0};
-    for(int i=4; i<93; i++)
-        terrain[i].y -= 15;
+    loadMap("human");
+    //loadMap("oblivion");
     defTerrain = terrain;
-
-    for(int i=1; i<8; i++)
-        character[0].importObject(i);
-    character[0].calcRotationCenter();
-    character[0].setPos({400, 70, 300});
-    character[0].setEllipsoidRadius(sf::Vector3f(80.0f, 80.0f, 80.0f));
-
-    for(int i=3; i<7; i++)
-    {
-        if(i == 5 or i == 4)
-        {
-            for(int j=0; j<4; j++)
-                character[0].leftLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
-        }
-        else
-        {
-            for(int j=0; j<4; j++)
-                character[0].rightLeg.push_back({world[i].wallie[2].coord[j], terrain[world[i].wallie[2].coord[j]]});
-        }
-    }
-
-
+    //loadEntities("oblivion_npc");
     OptLines();
     OptDots();
     c.update();
+    bufforMousePos = sf::Mouse::getPosition(*window);
 }
 
 void SYNTH3D::draw(sf::Time deltaTime)
 {
+    //ImGui::SetMouseCursor(false);
     dt = deltaTime.asMilliseconds() / 16.6666f;
+    sf::Vector2i deltaMouse = sf::Vector2i(0,0);
+    if(grabbedMouse)
+    {
+        deltaMouse = getDeltaMouse();
+        window->setMouseCursorVisible(false);
+    }
+
     if(dt == 0.0d)
         dt = 1.0d;
     float movementSpeed = 2.0f * dt;
@@ -455,20 +2232,28 @@ void SYNTH3D::draw(sf::Time deltaTime)
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
         cameraPos.y+= movementSpeed;
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-        cameraAngle.y+= cameraRotationSpeed;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-        cameraAngle.y-= cameraRotationSpeed;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-        cameraAngle.x+= cameraRotationSpeed;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-        cameraAngle.x-= cameraRotationSpeed;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::M))
         cameraAngle.z-= cameraRotationSpeed;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::N))
         cameraAngle.z+= cameraRotationSpeed;
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
+    if(gBuffor)
+        if (!sf::Keyboard::isKeyPressed(sf::Keyboard::G))
+            grabbedMouse = !grabbedMouse;
+    gBuffor = sf::Keyboard::isKeyPressed(sf::Keyboard::G);
+
+
+    cameraAngle.x -= float(deltaMouse.y) / mouseSpeed;
+    cameraAngle.y -= float(deltaMouse.x) / mouseSpeed;
+
+    /*
+        sf::Vector3f buffor = catVelocity;
+        float angle = 0.0174524f * catRotationSpeed * float(deltaMouse.x) / mouseSpeed;
+        catAngle.y -= angle;
+        catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
+        catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
+    */
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
         sf::Vector3f buffor = catVelocity;
         float angle = -0.0174524f * catRotationSpeed;
@@ -476,7 +2261,7 @@ void SYNTH3D::draw(sf::Time deltaTime)
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
     {
         sf::Vector3f buffor = catVelocity;
         float angle = 0.0174524f * catRotationSpeed;
@@ -484,11 +2269,17 @@ void SYNTH3D::draw(sf::Time deltaTime)
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
     }
+    /*
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
-        //character[0].setVelocity(catDirection * catMovingSpeed);
         character[0].setAcceleration(catVelocity);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
         character[0].setAcceleration(-catVelocity);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
+        character[0].setAcceleration({-catVelocity.z, 0, catVelocity.x});
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+        character[0].setAcceleration({catVelocity.z, 0, -catVelocity.x});
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        character[0].jump(15);
 
     if(character[0].position.y < -1000)
     {
@@ -498,13 +2289,27 @@ void SYNTH3D::draw(sf::Time deltaTime)
     character[0].setGravity(gravity);
     character[0].setDirection(catVelocity, {0,0,0});
     character[0].update(dt);
+    */
     //cameraPos = terrain[34];
+    //cameraPos = character[0].ellipsoidCenter + sf::Vector3f(0, 70, 0);
 
     c.setPos(cameraPos);
     //c.setAngle(catAngle * float(180.0f/M_PI));
     c.setAngle(cameraAngle);
     c.setEyeDistance(eyeDistance);
     c.display();
+
+    editMap.show();
+    c.update();
+}
+
+sf::Vector2i SYNTH3D::getDeltaMouse()
+{
+    //sf::Vector2i buffor = bufforMousePos;
+    sf::Vector2i buffor = {int(window->getSize().x)/2, int(window->getSize().y)/2};
+    bufforMousePos = sf::Mouse::getPosition(*window);
+    sf::Mouse::setPosition({int(window->getSize().x)/2, int(window->getSize().y)/2});
+    return bufforMousePos - buffor;
 }
 
 void SYNTH3D::checkCollision(collisionPacket* colPackage, int beginning, int ending)
@@ -839,6 +2644,8 @@ void SYNTH3D::loadMap(std::string path)
                         tmpObject.clear();
                         VertexCount = 0;
                         indicator = 0;
+
+                        world[world.size()-1].calcStartAndFinish();
                     }
                     break;
                 case 2:
@@ -918,6 +2725,302 @@ void SYNTH3D::loadMap(std::string path)
                     break;
                 }
             }
+    level.close();
+}
+
+void SYNTH3D::saveMap(std::string path)
+{
+    std::ofstream level;
+    level.open("files/maps/synth3d/"+path+".dat");
+    for(int i=0; i<world.size(); i++)
+    {
+        if(i>0)
+            level << "\n\n";
+        level << world[i].name;
+        level << "\n\nopt:\t" << world[i].OptAllowed;
+        if(world[i].size() > 0)
+        {
+            level << "\n\nVertex:";
+            int start = 2000000000;
+            int finish = 0;
+            for(int j=0; j<world[i].size(); j++)
+            {
+                for(int k=0; k<world[i].wallie[j].size(); k++)
+                {
+                    if(world[i].wallie[j].coord[k] > finish)
+                        finish = world[i].wallie[j].coord[k];
+                    if(world[i].wallie[j].coord[k] < start)
+                        start = world[i].wallie[j].coord[k];
+                }
+            }
+            for(int j=start; j<=finish; j++)
+            {
+                level << "\n" << terrain[j].x << "\t" << terrain[j].y << "\t" << terrain[j].z;
+            }
+            for(int j=0; j<world[i].size(); j++)
+            {
+                for(int k=0; k<world[i].wallie[j].lineStrip.size(); k++)
+                {
+                    for(int m=0; m<world[i].wallie[j].lineStrip[k].size()-1; m++)
+                    {
+                        level << "\n" << terrain[world[i].wallie[j].lineStrip[k][m]].x << "\t" <<
+                                         terrain[world[i].wallie[j].lineStrip[k][m]].y << "\t" <<
+                                         terrain[world[i].wallie[j].lineStrip[k][m]].z;
+                    }
+                    if(world[i].wallie[j].lineStrip[k][0] != world[i].wallie[j].lineStrip[k][world[i].wallie[j].lineStrip[k].size()-1])
+                        level << "\n" << terrain[world[i].wallie[j].lineStrip[k][world[i].wallie[j].lineStrip[k].size()-1]].x << "\t" <<
+                                         terrain[world[i].wallie[j].lineStrip[k][world[i].wallie[j].lineStrip[k].size()-1]].y << "\t" <<
+                                         terrain[world[i].wallie[j].lineStrip[k][world[i].wallie[j].lineStrip[k].size()-1]].z;
+                }
+            }
+            level << "\nend\n\nWall:";
+
+            for(int j=0; j<world[i].size(); j++)
+            {
+                if(world[i].wallie[j].pSize != 100)
+                    level << "\nsize:\t" << world[i].wallie[j].pSize;
+                if(world[i].wallie[j].grid > 0)
+                    level << "\ngrid:\t" << world[i].wallie[j].grid;
+                if(world[i].wallie[j].OptAllowed == false)
+                    level << "\nopt:\t0";
+                if(world[i].wallie[j].color != sf::Color::Green)
+                    level << "\ntrans:\t" << int(world[i].wallie[j].trans.r) << "\t" <<
+                                             int(world[i].wallie[j].trans.g) << "\t" <<
+                                             int(world[i].wallie[j].trans.b) << "\t" <<
+                                             int(world[i].wallie[j].trans.a);
+                if(world[i].wallie[j].trans != sf::Color::Transparent)
+                    level << "\ntrans:\t" << int(world[i].wallie[j].trans.r) << "\t" <<
+                                             int(world[i].wallie[j].trans.g) << "\t" <<
+                                             int(world[i].wallie[j].trans.b) << "\t" <<
+                                             int(world[i].wallie[j].trans.a);
+                level << "\nvert:";
+                for(int k=0; k<world[i].wallie[j].size(); k++)
+                {
+                    level << "\t" << world[i].wallie[j].coord[k] - start;
+                }
+                bool lMask = false;
+                for(int k=0; k<world[i].wallie[j].drawable.size(); k++)
+                {
+                    if(world[i].wallie[j].drawable[k] == false)
+                    {
+                        lMask = true;
+                        break;
+                    }
+                }
+                if(lMask)
+                {
+                    level << "\nlMask:";
+                    for(int k=0; k<world[i].wallie[j].drawable.size(); k++)
+                    {
+                        level << "\t" << world[i].wallie[j].drawable[k];
+                    }
+                }
+                bool dMask = false;
+                for(int k=0; k<world[i].wallie[j].dotDraw.size(); k++)
+                {
+                    if(world[i].wallie[j].dotDraw[k] == false)
+                    {
+                        dMask = true;
+                        break;
+                    }
+                }
+                if(dMask)
+                {
+                    level << "\ndMask:";
+                    for(int k=0; k<world[i].wallie[j].dotDraw.size(); k++)
+                    {
+                        level << "\t" << world[i].wallie[j].dotDraw[k];
+                    }
+                }
+                if(!world[i].wallie[j].lineStrip.empty())
+                {
+                    for(int k=0; k<world[i].wallie[j].lineStrip.size(); k++)
+                    {
+                        level << "\nlStrip:";
+                        for(int m=0; m<world[i].wallie[j].lineStrip[k].size(); m++)
+                        {
+                            level << "\t" << world[i].wallie[j].lineStrip[k][m] - start;
+                        }
+                    }
+                }
+                level << "\n###";
+            }
+            level << "\nend\nobjectEnd";
+        }
+    }
+    level.close();
+}
+
+void SYNTH3D::loadEntities(std::string path)
+{
+    auto first = [](std::string file, std::string word) -> bool
+    {
+        for(int i=0; i<word.size(); i++)
+            if(file[i] != word[i])
+                return false;
+        return true;
+    };
+    auto value = [](std::string file, int a) -> std::pair <float, bool>
+    {
+        a++;
+        float result = 0;
+        int index = 0;
+        int adress = 0;
+        bool endOfFile = false;
+        if(file[0] >= '0' and file[0] <= '9')
+            index = 1;
+        if(index < a)
+            for(int i=0; i<file.size() - 1; i++)
+            {
+                if(file[i] == '\t' and file[i+1] >= '0' and file[i+1] <= '9')
+                    index++;
+                if(index == a)
+                    {
+                        adress = i+1;
+                        break;
+                    }
+            }
+        bool dotIndicator = false;
+        float decimalCounter = 10;
+        while(adress < file.size() and file[adress] != '\t')
+        {
+            if(!dotIndicator and file[adress] != '.')
+            {
+                result *= 10;
+                result += file[adress] - '0';
+            }
+            else if(dotIndicator)
+            {
+                result += (file[adress] - '0') / decimalCounter;
+                decimalCounter *= 10;
+            }
+            if(file[adress] == '.')
+                dotIndicator = true;
+            adress++;
+        }
+        if(adress == file.size())
+            endOfFile = true;
+        return {result, endOfFile};
+    };
+    std::ifstream level;
+    level.open("files/maps/synth3d/"+path+".dat");
+    std::string line;
+    ///wall tmpWall; ///Uwaga zeby przy wpisywaniu kilku scian nie bylo nienadpisanych wartosci z poprzedniego
+    int indicator = 0;
+    int beginning = 0;
+    int ending = 0;
+    std::string name = "Invalid Name";
+    sf::Vector3f eRadius = sf::Vector3f(1, 1, 1);
+    sf::Vector3f positionGiven = sf::Vector3f(0, 0, 0);
+    std::vector <std::pair <int, sf::Vector3f> > leftLeg;
+    std::vector <std::pair <int, sf::Vector3f> > rightLeg;
+    if(level.is_open())
+        while(getline(level, line))
+            if(!line.empty() and line[0] != '/' and line[1] != '/')
+            {
+                switch(indicator)
+                {
+                case 0:
+                    name = line;
+                    indicator = 1;
+                    break;
+                case 1:
+                    if(line != "end")
+                    {
+                        if(first(line, "begin"))
+                        {
+                            for(int i=0; i<world.size();i++)
+                            {
+                                if(line.substr(7) == world[i].name)
+                                {
+                                    beginning = i;
+                                    break;
+                                }
+                            }
+                        }
+                        else if(first(line, "finish"))
+                        {
+                            for(int i=0; i<world.size();i++)
+                            {
+                                if(line.substr(8) == world[i].name)
+                                {
+                                    ending = i;
+                                    break;
+                                }
+                            }
+                        }
+                        else if(first(line, "eRadius"))
+                        {
+                            eRadius.x = value(line, 0).first; ///tomabycfloat
+                            eRadius.y = value(line, 1).first;
+                            eRadius.z = value(line, 2).first;
+                        }
+                        else if(first(line, "setPos"))
+                        {
+                            positionGiven.x = value(line, 0).first; ///tomabycfloat
+                            positionGiven.y = value(line, 1).first;
+                            positionGiven.z = value(line, 2).first;
+                        }
+                        else if(first(line, "leftLeg"))
+                        {
+                            int i = 0;
+                            bool endOfFile = false;
+                            while(!endOfFile)
+                            {
+                                int objectNumber = value(line, i++).first;
+                                int wallNumber = value(line, i).first;
+                                for(int j=0; j<world[objectNumber].wallie[wallNumber].size(); j++)
+                                {
+                                    leftLeg.push_back({world[objectNumber].wallie[wallNumber].coord[j],
+                                                       defTerrain[world[objectNumber].wallie[wallNumber].coord[j]]});
+                                }
+                                endOfFile = value(line, i).second;
+                                i++;
+                            }
+                        }
+                        else if(first(line, "rightLeg"))
+                        {
+                            int i = 0;
+                            bool endOfFile = false;
+                            while(!endOfFile)
+                            {
+                                int objectNumber = value(line, i++).first;
+                                int wallNumber = value(line, i).first;
+                                for(int j=0; j<world[objectNumber].wallie[wallNumber].size(); j++)
+                                {
+                                    rightLeg.push_back({world[objectNumber].wallie[wallNumber].coord[j],
+                                                       defTerrain[world[objectNumber].wallie[wallNumber].coord[j]]});
+                                }
+                                endOfFile = value(line, i).second;
+                                i++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Entity tmpEntity(this);
+                        tmpEntity.name = name;
+                        for(int i=beginning; i<=ending; i++)
+                            tmpEntity.importObject(i);
+                        tmpEntity.calcRotationCenter();
+                        tmpEntity.setPos(positionGiven);
+                        tmpEntity.setEllipsoidRadius(eRadius);
+                        tmpEntity.leftLeg = leftLeg;
+                        tmpEntity.rightLeg = rightLeg;
+                        character.push_back(tmpEntity);
+                        indicator = 0;
+                        beginning = 0;
+                        ending = 0;
+                        eRadius = sf::Vector3f(1, 1, 1);
+                        positionGiven = sf::Vector3f(0, 0, 0);
+                        leftLeg.clear();
+                        rightLeg.clear();
+                        name = "Invalid Name";
+                    }
+                    break;
+                }
+            }
+    level.close();
 }
 
 void SYNTH3D::OptLines()
@@ -1073,12 +3176,11 @@ bool SYNTH3D::onConsoleUpdate(std::vector<std::string> args)
     return false;
 }
 
-
 Camera::Camera(SYNTH3D* parent):
     p(parent),
     position({0, 0, -400}),
     angle({0, 0, 0}),
-    vEye({0, 0, -10}),
+    vEye({0, 0, -5}),
     screenSize(3),
     scale(100),
     minDotSize(2),
@@ -1661,7 +3763,6 @@ void Camera::debugDrawPlane(std::vector <sf::Vector2f>& spot, sf::Color color)
         }
 }
 
-
 std::vector <sf::Vector2f> Camera::wallToPoly(Wall* wallie)
 {
     std::vector <sf::Vector2f> spot;
@@ -1737,11 +3838,19 @@ void Camera::drawWall(Wall const& wallie)
                              halfDotBegin[wallie.coord[i]]);
             if(!wallie.lineStrip.empty())
                 for(int i=0; i<wallie.lineStrip.size(); i++)
+                {
                     for(int j=0; j<wallie.lineStrip[i].size()-1; j++)
                     {
                         drawDot(spot2d[wallie.lineStrip[i][j]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, wallie.color);
                         drawLine(spot2d[wallie.lineStrip[i][j]], spot2d[wallie.lineStrip[i][j+1]], dot[ wallie.lineStrip[i][j] ] * wallie.pSize, dot[ wallie.lineStrip[i][j+1] ] * wallie.pSize, wallie.color, whatever);
                     }
+                    if(wallie.lineStrip[i][0] != wallie.lineStrip[i][wallie.lineStrip[i].size()-1])
+                    {
+                        drawDot(spot2d[wallie.lineStrip[i][wallie.lineStrip[i].size()-1]],
+                                dot[ wallie.lineStrip[i][wallie.lineStrip[i].size()-1] ] *
+                                wallie.pSize, wallie.color);
+                    }
+                }
             for(int i=0; i<spot.size(); i++)
                 if(dot[wallie.coord[i]]*wallie.pSize > minDotSize and wallie.dotDraw[i])
                   //drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot[i], wallie.color);
@@ -1793,6 +3902,7 @@ void Camera::drawWall(Wall const& wallie)
                          halfDotBegin[wallie.coord[(i+first)%wallie.size()]]);
             if(!wallie.lineStrip.empty())
                 for(int i=0; i<wallie.lineStrip.size(); i++)
+                {
                     for(int j=0; j<wallie.lineStrip[i].size()-1; j++)
                     {
                         if(spot3d[wallie.lineStrip[i][j]].z > 0)
@@ -1822,6 +3932,11 @@ void Camera::drawWall(Wall const& wallie)
                             drawDot(flatView(planeCross(spot3d[wallie.lineStrip[i][j+1]], spot3d[wallie.lineStrip[i][j]])), wallie.pSize, wallie.color);
                         }
                     }
+                    if(spot3d[wallie.lineStrip[i][wallie.lineStrip[i].size()-1]].z > 0 and spot3d[wallie.lineStrip[i][0]] != spot3d[wallie.lineStrip[i][wallie.lineStrip[i].size()-1]])
+                    {
+                        drawDot(spot2d[wallie.lineStrip[i][wallie.lineStrip[i].size()-1]], dot[ wallie.lineStrip[i][wallie.lineStrip[i].size()-1] ] * wallie.pSize, wallie.color);
+                    }
+                }
             for(int i=0; i<spot.size(); i++)
                 if(dot2d[i] > minDotSize and wallie.dotDraw[(i+first)%wallie.size()])
                   //drawHalfDot(spot[i], halfDotBegin[wallie.coord[(i)%wallie.size()]], dot2d[i], wallie.color);
@@ -2216,109 +4331,6 @@ std::pair<bool, bool> Camera::wallSortingAlgorythm(Wall* lhs, Wall* rhs)
     return {false, false};
 }
 
-/*
-std::pair<bool, bool> Camera::wallSortingAlgorythm(Wall* lhs, Wall* rhs)
-{
-    ///True - to z prawej jest blizej
-    std::vector <int> leftWall;
-    std::vector <int> rightWall;
-
-    int leftC = lhs->coord[0];
-    int leftT;
-    int leftS;
-    for(int i=1; i<lhs->size(); i++)
-        if(leftC != lhs->coord[i])
-        {
-            leftT = lhs->coord[i];
-            if((i+1) < lhs->size())
-                for(int j=i+1; j<lhs->size(); j++)
-                    if(leftC != lhs->coord[j] and leftT != lhs->coord[j])
-                    {
-                        leftS = lhs->coord[j];
-                        break;
-                    }
-            else
-                return {false, false};
-            break;
-        }
-    int rightC = rhs->coord[0];
-    int rightT;
-    int rightS;
-    for(int i=1; i<rhs->size(); i++)
-        if(rightC != rhs->coord[i])
-        {
-            rightT = rhs->coord[i];
-            if((i+1) < lhs->size())
-                for(int j=i+1; j<rhs->size(); j++)
-                    if(rightC != rhs->coord[j] and rightT != rhs->coord[j])
-                    {
-                        rightS = rhs->coord[j];
-                        break;
-                    }
-            else
-                return {false, false};
-            break;
-        }
-
-    for(int i=0; i<lhs->size(); i++)
-    {
-        int value = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], spot3d[lhs->coord[i]]);
-        if(value != 0)
-            leftWall.push_back(value);
-    }
-    if(leftWall.empty())
-        return {false, false};
-
-    for(int i=0; i<rhs->size(); i++)
-    {
-        int value = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], spot3d[rhs->coord[i]]);
-        if(value != 0)
-            rightWall.push_back(value);
-    }
-    if(rightWall.empty())
-        return {false, false};
-    int leftWallEyePos = planeSide(spot3d[leftC], spot3d[leftT], spot3d[leftS], vEye);
-    int rightWallEyePos = planeSide(spot3d[rightC], spot3d[rightT], spot3d[rightS], vEye);
-    if(rightWallEyePos == 0 and leftWallEyePos == 0)
-        return {false, false};
-
-    bool leftAllOnOneSide = true;
-    bool rightAllOnOneSide = true;
-    for(int i=1; i<leftWall.size(); i++)
-        if(leftWall[0] != leftWall[i])
-        {
-            leftAllOnOneSide = false;
-            break;
-        }
-    for(int i=1; i<rightWall.size(); i++)
-        if(rightWall[0] != rightWall[i])
-        {
-            rightAllOnOneSide = false;
-            break;
-        }
-
-
-    bool leftWallFirst = false;
-    bool rightWallFirst = false;
-    if(leftAllOnOneSide)
-        if(leftWall[0] == rightWallEyePos)
-            leftWallFirst = true;
-        else
-            rightWallFirst = true;
-
-    if(rightAllOnOneSide)
-        if(rightWall[0] == leftWallEyePos)
-            rightWallFirst = true;
-        else
-            leftWallFirst = true;
-
-    if(leftWallFirst != rightWallFirst)
-        return {leftWallFirst, rightWallFirst};
-    return {false, false};
-
-}
-*/
-
 void Camera::cycleReduction(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel)
 {
     int visited[graph.size()][graph.size()];
@@ -2575,20 +4587,11 @@ void Camera::display()
         drawWall(*wallOrder[i]);
 
     /*
-    std::vector <sf::Vector2f> collisionSpot2d;
-
-    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[0]]);
-    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[1]]);
-    collisionSpot2d.push_back(spot2d[p->world[8].wallie[0].coord[2]]);
-
-    debugDrawPlane(collisionSpot2d, sf::Color::Red);
-    */
-
     place = vecTransform(p->character[0].ellipsoidCenter - position);
     sf::Color color = sf::Color::Yellow;
     color.a = 120;
     drawSphere(place, 80, color);
-
+    */
 
 
     p->window->clear();
@@ -2605,9 +4608,12 @@ Entity::Entity(SYNTH3D* gameBase):
     position({0,0,0}), directionSet(false), tick(1), offsetLimit(15.0f),
     sinx(0.0f), siny(0.0f), sinz(0.0f),
     cosx(1.0f), cosy(1.0f), cosz(1.0f),
-    offset(0.0f), dt(0), veryCloseDistance(0.00005f),
+    offset(0.0f), dt(0), veryCloseDistanceVelocity(0.0005f),
+    veryCloseDistanceGravity(0.005f),
     velocityVector({0, 0, 0}), gravityVector({0, 0, 0}),
-    speedVector({0, 0, 0}), gravitySpeedVector({0, 0, 0})
+    speedVector({0, 0, 0}), gravitySpeedVector({0, 0, 0}),
+    maxSpeed(8.0f), maxSpeedSquared(64.0f),
+    standingOnSurface(false), velocitySet(false)
 {
     synth = gameBase;
 }
@@ -2620,13 +4626,16 @@ void Entity::collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravit
     sf::Vector3f eSpacePosition = collisionPackage.R3Position / collisionPackage.eRadius;
     sf::Vector3f eSpaceVelocity = collisionPackage.R3Velocity / collisionPackage.eRadius;
     collisionRecursionDepth = 0;
-    sf::Vector3f finalPosition = collideWithWorld(eSpacePosition, eSpaceVelocity);
+    sf::Vector3f finalPosition = collideWithWorld(eSpacePosition, eSpaceVelocity, veryCloseDistanceVelocity);
 
     collisionPackage.R3Position = finalPosition*collisionPackage.eRadius;
     collisionPackage.R3Velocity = gravity;
     eSpaceVelocity = gravity/collisionPackage.eRadius;
     collisionRecursionDepth = 0;
-    finalPosition = collideWithWorld(finalPosition, eSpaceVelocity);
+    ///collisionPackage.foundCollision = false;
+    finalPosition = collideWithWorld(finalPosition, eSpaceVelocity, veryCloseDistanceGravity);
+    if(collisionPackage.foundCollision)
+        standingOnSurface = true;
 
     finalPosition = finalPosition * collisionPackage.eRadius;
     finalPosition.y -= rotationCenter.y;
@@ -2634,7 +4643,7 @@ void Entity::collideAndSlide(const sf::Vector3f& vel, const sf::Vector3f& gravit
     position = finalPosition;
 }
 
-sf::Vector3f Entity::collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel)
+sf::Vector3f Entity::collideWithWorld(const sf::Vector3f& pos, const sf::Vector3f& vel, float veryCloseDistance)
 {
     if (collisionRecursionDepth>5)
         return pos;
@@ -2671,12 +4680,13 @@ sf::Vector3f Entity::collideWithWorld(const sf::Vector3f& pos, const sf::Vector3
         return newBasePoint;
     }
     collisionRecursionDepth++;
-    return collideWithWorld(newBasePoint, newVelocityVector);
+    return collideWithWorld(newBasePoint, newVelocityVector, veryCloseDistance);
 }
 
 void Entity::setAcceleration(sf::Vector3f acceleration)
 {
-    velocityVector = acceleration;
+    velocityVector += acceleration;
+    velocitySet = true;
 }
 
 void Entity::setGravity(sf::Vector3f acceleration)
@@ -2684,13 +4694,84 @@ void Entity::setGravity(sf::Vector3f acceleration)
     gravityVector = acceleration;
 }
 
+void Entity::moveLeft(float speed)
+{
+
+}
+
+void Entity::moveRight(float speed)
+{
+
+}
+
+void Entity::moveForward(float speed)
+{
+
+}
+
+void Entity::moveBackward(float speed)
+{
+
+}
+
+void Entity::jump(float speed)
+{
+    if(standingOnSurface)
+        gravitySpeedVector = sf::Vector3f(0, speed, 0);
+}
+
+void Entity::calcVelocity(sf::Vector3f& velocity)
+{
+    if(standingOnSurface)
+    {
+        sf::Vector3f deleteSpeed = speedVector;
+        normalize3f(deleteSpeed);
+        deleteSpeed *= 0.7f * float(dt);
+        if(vecSquaredLength(speedVector) > vecSquaredLength(deleteSpeed))
+            speedVector -= deleteSpeed;
+        else
+            speedVector = sf::Vector3f(0, 0, 0);
+
+        if(velocitySet)
+        {
+            if(speedVector.x*speedVector.x + speedVector.z*speedVector.z <= maxSpeedSquared)
+            {
+                velocity = (speedVector + velocityVector);
+                if(velocity.x*velocity.x + velocity.z*velocity.z > maxSpeedSquared)
+                {
+                    float length = vecLength(velocity);
+                    velocity.x *= (maxSpeed / length);
+                    velocity.z *= (maxSpeed / length);
+                }
+                velocity *= float(dt);
+            }
+            else
+            {
+                velocity = speedVector * float(dt);
+            }
+        }
+        else
+        {
+            velocity = speedVector * float(dt);
+        }
+    }
+    else
+    {
+        velocity = speedVector * float(dt);
+    }
+    standingOnSurface = false;
+    velocitySet = false;
+}
+
 void Entity::update(double deltaTime)
 {
     dt = deltaTime;
     positionBuffor = position;
+    sf::Vector3f velocity;
+    sf::Vector3f gravity;
 
-    sf::Vector3f velocity = (speedVector + velocityVector) * float(dt);
-    sf::Vector3f gravity = (gravitySpeedVector + gravityVector) * float(dt);
+    calcVelocity(velocity);
+    gravity = (gravitySpeedVector + gravityVector) * float(dt);
 
     velocityVector = sf::Vector3f(0, 0, 0);
     gravityVector =  sf::Vector3f(0, 0, 0);
@@ -2699,7 +4780,6 @@ void Entity::update(double deltaTime)
 
     speedVector = sf::Vector3f(position.x - positionBuffor.x, 0, position.z - positionBuffor.z) / float(dt);
     gravitySpeedVector = sf::Vector3f(0, position.y - positionBuffor.y, 0) / float(dt);
-
 
     if(!directionSet)
     {

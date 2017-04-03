@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <sstream>
 #include <ctime>
+#include <sys/stat.h>
 
 namespace Utils{
 
@@ -32,6 +33,7 @@ void normalize3f(sf::Vector3f& vec);
 void vecSetLength(sf::Vector3f& vec, float length);
 float vecSquaredLength(sf::Vector3f vec);
 float vecLength(sf::Vector3f vec);
+bool fileExists(const std::string& filename);
 }
 
 #endif //UTILS_HPP

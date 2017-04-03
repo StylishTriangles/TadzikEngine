@@ -146,4 +146,14 @@ float vecLength(sf::Vector3f vec)
     return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
+bool fileExists(const std::string& filename)
+{
+    struct stat buf;
+    if (stat(filename.c_str(), &buf) != -1)
+    {
+        return true;
+    }
+    return false;
+}
+
 }
