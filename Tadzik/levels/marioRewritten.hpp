@@ -48,7 +48,6 @@ public:
         }
     };
 
-
     class MovingEntity: public ARO::AnimSprite {
     public:
         enum direction {
@@ -189,7 +188,7 @@ public:
         Powerup(MARIO2* g, sf::Vector2f pos, sf::Vector2f v) : MovingEntity(g, pos, v) {
             setAnimation(&g->aPowerup);
         }
-        void updatePowerup(sf::Time deltaTime) {
+        virtual void updatePowerup(sf::Time deltaTime) {
             update(deltaTime.asMilliseconds()*velocity.x);
             move(0, velocity.y);
             sf::FloatRect intersection;
@@ -217,9 +216,18 @@ public:
             velocity.y+=0.5;
             //velocity.x*=0.9;
         }
-        void onPickup() {
+        virtual void onPickup() {
             game->TADZIK.setScale(2, 2);
         }
+    };
+
+    class Coin: public Powerup {
+    public:
+        void updatePowerup() {};
+        void onPickup() {
+            game->score+=500;
+        }
+
     };
 
     class Player: public MovingEntity {
@@ -292,8 +300,7 @@ public:
                 if (getGlobalBounds().intersects(game->vecEnemies[i]->getGlobalBounds(), intersection) && lastHit.getElapsedTime()>invincibilityTime) {
                     if (velocity.y>0 && prevGlobalBounds.top+prevGlobalBounds.height<game->vecEnemies[i]->getGlobalBounds().top) {
                         velocity.y=-10;
-                        game->vecEnemies[i]->onKilled();
-                        game->vecEnemies.erase(game->vecEnemies.begin()+i);
+                        game->vecEnemies[i]->onHit();
                         break;
                     }
                     else {
@@ -357,6 +364,7 @@ public:
             setAnimation(a);
             Utils::setOriginInCenter(*this);
             setPosition(pos);
+            velocity = sf::Vector2f(1, 0);
         }
         virtual void updateEnemy(sf::Time deltaTime) {
             update(deltaTime.asMilliseconds()*velocity.x);
@@ -388,7 +396,11 @@ public:
         }
         virtual void onKilled() {
             game->vecEffects.push_back(Effect(*this, game, sf::Vector2f(Utils::randFloat(-5, 5), -5)));
-            delete this;
+            m_destroy = true;
+            game->score+=200;
+        }
+        virtual void onHit() {
+
         }
 
     };
@@ -399,6 +411,34 @@ public:
             velocity.x=0.5;
             setScale(2, 2);
         }
+        void onHit() {
+            onKilled();
+        }
+    };
+
+    class NME_Armadillo: public Enemy {
+    public:
+        NME_Armadillo (ARO::Anim* a, sf::Vector2f pos, MARIO2* g, ARO::Anim* a1) : Enemy(a, pos, g) {
+            setScale(2, 2);
+            hiding = a1;
+        }
+        void onHit() {
+            if (wasHit) {
+                if (velocity.x==0) {
+                    velocity.x = Utils::sgn(Utils::randFloat(-1, 1))*10;
+                }
+                else {
+                    velocity.x = 0;
+                }
+            }
+            else {
+                wasHit = true;
+                setAnimation(hiding);
+                velocity.x = 0;
+            }
+        }
+        ARO::Anim* hiding;
+        bool wasHit = false;
     };
 
     void gameOver() {
@@ -442,6 +482,9 @@ public:
                 else if(mapa.getPixel(x, y)==sf::Color(255, 0, 0)) {
                     vecEnemies.push_back(new NME_Snek(&aSnekWalk, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
+                else if(mapa.getPixel(x, y)==sf::Color(255, 1, 0)) {
+                    vecEnemies.push_back(new NME_Armadillo(&aArmadillo, sf::Vector2f(x*tileSize, y*tileSize), this, &aArmadillo_));
+                }
                 else if(mapa.getPixel(x, y)==sf::Color(0, 255, 0)) {
                     TADZIK.setPosition(x*tileSize, y*tileSize);
                 }
@@ -481,6 +524,10 @@ public:
 
         spsSnekWalk.loadFromFile("files/textures/mario/snekWalk.png");
         aSnekWalk.setSpriteSheet(&spsSnekWalk, 44, sf::milliseconds(100));
+        spsArmadillo.loadFromFile("files/textures/mario/armadillo.png");
+        aArmadillo.setSpriteSheet(&spsArmadillo, 39, sf::milliseconds(100));
+        spsArmadillo_.loadFromFile("files/textures/mario/armadillo.png");
+        aArmadillo_.setSpriteSheet(&spsArmadillo_, 39, sf::milliseconds(100));
 
         spsPowerup.loadFromFile("files/textures/mario/powerup.png");
         aPowerup.setSpriteSheet(&spsPowerup, 32, sf::seconds(1000000));
@@ -595,8 +642,12 @@ public:
         }
 
         ///OGARNIANIE PRZECIWNIKOW
-        for (auto a=vecEnemies.begin(); a!=vecEnemies.end(); a++) {
-            (*a)->updateEnemy(deltaTime);
+        for (int i=vecEnemies.size()-1; i>=0; i--) {
+            vecEnemies[i]->updateEnemy(deltaTime);
+            if (vecEnemies[i]->shouldDestroy()) {
+                delete vecEnemies[i];
+                vecEnemies.erase(vecEnemies.begin()+i);
+            }
         }
 
         ///GAME OVER
@@ -643,6 +694,8 @@ public:
             rGame.draw(a);
         rGame.display();
         window->draw(sf::Sprite(rGame.getTexture()));
+        std::cout << score << '\r';
+        score-=deltaTime.asSeconds()*20;
     }
 
 protected:
@@ -655,6 +708,9 @@ protected:
     sf::Texture texPowerUpTile_;
 
     sf::Texture spsSnekWalk;
+    sf::Texture spsArmadillo;
+    sf::Texture spsArmadillo_;
+
     sf::Texture spsPowerup;
     sf::Texture spsWater;
     sf::Texture spsTimedTile;
@@ -679,6 +735,9 @@ protected:
     ARO::Anim aPowerup;
 
     ARO::Anim aSnekWalk;
+    ARO::Anim aArmadillo;
+    ARO::Anim aArmadillo_;
+
     Player TADZIK = Player(this);
     sf::Sprite spBackground;
     sf::Sprite spFloorTile;
@@ -693,6 +752,7 @@ protected:
     sf::Vector2f windowSize;
     sf::Vector2f mapSize;
     int tileSize = 32;
+    int score = 10000;
 
     float parallax = 0.6;
 };

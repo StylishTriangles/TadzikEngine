@@ -35,7 +35,6 @@ public:
 #include "../levels/shooter2D.hpp"
 #include "../levels/rpg.hpp"
 #include "../levels/isayparty.hpp"
-#include "../levels/frogger.hpp"
 
 int main(){
     Common::loadFonts();
