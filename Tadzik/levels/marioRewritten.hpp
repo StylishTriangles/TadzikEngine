@@ -20,6 +20,21 @@ public:
     :Scene(_name, mgr, w)
     {}
 
+    class SpriteSheet {
+    public:
+        void loadFromFile(std::string dir, int tSize) {
+            sps.loadFromFile(dir);
+            tileSize = tSize;
+        }
+        void setSpriteTexture(sf::Sprite* sprite, sf::IntRect rect, sf::Vector2i origin = sf::Vector2i(0,0)) {
+            sprite->setTexture(sps);
+            sprite->setTextureRect(sf::IntRect(rect.left*tileSize, rect.top*tileSize, rect.width*tileSize, rect.height*tileSize));
+            //sprite->setOrigin(sf::Vector2f(origin.x*tileSize+tileSize/2, origin.y*tileSize+tileSize/2));
+        }
+        sf::Texture sps;
+        int tileSize;
+    };
+
     class Effect: public sf::Drawable, sf::Transformable {
     public:
         Effect(sf::Sprite& s, MARIO2* g, sf::Vector2f vel) {
@@ -88,15 +103,16 @@ public:
 
     class Tile: public ARO::AnimSprite {
     public:
+        Tile(){};
         Tile(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) {
             setPosition(pos);
             setAnimation(a);
             game = g;
         }
-        virtual void onHitBelow() {
+        virtual void onHitBelow(int level = 0) {
 
         }
-        virtual void onHitAbove() {
+        virtual void onHitAbove(int level = 0) {
 
         }
         virtual void onCollision(MovingEntity* m, float area) {
@@ -109,13 +125,23 @@ public:
         MARIO2* game;
     };
 
+    class StaticTile: public Tile {
+    public:
+        StaticTile(SpriteSheet& s, sf::IntRect coords, sf::Vector2f position, sf::Color c = sf::Color::White) : Tile() {
+            s.setSpriteTexture(this, coords);
+            setPosition(position);
+            setColor(c);
+        }
+    };
+
     class Tile_Breakable: public Tile {
     public:
         Tile_Breakable(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
             setLooped(false);
         }
-        void onHitBelow() {
-            nextFrame();
+        void onHitBelow(int level = 0) {
+            if (level == 1)
+                nextFrame();
         }
     };
 
@@ -125,7 +151,7 @@ public:
             setLooped(false);
             deactivated = d;
         }
-        void onHitBelow() {
+        void onHitBelow(int level = 0) {
             if (active) {
                 setAnimation(deactivated);
                 active = false;
@@ -158,13 +184,13 @@ public:
         ~Tile_Timed() {
             game->vecEffects.push_back(Effect(*this, game, sf::Vector2f(Utils::randFloat(-5, 5), -5)));
         }
-        void onHitAbove() {
+        void onHitAbove(int level) {
             if (!primed) {
                 primed = true;
                 timeElapsed.restart();
             }
         }
-        void onHitBelow() {
+        void onHitBelow(int level) {
             if (!primed) {
                 primed = true;
                 timeElapsed.restart();
@@ -217,7 +243,7 @@ public:
             //velocity.x*=0.9;
         }
         virtual void onPickup() {
-            game->TADZIK.setScale(2, 2);
+            game->TADZIK.levelUp();
         }
     };
 
@@ -277,7 +303,7 @@ public:
                 tileCollided->onCollision(this, 32*32);
                 move(0, -Utils::sgn(velocity.y)*intersection.height);
                 if (velocity.y>0) {
-                    tileCollided->onHitAbove();
+                    tileCollided->onHitAbove(level);
                     //spTadzik.isStanding = true;
                     if (currentAnimationType!=RUN) {
                         setAnimation(spriteSheets[level][RUN]);
@@ -290,7 +316,7 @@ public:
                     }
                 }
                 else
-                    tileCollided->onHitBelow();
+                    tileCollided->onHitBelow(level);
                 velocity.y=0;
             }
             move(velocity.x, 0);
@@ -304,14 +330,7 @@ public:
                         break;
                     }
                     else {
-                        isDead = true;
-                        deadTime.restart();
-                        setScale(1.5, 1.5);
-                        canJump = false;
-                        lastHit.restart();
-                        velocity.x*=-2;
-                        velocity.x+=Utils::randFloat(-2, 2);
-                        velocity.y=-10;
+                        levelDown();
                     }
                 }
             }
@@ -345,6 +364,30 @@ public:
                 canJump = false;
                 setAnimation(spriteSheets[level][JUMP]);
                 currentAnimationType=JUMP;
+            }
+        }
+
+        void levelUp() {
+            if (level == 0) {
+                level++;
+                setScale(Utils::sgn(getScale().x)*2,2);
+            }
+        }
+
+        void levelDown() {
+            if (level == 0) {
+                isDead = true;
+                deadTime.restart();
+            }
+            else {
+                setScale(Utils::sgn(getScale().x)*1.5, 1.5);
+                canJump = false;
+                lastHit.restart();
+                velocity.x*=-2;
+                velocity.x+=Utils::randFloat(-2, 2);
+                velocity.y=-10;
+                level--;
+                setAnimation(spriteSheets[level][FALL]);
             }
         }
 
@@ -402,7 +445,6 @@ public:
         virtual void onHit() {
 
         }
-
     };
 
     class NME_Snek: public Enemy {
@@ -456,7 +498,11 @@ public:
         vecEnemies.clear();
         vecPowerups.clear();
         vecEffects.clear();
-        loadMap("files/maps/mario/map2.png");
+        loadMap("files/maps/mario/map3.png");
+    }
+
+    bool colorCompare(sf::Color c1, sf::Color c2) {
+        return ((c1.r==c2.r) && (c1.g==c2.g) && (c1.b==c2.b) && c1.a!=0);
     }
 
     void loadMap(std::string mapDir) {
@@ -465,16 +511,22 @@ public:
         mapSize = sf::Vector2f(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
         for (int x=0; x<mapa.getSize().x; x++) {
             for (int y=0; y<mapa.getSize().y; y++) {
-                if (mapa.getPixel(x, y)==sf::Color(0, 0, 0)) {
-                    vecTiles.push_back(new Tile(&aFloorTile, sf::Vector2f(x*tileSize, y*tileSize), this));
+                if (colorCompare(mapa.getPixel(x, y), sf::Color(0, 0, 0))) { ///ZWYKLY KLOCEK
+                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
+                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(100, 100, 100)) {
-                    spFloorTile.setPosition(x*tileSize, y*tileSize);
-                    vecHitboxlessBack.push_back(spFloorTile);
+                if (colorCompare(mapa.getPixel(x, y), sf::Color(100, 50, 0))) { ///DRZEWO
+                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
+                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(200, 200, 200)) {
-                    spFloorTile.setPosition(x*tileSize, y*tileSize);
-                    vecHitboxlessFront.push_back(spFloorTile);
+                if (colorCompare(mapa.getPixel(x, y), sf::Color(0, 255, 0))) { ///LISCIE
+                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
+                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(200, 100, 100)) {
                     vecTiles.push_back(new Tile_Breakable(&aBreakableTile, sf::Vector2f(x*tileSize, y*tileSize), this));
@@ -485,7 +537,7 @@ public:
                 else if(mapa.getPixel(x, y)==sf::Color(255, 1, 0)) {
                     vecEnemies.push_back(new NME_Armadillo(&aArmadillo, sf::Vector2f(x*tileSize, y*tileSize), this, &aArmadillo_));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(0, 255, 0)) {
+                else if(mapa.getPixel(x, y)==sf::Color(0, 200, 0)) {
                     TADZIK.setPosition(x*tileSize, y*tileSize);
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(200, 0, 100)) {
@@ -502,17 +554,16 @@ public:
     }
 
     void onSceneLoadToMemory() {
+        tileSpriteSheet.loadFromFile("files/textures/mario/tileSpritesheet.png", 32);
+
         texBackground.loadFromFile("files/textures/mario/background.png");
-        texFloorTile.loadFromFile("files/textures/mario/floor1.png");
         texBreakableTile.loadFromFile("files/textures/mario/breakable1.png");
         texPowerUpTile.loadFromFile("files/textures/mario/powerUpTileActive.png");
         texPowerUpTile_.loadFromFile("files/textures/mario/powerUpTileInactive.png");
 
-        aFloorTile.setSpriteSheet(&texFloorTile, 32, sf::seconds(1000000));
         aBreakableTile.setSpriteSheet(&texBreakableTile, 32, sf::seconds(1000000));
         aPowerUpTile.setSpriteSheet(&texPowerUpTile, 32, sf::seconds(1000000));
         aPowerUpTile_.setSpriteSheet(&texPowerUpTile_, 32, sf::seconds(1000000));
-        spFloorTile.setTexture(texFloorTile);
         spsTimedTile.loadFromFile("files/textures/mario/timedTile.png");
         aTimedTile.setSpriteSheet(&spsTimedTile, 32, sf::seconds(1000000));
 
@@ -546,10 +597,10 @@ public:
         aTadzikRun.resize(3);
 
         for (int i=0; i<3; i++) {
-            spsTadzikRun[i].loadFromFile("files/textures/universal/playerRun"+Utils::stringify(i)+".png");
-            spsTadzikIdle[i].loadFromFile("files/textures/universal/playerIdle"+Utils::stringify(i)+".png");
-            spsTadzikJump[i].loadFromFile("files/textures/universal/playerJump"+Utils::stringify(i)+".png");
-            spsTadzikFall[i].loadFromFile("files/textures/universal/playerFall"+Utils::stringify(i)+".png");
+            spsTadzikRun[i].loadFromFile("files/textures/mario/player/playerRun"+Utils::stringify(i)+".png");
+            spsTadzikIdle[i].loadFromFile("files/textures/mario/player/playerIdle"+Utils::stringify(i)+".png");
+            spsTadzikJump[i].loadFromFile("files/textures/mario/player/playerJump"+Utils::stringify(i)+".png");
+            spsTadzikFall[i].loadFromFile("files/textures/mario/player/playerFall"+Utils::stringify(i)+".png");
             aTadzikRun[i].setSpriteSheet(&spsTadzikRun[i], 26, sf::milliseconds(500));
             aTadzikIdle[i].setSpriteSheet(&spsTadzikIdle[i], 26, sf::milliseconds(500));
             aTadzikJump[i].setSpriteSheet(&spsTadzikJump[i], 26, sf::milliseconds(500));
@@ -563,7 +614,7 @@ public:
     }
 
     void onSceneActivate() {
-        loadMap("files/maps/mario/map2.png");
+        loadMap("files/maps/mario/map3.png");
         rGame.create(window->getSize().x, window->getSize().y);
         windowSize = sf::Vector2f(window->getSize());
         gameView.reset(sf::FloatRect(0, 0, window->getSize().x, window->getSize().y));
@@ -574,8 +625,12 @@ public:
             delete vecTiles[i];
         for (int i=0; i<vecEnemies.size(); i++)
             delete vecEnemies[i];
+        for (int i=0; i<vecPowerups.size(); i++)
+            delete vecPowerups[i];
         vecTiles.clear();
         vecEnemies.clear();
+        vecPowerups.clear();
+        vecEffects.clear();
     }
 
     void deliverEvent(sf::Event& event){
@@ -677,6 +732,7 @@ public:
             }
         }
 
+        rGame.clear();
         rGame.draw(spBackground);
         for (auto a:vecTiles)
             rGame.draw(*a);
@@ -694,6 +750,7 @@ public:
             rGame.draw(a);
         rGame.display();
         window->draw(sf::Sprite(rGame.getTexture()));
+
         std::cout << score << '\r';
         score-=deltaTime.asSeconds()*20;
     }
@@ -702,10 +759,11 @@ protected:
     sf::View gameView;
     sf::RenderTexture rGame;
     sf::Texture texBackground;
-    sf::Texture texFloorTile;
     sf::Texture texBreakableTile;
     sf::Texture texPowerUpTile;
     sf::Texture texPowerUpTile_;
+
+    SpriteSheet tileSpriteSheet;
 
     sf::Texture spsSnekWalk;
     sf::Texture spsArmadillo;
@@ -725,7 +783,6 @@ protected:
     std::vector <ARO::Anim> aTadzikJump;
     std::vector <ARO::Anim> aTadzikFall;
 
-    ARO::Anim aFloorTile;
     ARO::Anim aBreakableTile;
     ARO::Anim aPowerUpTile;
     ARO::Anim aPowerUpTile_;
@@ -744,10 +801,11 @@ protected:
 
     std::vector <Enemy*> vecEnemies;
     std::vector <Tile*> vecTiles;
+    std::vector <StaticTile> vecStaticTiles;
     std::vector <Powerup*> vecPowerups;
     std::vector <Effect> vecEffects;
-    std::vector <sf::Sprite> vecHitboxlessFront;
-    std::vector <sf::Sprite> vecHitboxlessBack;
+    std::vector <Tile> vecHitboxlessFront;
+    std::vector <Tile> vecHitboxlessBack;
 
     sf::Vector2f windowSize;
     sf::Vector2f mapSize;
