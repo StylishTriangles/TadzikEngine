@@ -11,13 +11,13 @@ sf::FloatRect getBiggerBoundingBox(sf::Sprite& sp){
     return retBox;
 }
 
-void drawBoundingBox(sf::Sprite& sp, sf::RenderTarget* target){
+void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window){
     sf::RectangleShape shp(sf::Vector2f(sp.getGlobalBounds().width, sp.getGlobalBounds().height));
     shp.setPosition(sf::Vector2f(sp.getGlobalBounds().left, sp.getGlobalBounds().top));
     shp.setOutlineColor(sf::Color::Green);
     shp.setFillColor(sf::Color(0,0,0,0));
     shp.setOutlineThickness(1);
-    target->draw(shp);
+    window->draw(shp);
 }
 
 float randFloat(float from, float to) {
@@ -116,10 +116,6 @@ void normalize(sf::Vector2f &v) {
     v = sf::Vector2f(v.x/length, v.y/length);
 }
 
-sf::Vector2f getViewOffset(sf::RenderTarget* rt) {
-    return rt->mapPixelToCoords(sf::Vector2i(0,0));
-}
-
 float dotProduct(sf::Vector3f a, sf::Vector3f b)
 {
     return a.x*b.x + a.y*b.y + a.z*b.z;
@@ -150,8 +146,23 @@ float vecLength(sf::Vector3f vec)
     return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
+bool fileExists(const std::string& filename)
+{
+    struct stat buf;
+    if (stat(filename.c_str(), &buf) != -1)
+    {
+        return true;
+    }
+    return false;
+}
+
+sf::Vector2f getViewOffset(sf::RenderTarget* rt) {
+    return rt->mapPixelToCoords(sf::Vector2i(0,0));
+}
+
 float getArea(sf::FloatRect r) {
     return r.width*r.height;
+
 }
 
 }

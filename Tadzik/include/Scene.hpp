@@ -69,10 +69,10 @@ public:
         consoleBuff.clear();
     }
 
+    sf::RenderWindow* window;
 protected:
     std::string name;
     SceneManager* sceneManager=nullptr;
-    sf::RenderWindow* window;
     ImVector <char*> consoleCommands;
     ImVector <coloredText> consoleBuff;
 };

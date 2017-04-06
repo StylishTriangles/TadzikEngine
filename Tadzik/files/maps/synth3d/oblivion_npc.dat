@@ -1,0 +1,10 @@
+cat
+
+begin:	Cat head
+finish:	Cat tail
+eRadius:	25	50	75
+setPos:	400	70	300
+leftLeg:	4	2	5	2
+rightLeg:	3	2	6	2
+
+end
