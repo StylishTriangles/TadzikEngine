@@ -43,6 +43,7 @@ public:
         char dir = 'N';
         int side = Right;
         bool isAttacking;
+        std::vector<sf::Vector2i> equipment;
 
         void draw(sf::RenderWindow* w)
         {
@@ -124,7 +125,8 @@ public:
     };
 
     class Chestwo: public sf::Sprite
-    { public:
+    {
+    public:
         Chestwo(int x, int y, std::vector<sf::Vector2i> V, sf::Texture& t, int scale = 5)
         {
             items = V;
@@ -164,13 +166,15 @@ public:
     class Item: public sf::Sprite
     {
     public:
-        Item(int i, std::string n, sf::Texture tex, int v,int d=0)
+        Item(int i, std::string n, const sf::Texture &tex, const sf::IntRect I, int v,int d=0, int scale=30)
         {
             setTexture(tex);
+            setTextureRect(I);
             name=n;
             id=i;
             value=v;
             damage=d;
+            setScale(scale,scale);
         }
         std::string name;
         int id;
@@ -198,7 +202,7 @@ public:
 
                 if (mapa.getPixel(i, j) == sf::Color(255,128,0))
                 {
-                 //   vecChest.push_back(Chest(sf::Vector2f(i*tilesize,j*tilesize),texChest));
+                    //   vecChest.push_back(Chest(sf::Vector2f(i*tilesize,j*tilesize),texChest));
                 }
                 if (mapa.getPixel(i, j) == sf::Color(0, 0, 255))
                 {
@@ -213,16 +217,20 @@ public:
                 }
             }
         }
-        std::ifstream chests(s);
+
+        std::ifstream chests;
+        chests.open(s);
+
         int x, y;
         while(chests >> x >> y)
         {
             std::vector <sf::Vector2i> V;
             sf::Vector2i Vi;
             while(1)
-            {                chests >> Vi.x >> Vi.y;
+            {
+                chests >> Vi.x >> Vi.y;
                 if(Vi.x==-1)
-                break;
+                    break;
                 V.push_back(Vi);
             }
             vecChest.push_back(Chestwo(x,y,V, texChest));
@@ -281,7 +289,28 @@ public:
 
     virtual void onSceneLoadToMemory()
     {
+
         window->setView(view);
+        ///itemy
+        texItemSheet.loadFromFile("files/textures/rpg/items.png");
+        std::ifstream baseItem("files/maps/rpg/items.txt");
+        int itemsInRow = 5;
+        for(int j=0, sizeItem =texItemSheet.getSize().x/itemsInRow ;    j<texItemSheet.getSize().y/sizeItem;    j++)
+        {
+            int id, value, damage;
+            std::string name;
+            for(int i=0;    i<itemsInRow;   i++)
+            {
+                baseItem >> id >> name >> value >> damage;
+                std::cout << id << name << value <<damage << std::endl;
+                vecItem.push_back(Item(id,name,texItemSheet, sf::IntRect(i*sizeItem, j*sizeItem,sizeItem,sizeItem),value,damage));
+            }
+        }
+        texInventoryBackground.loadFromFile("files/textures/rpg/inventoryBackground.png");
+        inventoryBackground.setTexture(texInventoryBackground);
+        inventoryBackground.setOrigin(texInventoryBackground.getSize().x*0.5,0.5*texInventoryBackground.getSize().y);
+        inventoryBackground.setPosition(window->getSize().x/2,window->getSize().y/2);
+        inventoryBackground.setScale(10,10);
 
         texUpRun.loadFromFile("files/textures/rpg/up/run.png");
         upRun.setSpriteSheet(&texUpRun, 17, sf::milliseconds(60));
@@ -346,7 +375,7 @@ public:
                               spCrosshair.getTextureRect().width * 0.5);
 
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
-        chestPath="files/maps/chest1.txt";
+        chestPath="files/maps/rpg/chest1.txt";
         loadMap(mapa, chestPath);
     }
 
@@ -358,206 +387,228 @@ public:
     {
         float dT = deltaTime.asMilliseconds();
 
-        // Player.speedX=0, Player.speedY=0;
-        /// Movement
-        Player.speedX = Player.speedX * 0.5;
-        Player.speedY = Player.speedY * 0.5;
-        /// Kierunki
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) &&
-                Player.isAttacking == false)
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Tab))
+        {   if(tab>1)
+            tab=1;
+            tab*=-1;
+        }
+        if(tab>0)
         {
-            Player.isAttacking = true;
-            if (Player.dir == 'U')
+            window->draw(inventoryBackground);
+        if(tab>1)
+            window->draw(vecItem[vecChest[tab-2].items[0].x]);
+        }
+        else
+        {
+            // Player.speedX=0, Player.speedY=0;
+            /// Movement
+            Player.speedX = Player.speedX * 0.5;
+            Player.speedY = Player.speedY * 0.5;
+            /// Kierunki
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) &&
+                    Player.isAttacking == false)
             {
-                Player.changeAnimation(&upAttack);
-                sliceVec.push_back(
-                    Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
+                Player.isAttacking = true;
+                if (Player.dir == 'U')
+                {
+                    Player.changeAnimation(&upAttack);
+                    sliceVec.push_back(
+                        Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
+                }
+                else if (Player.dir == 'R')
+                {
+                    Player.changeAnimation(&rightAttack);
+                    sliceVec.push_back(
+                        Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
+                }
+                else if (Player.dir == 'L')
+                {
+                    Player.changeAnimation(&leftAttack);
+                    sliceVec.push_back(
+                        Slice(Player.aSprite.getPosition(), &sliceLeft, 10, true));
+                }
+                else
+                {
+                    Player.changeAnimation(&downAttack);
+                    sliceVec.push_back(
+                        Slice(Player.aSprite.getPosition(), &sliceDown, 10, true));
+
+                }
+
+                Player.aSprite.reset();
+                Player.aSprite.setLooped(false);
+
+                sliceVec[sliceVec.size() - 1].setLooped(false);
+                sliceVec[sliceVec.size() - 1].setScale(5, 5);
             }
-            else if (Player.dir == 'R')
+            if (Player.aSprite.shouldDestroy())
             {
-                Player.changeAnimation(&rightAttack);
-                sliceVec.push_back(
-                    Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
+                Player.isAttacking = false;
+                Player.aSprite.setLooped(true);
             }
-            else if (Player.dir == 'L')
+            if (Player.isAttacking == false)
             {
-                Player.changeAnimation(&leftAttack);
-                sliceVec.push_back(
-                    Slice(Player.aSprite.getPosition(), &sliceLeft, 10, true));
+                if (Player.dir != 'N')
+                {
+                    if ((Player.dir == 'U' || Player.dir == 'D') &&
+                            std::abs(Player.speedY) < std::abs(Player.speedX))
+                        Player.dir = 'N', Player.changeAnimation(&Idle);
+                    if ((Player.dir == 'R' || Player.dir == 'L') &&
+                            std::abs(Player.speedY) > std::abs(Player.speedX))
+                        Player.dir = 'N', Player.changeAnimation(&Idle);
+                    else if (std::abs(Player.speedX) < 0.5 && std::abs(Player.speedY) < 0.5)
+                        Player.dir = 'N', Player.changeAnimation(&Idle);
+                }
+                if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
+                        sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
+                {
+                    Player.speedY -= 0.6 * Player.basespeed;
+                    if (Player.dir == 'N' || Player.dir == 'D')
+                    {
+                        Player.dir = 'U';
+                        Player.changeAnimation(&upRun);
+                    }
+                }
+                if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) ||
+                        sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
+                {
+                    Player.speedY += 0.6 * Player.basespeed;
+                    if (Player.dir == 'N' || Player.dir == 'U')
+                    {
+                        Player.dir = 'D';
+                        Player.changeAnimation(&downRun);
+                    }
+                }
+                if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
+                        sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+                {
+                    Player.speedX -= 0.6 * Player.basespeed;
+                    if (Player.dir == 'N' || Player.dir == 'R')
+                    {
+                        Player.dir = 'L';
+                        Player.changeAnimation(&leftRun);
+                    }
+                }
+                if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
+                        sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
+                {
+                    Player.speedX += 0.6 * Player.basespeed;
+                    if (Player.dir == 'N' || Player.dir == 'L')
+                    {
+                        Player.dir = 'R';
+                        Player.changeAnimation(&rightRun);
+                    }
+                }
+
+                if (Player.speedX < -Player.basespeed) Player.speedX = -Player.basespeed;
+                if (Player.speedY < -Player.basespeed) Player.speedY = -Player.basespeed;
+                if (Player.speedX > Player.basespeed) Player.speedX = Player.basespeed;
+                if (Player.speedY > Player.basespeed) Player.speedY = Player.basespeed;
+
+                staticCollision(Player);
+                if (Player.aSprite.getAnim() == &Idle)
+                    Player.aSprite.update(dT);
+                else if (((std::abs(Player.speedX) + std::abs(Player.speedY)) /
+                          Player.basespeed) > 1)
+                    Player.aSprite.update(dT);
+                else
+                    Player.aSprite.update(
+                        dT * (std::abs(Player.speedX) + std::abs(Player.speedY)) /
+                        (2 * Player.basespeed));
+                Player.move(Player.speedX, Player.speedY);
+                view.setCenter(Player.aSprite.getPosition());
+                //window-> setView(view);
             }
             else
             {
-                Player.changeAnimation(&downAttack);
-                sliceVec.push_back(
-                    Slice(Player.aSprite.getPosition(), &sliceDown, 10, true));
-
-            }
-
-            Player.aSprite.reset();
-            Player.aSprite.setLooped(false);
-
-            sliceVec[sliceVec.size() - 1].setLooped(false);
-            sliceVec[sliceVec.size() - 1].setScale(5, 5);
-        }
-        if (Player.aSprite.shouldDestroy())
-        {
-            Player.isAttacking = false;
-            Player.aSprite.setLooped(true);
-        }
-        if (Player.isAttacking == false)
-        {
-            if (Player.dir != 'N')
-            {
-                if ((Player.dir == 'U' || Player.dir == 'D') &&
-                        std::abs(Player.speedY) < std::abs(Player.speedX))
-                    Player.dir = 'N', Player.changeAnimation(&Idle);
-                if ((Player.dir == 'R' || Player.dir == 'L') &&
-                        std::abs(Player.speedY) > std::abs(Player.speedX))
-                    Player.dir = 'N', Player.changeAnimation(&Idle);
-                else if (std::abs(Player.speedX) < 0.5 && std::abs(Player.speedY) < 0.5)
-                    Player.dir = 'N', Player.changeAnimation(&Idle);
-            }
-            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
-            {
-                Player.speedY -= 0.6 * Player.basespeed;
-                if (Player.dir == 'N' || Player.dir == 'D')
-                {
-                    Player.dir = 'U';
-                    Player.changeAnimation(&upRun);
-                }
-            }
-            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
-            {
-                Player.speedY += 0.6 * Player.basespeed;
-                if (Player.dir == 'N' || Player.dir == 'U')
-                {
-                    Player.dir = 'D';
-                    Player.changeAnimation(&downRun);
-                }
-            }
-            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
-            {
-                Player.speedX -= 0.6 * Player.basespeed;
-                if (Player.dir == 'N' || Player.dir == 'R')
-                {
-                    Player.dir = 'L';
-                    Player.changeAnimation(&leftRun);
-                }
-            }
-            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
-            {
-                Player.speedX += 0.6 * Player.basespeed;
-                if (Player.dir == 'N' || Player.dir == 'L')
-                {
+                staticCollision(Player);
+                if (Player.aSprite.shouldDestroy() == 0) Player.aSprite.update(dT);
+                if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
+                        sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
                     Player.dir = 'R';
-                    Player.changeAnimation(&rightRun);
-                }
+                else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
+                          sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
+                    Player.dir = 'L';
+                else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) ||
+                          sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
+                    Player.dir = 'D';
+                else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
+                          sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
+                    Player.dir = 'U';
             }
+            /// Kolizja gdzies tu
 
             if (Player.speedX < -Player.basespeed) Player.speedX = -Player.basespeed;
             if (Player.speedY < -Player.basespeed) Player.speedY = -Player.basespeed;
             if (Player.speedX > Player.basespeed) Player.speedX = Player.basespeed;
             if (Player.speedY > Player.basespeed) Player.speedY = Player.basespeed;
 
-            staticCollision(Player);
-            if (Player.aSprite.getAnim() == &Idle)
-                Player.aSprite.update(dT);
-            else if (((std::abs(Player.speedX) + std::abs(Player.speedY)) /
-                      Player.basespeed) > 1)
-                Player.aSprite.update(dT);
-            else
-                Player.aSprite.update(
-                    dT * (std::abs(Player.speedX) + std::abs(Player.speedY)) /
-                    (2 * Player.basespeed));
-            Player.move(Player.speedX, Player.speedY);
-            view.setCenter(Player.aSprite.getPosition());
-            //window-> setView(view);
-        }
-        else
-        {
-            staticCollision(Player);
-            if (Player.aSprite.shouldDestroy() == 0) Player.aSprite.update(dT);
-            if ((sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Right)))
-                Player.dir = 'R';
-            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
-                      sf::Keyboard::isKeyPressed(sf::Keyboard::Left)))
-                Player.dir = 'L';
-            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::S) ||
-                      sf::Keyboard::isKeyPressed(sf::Keyboard::Down)))
-                Player.dir = 'D';
-            else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
-                      sf::Keyboard::isKeyPressed(sf::Keyboard::Up)))
-                Player.dir = 'U';
-        }
-        /// Kolizja gdzies tu
+            spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
 
-        if (Player.speedX < -Player.basespeed) Player.speedX = -Player.basespeed;
-        if (Player.speedY < -Player.basespeed) Player.speedY = -Player.basespeed;
-        if (Player.speedX > Player.basespeed) Player.speedX = Player.basespeed;
-        if (Player.speedY > Player.basespeed) Player.speedY = Player.basespeed;
-
-        spCrosshair.setPosition(sf::Vector2f(sf::Mouse::getPosition(*window)));
-
-        // OBRACANIE
+            // OBRACANIE
 
 
 
-        // DRAW STARTS
-        window-> clear(sf::Color());
-        for (int i = 0; i < spGrass.size(); i++) window-> draw(spGrass[i]);
-        for (int i = 0; i < spWall.size(); i++)  window-> draw(spWall[i]);
+            // DRAW STARTS
+            window-> clear(sf::Color());
+            for (int i = 0; i < spGrass.size(); i++) window-> draw(spGrass[i]);
+            for (int i = 0; i < spWall.size(); i++)  window-> draw(spWall[i]);
 
 
-        window->draw(spCrosshair);
+            window->draw(spCrosshair);
 
-        for (int i = 0; i < vecChest.size(); i++)
-        {
-            window->draw(vecChest[i]);
-        }
-
-        Player.draw(window);
-
-        // SKELETON MOVEMENT
-        for (int i = vecSkeleton.size()-1; i>=0; i--)
-        {
-            if(vecSkeleton[i].health<=0)
+            for (int i = 0; i < vecChest.size(); i++)
             {
-
-
-                vecSkeleton.erase(vecSkeleton.begin()+i);
-                break;
+                window->draw(vecChest[i]);
             }
-            vecSkeleton[i].AImove(Player.aSprite,this);
-            vecSkeleton[i].draw(window);
-            if(vecSkeleton[i].aSprite.getColor()==sf::Color(255,0,0))
-                vecSkeleton[i].aSprite.setColor(sf::Color(255,255,255));
+for(int i=0; i<vecChest.size();i++)
+   std::cout << "arek", window->draw(vecChest[i]);
+            Player.draw(window);
 
-        }
-
-        for (int i = sliceVec.size() - 1; i >= 0; i--)
-            if (sliceVec[i].isPlayer == true)
+            // SKELETON MOVEMENT
+            for (int i = vecSkeleton.size()-1; i>=0; i--)
             {
-                if (Player.isAttacking == 0) sliceVec.erase(sliceVec.begin() + i);
+                if(vecSkeleton[i].health<=0)
+                {
+
+
+                    vecSkeleton.erase(vecSkeleton.begin()+i);
+                    break;
+                }
+                vecSkeleton[i].AImove(Player.aSprite,this);
+                vecSkeleton[i].draw(window);
+                if(vecSkeleton[i].aSprite.getColor()==sf::Color(255,0,0))
+                    vecSkeleton[i].aSprite.setColor(sf::Color(255,255,255));
+
             }
-            else if (sliceVec[i].shouldDestroy())
-                sliceVec.erase(sliceVec.begin() + i);
+
+            for (int i = sliceVec.size() - 1; i >= 0; i--)
+                if (sliceVec[i].isPlayer == true)
+                {
+                    if (Player.isAttacking == 0) sliceVec.erase(sliceVec.begin() + i);
+                }
+                else if (sliceVec[i].shouldDestroy())
+                    sliceVec.erase(sliceVec.begin() + i);
 
 
-        for (int i = 0; i < sliceVec.size(); i++)
-        {
-            sliceVec[i].update(dT);
-            window->draw(sliceVec[i]);
-            sliceVec[i].collide(vecSkeleton);
+            for (int i = 0; i < sliceVec.size(); i++)
+            {
+                sliceVec[i].update(dT);
+                window->draw(sliceVec[i]);
+                sliceVec[i].collide(vecSkeleton);
+            }
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+            {
+                for(int i=0; i<vecChest.size();i++)
+            if(Collision::BoundingBoxTest(Player.aSprite,vecChest[i]))
+                tab=i+2;
+            }
         }
-
     }
 
 protected:
+    int tab=1;
+
     sf::View view = sf::View(sf::FloatRect(0, 0, 1920, 1080));
 
     sf::Image mapa;
@@ -615,6 +666,12 @@ protected:
     ARO::Anim rightAttack;
     sf::Texture texLeftAttack;
     ARO::Anim leftAttack;
+
+    sf::Texture texItemSheet;
+    std::vector<Item> vecItem;
+
+    sf::Sprite inventoryBackground;
+    sf::Texture texInventoryBackground;
 
 };
 #endif  // RPG
