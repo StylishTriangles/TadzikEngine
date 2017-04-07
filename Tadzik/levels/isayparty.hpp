@@ -187,9 +187,9 @@ public:
 
         vecDiscoColors.push_back(sf::Color(64, 0, 77));
         vecDiscoColors.push_back(sf::Color(104, 0, 95));
-        vecDiscoColors.push_back(sf::Color(190,75,121));
-        vecDiscoColors.push_back(sf::Color(252,162,101));
-        vecDiscoColors.push_back(sf::Color(238,190,67));
+        //vecDiscoColors.push_back(sf::Color(190,75,121));
+        //vecDiscoColors.push_back(sf::Color(252,162,101));
+        //vecDiscoColors.push_back(sf::Color(238,190,67));
 
         vecDiscoReactionsGood.push_back("WOAH!");
         vecDiscoReactionsGood.push_back("Superb!");
