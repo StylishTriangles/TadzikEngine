@@ -343,9 +343,10 @@ public:
             ///KOLIZJA Z PRZECIWNIKAMI
             for (int i=game->vecEnemies.size()-1; i>=0; i--) {
                 if (getGlobalBounds().intersects(game->vecEnemies[i]->getGlobalBounds(), intersection) && lastHit.getElapsedTime()>invincibilityTime) {
-                    if (velocity.y>0 && prevGlobalBounds.top+prevGlobalBounds.height<game->vecEnemies[i]->getGlobalBounds().top) {
+                    if (velocity.y>0 && prevGlobalBounds.top+prevGlobalBounds.height<=game->vecEnemies[i]->getGlobalBounds().top) {
                         velocity.y=-10;
                         game->vecEnemies[i]->onHit();
+                        move(0, game->vecEnemies[i]->getGlobalBounds().top-getGlobalBounds().top-getGlobalBounds().height);
                         break;
                     }
                     else {
@@ -488,6 +489,7 @@ public:
             if (wasHit) {
                 if (velocity.x==0) {
                     velocity.x = Utils::sgn(Utils::randFloat(-1, 1))*10;
+                    setScale(abs(getScale().x)*Utils::sgn(velocity.x), getScale().y);
                 }
                 else {
                     velocity.x = 0;
