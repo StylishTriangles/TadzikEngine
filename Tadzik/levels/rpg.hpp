@@ -13,6 +13,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 
 class RPG : public Scene
 {
@@ -63,7 +64,7 @@ public:
         void changeAnimation(ARO::Anim* a)
         {
             aSprite.move(sf::Vector2f(aSprite.getAnim()->width-a->width, aSprite.getAnim()->height-a->height)*aSprite.getScale().x);
-          std::cout << "\n" <<  aSprite.getAnim()->width-a->width << "\t" << aSprite.getAnim()->width-a->width;
+            std::cout << "\n" <<  aSprite.getAnim()->width-a->width << "\t" << aSprite.getAnim()->width-a->width;
             aSprite.setAnimation(a);
         }
         void AImove(const sf::Sprite s, RPG* erpeg)
@@ -101,19 +102,18 @@ public:
         bool isPlayer = 0;
         void collide(std::vector<Entity>& E)
         {
-            for (int i = E.size(); i >= 0; i--)
+            for (int i = E.size()-1; i >= 0; i--)
                 if (Collision::PixelPerfectTest(*this, E[i].aSprite))
                 {
                     E[i].health-=damage;
                     E[i].aSprite.setColor(sf::Color(255,0,0));
                 }
-
         }
     };
 
     class Chest: public sf::Sprite
     {
-public:
+    public:
         Chest(sf::Vector2f V, const sf::Texture& T, int n = 5)
         {
             setPosition(V);
@@ -123,7 +123,62 @@ public:
         int number = 3;
     };
 
-    void loadMap(sf::Image mapa)
+    class Chestwo: public sf::Sprite
+    { public:
+        Chestwo(int x, int y, std::vector<sf::Vector2i> V, sf::Texture& t, int scale = 5)
+        {
+            items = V;
+            setTexture(t);
+            setScale(scale,scale);
+            setPosition(sf::Vector2f(x*30,y*30));
+        }
+        std::vector <sf::Vector2i> items;
+
+        void giveItem(sf::Vector2i V)
+        {
+            for(int i=items.size()-1; i>=0; i--)
+                if(items[i].x==V.x)
+                {
+                    items[i].y+=V.y;
+                    break;
+                }
+                else if(i==0)
+                    items.push_back(V);
+            std::sort(items.begin(), items.end(), [](sf::Vector2i a, sf::Vector2i b)
+            {
+                return b.x < a.x;
+            });
+        }
+        void takeItem(sf::Vector2i V)
+        {
+            for(int i=items.size()-1; i>=0; i--)
+                if(items[i].x==V.x)
+                {
+                    items[i].y-=V.y;
+                    if(items[i].y<=0)
+                        items.erase(items.begin()+i);
+                    break;
+                }
+        }
+    };
+    class Item: public sf::Sprite
+    {
+    public:
+        Item(int i, std::string n, sf::Texture tex, int v,int d=0)
+        {
+            setTexture(tex);
+            name=n;
+            id=i;
+            value=v;
+            damage=d;
+        }
+        std::string name;
+        int id;
+        int value;
+        int damage = 0;
+    };
+
+    void loadMap(sf::Image mapa, std::string s)
     {
         for (int i = 0; i < mapa.getSize().x; i++)
         {
@@ -143,7 +198,7 @@ public:
 
                 if (mapa.getPixel(i, j) == sf::Color(255,128,0))
                 {
-                 vecChest.push_back(Chest(sf::Vector2f(i*tilesize,j*tilesize),texChest));
+                 //   vecChest.push_back(Chest(sf::Vector2f(i*tilesize,j*tilesize),texChest));
                 }
                 if (mapa.getPixel(i, j) == sf::Color(0, 0, 255))
                 {
@@ -157,6 +212,20 @@ public:
                     vecSkeleton[vecSkeleton.size()-1].basespeed=2;
                 }
             }
+        }
+        std::ifstream chests(s);
+        int x, y;
+        while(chests >> x >> y)
+        {
+            std::vector <sf::Vector2i> V;
+            sf::Vector2i Vi;
+            while(1)
+            {                chests >> Vi.x >> Vi.y;
+                if(Vi.x==-1)
+                break;
+                V.push_back(Vi);
+            }
+            vecChest.push_back(Chestwo(x,y,V, texChest));
         }
     }
 
@@ -235,18 +304,25 @@ public:
         texRightAttack.loadFromFile("files/textures/rpg/right/attack.png");
         rightAttack.setSpriteSheet(&texRightAttack, 30, sf::milliseconds(100));
 
+        texLeftAttack.loadFromFile("files/textures/rpg/left/attack.png");
+        leftAttack.setSpriteSheet(&texLeftAttack, 30, sf::milliseconds(100));
+
         texSliceDown.loadFromFile("files/textures/rpg/down/projectile.png");
         sliceDown.setSpriteSheet(&texSliceDown, 50, sf::milliseconds(12));
 
         texSliceRight.loadFromFile("files/textures/rpg/right/projectile.png");
         sliceRight.setSpriteSheet(&texSliceRight, 66, sf::milliseconds(12));
 
+
+        texSliceLeft.loadFromFile("files/textures/rpg/left/projectile.png");
+        sliceLeft.setSpriteSheet(&texSliceLeft, 66, sf::milliseconds(12));
+
         texIdle.loadFromFile("files/textures/rpg/down/idle.png");
         Idle.setSpriteSheet(&texIdle, 15, sf::milliseconds(300));
 
         Player.aSprite.setAnimation(&Idle);
         Player.aSprite.setScale(5, 5);
-       // Player.aSprite.setOrigin(sf::Vector2f(Player.aSprite.getTextureRect().width*0.5,Player.aSprite.getTextureRect().height*0.5));
+        // Player.aSprite.setOrigin(sf::Vector2f(Player.aSprite.getTextureRect().width*0.5,Player.aSprite.getTextureRect().height*0.5));
 
         texWall.loadFromFile("files/textures/rpg/Wall.png");
         tempWall.setTexture(texWall);
@@ -270,7 +346,8 @@ public:
                               spCrosshair.getTextureRect().width * 0.5);
 
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
-        loadMap(mapa);
+        chestPath="files/maps/chest1.txt";
+        loadMap(mapa, chestPath);
     }
 
     virtual void onSceneActivate() {}
@@ -292,7 +369,7 @@ public:
             Player.isAttacking = true;
             if (Player.dir == 'U')
             {
-                  Player.changeAnimation(&upAttack);
+                Player.changeAnimation(&upAttack);
                 sliceVec.push_back(
                     Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
             }
@@ -301,6 +378,12 @@ public:
                 Player.changeAnimation(&rightAttack);
                 sliceVec.push_back(
                     Slice(Player.aSprite.getPosition(), &sliceRight, 10, true));
+            }
+            else if (Player.dir == 'L')
+            {
+                Player.changeAnimation(&leftAttack);
+                sliceVec.push_back(
+                    Slice(Player.aSprite.getPosition(), &sliceLeft, 10, true));
             }
             else
             {
@@ -392,7 +475,7 @@ public:
                     (2 * Player.basespeed));
             Player.move(Player.speedX, Player.speedY);
             view.setCenter(Player.aSprite.getPosition());
-            window-> setView(view);
+            //window-> setView(view);
         }
         else
         {
@@ -443,12 +526,17 @@ public:
         for (int i = vecSkeleton.size()-1; i>=0; i--)
         {
             if(vecSkeleton[i].health<=0)
-                vecSkeleton.erase(vecSkeleton.begin()+i);
+            {
 
+
+                vecSkeleton.erase(vecSkeleton.begin()+i);
+                break;
+            }
             vecSkeleton[i].AImove(Player.aSprite,this);
             vecSkeleton[i].draw(window);
             if(vecSkeleton[i].aSprite.getColor()==sf::Color(255,0,0))
                 vecSkeleton[i].aSprite.setColor(sf::Color(255,255,255));
+
         }
 
         for (int i = sliceVec.size() - 1; i >= 0; i--)
@@ -458,6 +546,7 @@ public:
             }
             else if (sliceVec[i].shouldDestroy())
                 sliceVec.erase(sliceVec.begin() + i);
+
 
         for (int i = 0; i < sliceVec.size(); i++)
         {
@@ -472,6 +561,7 @@ protected:
     sf::View view = sf::View(sf::FloatRect(0, 0, 1920, 1080));
 
     sf::Image mapa;
+    std::string chestPath;
 
     sf::Texture texWall;
     std::vector<sf::Sprite> spWall;
@@ -484,7 +574,7 @@ protected:
     std::vector<Entity> vecSkeleton;
 
     sf::Texture texChest;
-    std::vector<Chest> vecChest;
+    std::vector<Chestwo> vecChest;
 
     sf::Texture texGrass;
     std::vector<sf::Sprite> spGrass;
@@ -503,6 +593,8 @@ protected:
     ARO::Anim sliceDown;
     sf::Texture texSliceRight;
     ARO::Anim sliceRight;
+    sf::Texture texSliceLeft;
+    ARO::Anim sliceLeft;
 
     Entity Player;
     sf::Texture texIdle;
@@ -521,5 +613,8 @@ protected:
     ARO::Anim upAttack;
     sf::Texture texRightAttack;
     ARO::Anim rightAttack;
+    sf::Texture texLeftAttack;
+    ARO::Anim leftAttack;
+
 };
 #endif  // RPG
