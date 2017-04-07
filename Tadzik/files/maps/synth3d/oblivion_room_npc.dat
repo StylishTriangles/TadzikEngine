@@ -1,0 +1,8 @@
+human
+
+begin:	Human head
+finish:	Human left down arm
+eRadius:	75	250	100
+setPos:	400	350	300
+
+end

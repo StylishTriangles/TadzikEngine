@@ -56,7 +56,7 @@ public:
     sf::Color trans=sf::Color::Transparent;
     float pSize = 100;
     int grid = 0;
-    bool OptAllowed = true;
+    bool OptAllowed = false;
     void push_back(int c, bool draw, bool dot);
     unsigned int size() const;
     void clear();
@@ -111,7 +111,7 @@ public:
 };
 
 Object::Object():
-    OptAllowed(true),
+    OptAllowed(false),
     beginning(2000000),
     finish(0)
 {
@@ -414,6 +414,8 @@ protected:
     void findCycle(std::vector <std::vector <int> >& graph, std::vector <int>& graphLevel);
     std::vector <std::vector <int> > wallSortGraph;
     std::vector <int> wallSortGraphLevel;
+    float wallIntersectionOffset;
+    bool straightWallCheck;
 };
 
 class SYNTH3D: public Scene
@@ -464,6 +466,7 @@ protected:
     sf::Vector2i bufforMousePos;
 
     ObjectUtility editMap;
+    bool firstPerson;
 };
 
 class Entity
@@ -538,7 +541,6 @@ ObjectUtility::ObjectUtility(SYNTH3D* parent, sf::Vector2u setWindowSize) :
     leftNewButtonColor(sfColorToImColor(sf::Color(0, 122, 122, 255))),
     leftWindowBackgroundColor(sfColorToImColor(sf::Color(255, 0, 255, 47))),
     leftWindowSize(sf::Vector2u(leftWindowWidth, setWindowSize.y - 2*yButtonInterval)),
-
 
     topWindowHeight(110),
     topActiveButtonColor(sfColorToImColor(sf::Color(255, 255, 0, 255))),
@@ -743,31 +745,37 @@ void ObjectUtility::showCreationWindow()
             wall[0].push_back(p->terrain.size() + 1);
             wall[0].push_back(p->terrain.size() + 2);
             wall[0].push_back(p->terrain.size() + 3);
+            wall[0].name = "Front Wall";
 
             wall[1].push_back(p->terrain.size() + 4);
             wall[1].push_back(p->terrain.size() + 5);
             wall[1].push_back(p->terrain.size() + 1);
             wall[1].push_back(p->terrain.size() + 0);
+            wall[1].name = "Left Wall";
 
             wall[2].push_back(p->terrain.size() + 1);
             wall[2].push_back(p->terrain.size() + 5);
             wall[2].push_back(p->terrain.size() + 6);
             wall[2].push_back(p->terrain.size() + 2);
+            wall[2].name = "Up Wall";
 
             wall[3].push_back(p->terrain.size() + 3);
             wall[3].push_back(p->terrain.size() + 2);
             wall[3].push_back(p->terrain.size() + 6);
             wall[3].push_back(p->terrain.size() + 7);
+            wall[3].name = "Right Wall";
 
             wall[4].push_back(p->terrain.size() + 4);
             wall[4].push_back(p->terrain.size() + 0);
             wall[4].push_back(p->terrain.size() + 3);
             wall[4].push_back(p->terrain.size() + 7);
+            wall[4].name = "Down Wall";
 
             wall[5].push_back(p->terrain.size() + 7);
             wall[5].push_back(p->terrain.size() + 6);
             wall[5].push_back(p->terrain.size() + 5);
             wall[5].push_back(p->terrain.size() + 4);
+            wall[5].name = "Back Wall";
             tempObject.beginning = p->terrain.size();
             tempObject.finish = p->terrain.size() + 7;
             p->terrain.push_back(sf::Vector3f(0, 0, 0));
@@ -1023,6 +1031,85 @@ void ObjectUtility::showLeftWindow()
 
         ImGui::DragFloat("Point size", &wallie.pSize, 1.0f, 1.0f, 1000.0f);
 
+        if(ImGui::TreeNode("Line Strip"))
+        {
+            int start;
+            int finish;
+            calcStartAndFinishSafe(start, finish);
+            int objectCount;
+            objectCount = calcObjectSize();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, leftNewButtonColor);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+            if(ImGui::Button("Create", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+            {
+                std::vector <int> vec;
+                vec.push_back(start);
+                wallie.lineStrip.push_back(vec);
+            }
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+            if(ImGui::Button("Delete", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+            {
+                if(!wallie.lineStrip.empty())
+                    wallie.lineStrip.erase(wallie.lineStrip.begin() + wallie.lineStrip.size() - 1);
+            }
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+
+            for(int i=0; i<wallie.lineStrip.size(); i++)
+            {
+                std::string s = "strip " + stringify(i);
+                if(ImGui::TreeNode(s.c_str()))
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Button, leftNewButtonColor);
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
+                    if(ImGui::Button("Create", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+                    {
+                        if(!wallie.lineStrip[i].empty())
+                        {
+                            if(wallie.lineStrip[i][wallie.lineStrip[i].size() - 1] < finish)
+                            {
+                                wallie.lineStrip[i].push_back(wallie.lineStrip[i][wallie.lineStrip[i].size() - 1] + 1);
+                            }
+                            else
+                            {
+                                wallie.lineStrip[i].push_back(wallie.lineStrip[i][wallie.lineStrip[i].size() - 1]);
+                            }
+                        }
+                        else
+                        {
+                            wallie.lineStrip[i].push_back(start);
+                        }
+                    }
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, sfColorToImColor(sf::Color(122,0,0)));
+                    if(ImGui::Button("Delete", sf::Vector2u(leftWindowWidth/2 - 50,20)))
+                    {
+                        if(wallie.lineStrip[i].size() > 1)
+                            wallie.lineStrip[i].erase(wallie.lineStrip[i].begin() + wallie.lineStrip[i].size() - 1);
+                    }
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleColor();
+
+                    for(int j=0; j<wallie.lineStrip[i].size(); j++)
+                    {
+                        int falseCoord = wallie.lineStrip[i][j] - start;
+                        ImGui::SliderInt(stringify(j).c_str(), &falseCoord, 0, objectCount - 1);
+                        wallie.lineStrip[i][j] = falseCoord + start;
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+
         if(ImGui::TreeNode("Coord"))
         {
             int start;
@@ -1174,8 +1261,49 @@ void ObjectUtility::showLeftWindow()
                 p->terrain[i].y = singlePoint[1];
                 p->terrain[i].z = singlePoint[2];
             }
+            if(start <= finish and ImGui::Button("Copy Last", ImVec2(100, 20)))
+            {
+                start = p->world[editModeActiveObject].beginning;
+                finish = p->world[editModeActiveObject].finish;
+                sf::Vector3f desiredPoint = p->terrain[finish];
+                if(start > finish)
+                {
+                    if(editModeActiveObject > 0)
+                    {
+                        start = p->world[editModeActiveObject - 1].finish + 1;
+                    }
+                    else
+                    {
+                        start = 0;
+                    }
+                    finish = start - 1;
+                    p->world[editModeActiveObject].beginning = start;
+                    p->world[editModeActiveObject].finish = finish;
+                }
+                p->terrain.insert(p->terrain.begin() + finish + 1, desiredPoint);
+                p->defTerrain.insert(p->defTerrain.begin() + finish + 1, desiredPoint);
+                p->world[editModeActiveObject].finish++;
+                for(int i=editModeActiveObject + 1; i<p->world.size(); i++)
+                {
+                    p->world[i].beginning++;
+                    p->world[i].finish++;
+                    for(int j=0; j<p->world[i].size(); j++)
+                    {
+                        for(int m=0; m<p->world[i].wallie[j].size(); m++)
+                        {
+                            p->world[i].wallie[j].coord[m]++;
+                        }
+                        for(int m=0; m<p->world[i].wallie[j].lineStrip.size(); m++)
+                        {
+                            for(int n=0; n<p->world[i].wallie[j].lineStrip[m].size(); n++)
+                            {
+                                p->world[i].wallie[j].lineStrip[m][n]++;
+                            }
+                        }
+                    }
+                }
+            }
             ImGui::TreePop();
-
         }
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, leftActiveButtonColor);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, leftActiveButtonColorSemi);
@@ -1290,8 +1418,49 @@ void ObjectUtility::showLeftWindow()
                 p->terrain[i].y = singlePoint[1];
                 p->terrain[i].z = singlePoint[2];
             }
+            if(start <= finish and ImGui::Button("Copy Last", ImVec2(100, 20)))
+            {
+                start = p->world[editModeActiveObject].beginning;
+                finish = p->world[editModeActiveObject].finish;
+                sf::Vector3f desiredPoint = p->terrain[finish];
+                if(start > finish)
+                {
+                    if(editModeActiveObject > 0)
+                    {
+                        start = p->world[editModeActiveObject - 1].finish + 1;
+                    }
+                    else
+                    {
+                        start = 0;
+                    }
+                    finish = start - 1;
+                    p->world[editModeActiveObject].beginning = start;
+                    p->world[editModeActiveObject].finish = finish;
+                }
+                p->terrain.insert(p->terrain.begin() + finish + 1, desiredPoint);
+                p->defTerrain.insert(p->defTerrain.begin() + finish + 1, desiredPoint);
+                p->world[editModeActiveObject].finish++;
+                for(int i=editModeActiveObject + 1; i<p->world.size(); i++)
+                {
+                    p->world[i].beginning++;
+                    p->world[i].finish++;
+                    for(int j=0; j<p->world[i].size(); j++)
+                    {
+                        for(int m=0; m<p->world[i].wallie[j].size(); m++)
+                        {
+                            p->world[i].wallie[j].coord[m]++;
+                        }
+                        for(int m=0; m<p->world[i].wallie[j].lineStrip.size(); m++)
+                        {
+                            for(int n=0; n<p->world[i].wallie[j].lineStrip[m].size(); n++)
+                            {
+                                p->world[i].wallie[j].lineStrip[m][n]++;
+                            }
+                        }
+                    }
+                }
+            }
             ImGui::TreePop();
-
         }
         if(ImGui::TreeNode("Delete Points (experimental)"))
         {
@@ -1400,22 +1569,6 @@ void ObjectUtility::showTopWindowAlternative()
     position[0] = center.x;
     position[1] = center.y;
     position[2] = center.z;
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-            position[2] += 1;
-        else
-            position[1] += 1;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-            position[2] += -1;
-        else
-            position[1] += -1;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-        position[0] += 1;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-        position[0] += -1;
-
     if(ImGui::DragInt3("Edit Position XYZ", position, 0.04))
     {
         int buffor = editModeActiveObject;
@@ -1534,6 +1687,10 @@ void ObjectUtility::showTopWindow()
     position[0] = center.x;
     position[1] = center.y;
     position[2] = center.z;
+    int positionBuffor[3];
+    positionBuffor[0] = position[0];
+    positionBuffor[1] = position[1];
+    positionBuffor[2] = position[2];
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
@@ -1550,7 +1707,8 @@ void ObjectUtility::showTopWindow()
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
         position[0] += -1;
 
-    if(ImGui::DragInt3("Edit Position XYZ", position, 0.04))
+    ImGui::DragInt3("Edit Position XYZ", position, 0.04);
+    if(position[0] != positionBuffor[0] or position[1] != positionBuffor[1] or position[2] != positionBuffor[2])
     {
         moveObject(position[0] - center.x, position[1] - center.y, position[2] - center.z);
     }
@@ -1580,6 +1738,18 @@ void ObjectUtility::showTopWindow()
     }
     if(ImGui::DragInt3("Edit Size XYZ", sizeOfObject, 0.02))
     {
+        if(sizeOfObject[0] == 0)
+        {
+            sizeOfObject[0] = 1;
+        }
+        if(sizeOfObject[1] == 0)
+        {
+            sizeOfObject[1] = 1;
+        }
+        if(sizeOfObject[2] == 0)
+        {
+            sizeOfObject[2] = 1;
+        }
         if(zeroX == true)
         {
             divideX = 1;
@@ -2163,8 +2333,9 @@ void ObjectUtility::deleteTerrainPoint(int index)
 SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
     Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
     eyeDistance(-6), debug(0), offsetx(0), offsety(0), tick(1),
-    gravity({0, -0.7f, 0}), catVelocity({0.0f, 0.0f, 1.0f}), mouseSpeed(7.5f),
-    grabbedMouse(true), gBuffor(false), editMap(this, window->getSize())
+    gravity({0, -3.0f, 0}), catVelocity({0.0f, 0.0f, 10.0f}), mouseSpeed(7.5f),
+    grabbedMouse(true), gBuffor(false), editMap(this, window->getSize()),
+    firstPerson(true)
 {
 }
 
@@ -2184,12 +2355,17 @@ void SYNTH3D::onSceneLoadToMemory()
     consoleCommands.push_back("enable_distanceCheck");
     consoleCommands.push_back("compare");
 
-    loadMap("human");
-    //loadMap("oblivion");
+    //loadMap("human");
+    //loadMap("human_4");
+    //loadMap("backup");
+    //loadMap("backup");
+    loadMap("oblivion_room_3");
+    loadMap("human_4");
     defTerrain = terrain;
     //loadEntities("oblivion_npc");
-    OptLines();
-    OptDots();
+    loadEntities("oblivion_room_npc");
+    //OptLines();
+    //OptDots();
     c.update();
     bufforMousePos = sf::Mouse::getPosition(*window);
 }
@@ -2246,13 +2422,15 @@ void SYNTH3D::draw(sf::Time deltaTime)
     cameraAngle.x -= float(deltaMouse.y) / mouseSpeed;
     cameraAngle.y -= float(deltaMouse.x) / mouseSpeed;
 
-    /*
+    if(firstPerson)
+    {
         sf::Vector3f buffor = catVelocity;
         float angle = 0.0174524f * catRotationSpeed * float(deltaMouse.x) / mouseSpeed;
         catAngle.y -= angle;
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
-    */
+    }
+
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
         sf::Vector3f buffor = catVelocity;
@@ -2269,7 +2447,6 @@ void SYNTH3D::draw(sf::Time deltaTime)
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
     }
-    /*
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
         character[0].setAcceleration(catVelocity);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
@@ -2279,27 +2456,34 @@ void SYNTH3D::draw(sf::Time deltaTime)
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
         character[0].setAcceleration({catVelocity.z, 0, -catVelocity.x});
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-        character[0].jump(15);
+        character[0].jump(60);
 
     if(character[0].position.y < -1000)
     {
-        character[0].setPos({400, 70, 300});
+        character[0].setPos({400, 350, 300});
         character[0].setSpeed({0,0,0});
     }
     character[0].setGravity(gravity);
     character[0].setDirection(catVelocity, {0,0,0});
     character[0].update(dt);
-    */
     //cameraPos = terrain[34];
-    //cameraPos = character[0].ellipsoidCenter + sf::Vector3f(0, 70, 0);
+    if(firstPerson)
+    {
+        if(cameraAngle.x < -45)
+            cameraAngle.x = -45;
+        if(cameraAngle.x > 45)
+            cameraAngle.x = 45;
+        cameraPos = character[0].ellipsoidCenter + sf::Vector3f(0, 170, 0);
+        cameraAngle = sf::Vector3f(cameraAngle.x, catAngle.y * (360.0f / (2*M_PI)), 0);
+    }
+
 
     c.setPos(cameraPos);
-    //c.setAngle(catAngle * float(180.0f/M_PI));
     c.setAngle(cameraAngle);
     c.setEyeDistance(eyeDistance);
     c.display();
 
-    editMap.show();
+    //editMap.show();
     c.update();
 }
 
@@ -2578,12 +2762,12 @@ void SYNTH3D::loadMap(std::string path)
         int index = 0;
         int adress = 0;
         bool endOfFile = false;
-        if(file[0] >= '0' and file[0] <= '9')
+        if((file[0] >= '0' and file[0] <= '9') or file[0] == '-')
             index = 1;
         if(index < a)
             for(int i=0; i<file.size() - 1; i++)
             {
-                if(file[i] == '\t' and file[i+1] >= '0' and file[i+1] <= '9')
+                if(file[i] == '\t' and ((file[i+1] >= '0' and file[i+1] <= '9') or file[i+1] == '-'))
                     index++;
                 if(index == a)
                     {
@@ -2593,6 +2777,12 @@ void SYNTH3D::loadMap(std::string path)
             }
         bool dotIndicator = false;
         float decimalCounter = 10;
+        bool belowZero = false;
+        if(file[adress] == '-')
+        {
+            belowZero = true;
+            adress++;
+        }
         while(adress < file.size() and file[adress] != '\t')
         {
             if(!dotIndicator and file[adress] != '.')
@@ -2608,6 +2798,10 @@ void SYNTH3D::loadMap(std::string path)
             if(file[adress] == '.')
                 dotIndicator = true;
             adress++;
+        }
+        if(belowZero)
+        {
+            result = -result;
         }
         if(adress == file.size())
             endOfFile = true;
@@ -3190,7 +3384,9 @@ Camera::Camera(SYNTH3D* parent):
     wallIntersectEnabled(true),
     randomSortEnabled(false),
     identifyWallsEnabled(false),
-    distanceCheckEnabled(false)
+    distanceCheckEnabled(false),
+    wallIntersectionOffset(0.95f),
+    straightWallCheck(false)
 {
     initCircleDef(32);
 }
@@ -4031,7 +4227,8 @@ bool Camera::wallIntersect(Wall* wallie1, Wall* wallie2)
         {
             rightBelowZero++;
         }
-    if(leftBelowZero == 0 and rightBelowZero == 0)
+
+    if(straightWallCheck and leftBelowZero == 0 and rightBelowZero == 0)
         return wallIntersectOS(wallie1, wallie2);
 
     if(leftBelowZero == wallie1->size() or rightBelowZero == wallie2->size())
@@ -4039,7 +4236,29 @@ bool Camera::wallIntersect(Wall* wallie1, Wall* wallie2)
 
     std::vector <sf::Vector2f> poly1 = wallToPoly(wallie1);
     std::vector <sf::Vector2f> poly2 = wallToPoly(wallie2);
-
+    if(!straightWallCheck)
+    {
+        sf::Vector2f center;
+        for(int i=0; i<poly1.size(); i++)
+        {
+            center += poly1[i];
+        }
+        center /= float(poly1.size());
+        for(int i=0; i<poly1.size(); i++)
+        {
+            poly1[i] = center + (poly1[i] - center)*wallIntersectionOffset;
+        }
+        center = sf::Vector2f(0, 0);
+        for(int i=0; i<poly2.size(); i++)
+        {
+            center += poly2[i];
+        }
+        center /= float(poly2.size());
+        for(int i=0; i<poly2.size(); i++)
+        {
+            poly2[i] = center + (poly2[i] - center)*wallIntersectionOffset;
+        }
+    }
     return polygonIntersect(poly1, poly2);
 }
 
@@ -4612,7 +4831,7 @@ Entity::Entity(SYNTH3D* gameBase):
     veryCloseDistanceGravity(0.005f),
     velocityVector({0, 0, 0}), gravityVector({0, 0, 0}),
     speedVector({0, 0, 0}), gravitySpeedVector({0, 0, 0}),
-    maxSpeed(8.0f), maxSpeedSquared(64.0f),
+    maxSpeed(15.0f), maxSpeedSquared(225.0f),
     standingOnSurface(false), velocitySet(false)
 {
     synth = gameBase;

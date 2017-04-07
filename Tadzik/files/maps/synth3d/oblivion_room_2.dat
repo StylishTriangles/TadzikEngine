@@ -71,6 +71,10 @@ vert:	0	1	5	4
 ###
 grid:	10
 trans:	0	0	0	255
+vert:	2	6	5	1
+###
+grid:	10
+trans:	0	0	0	255
 vert:	7	6	2	3
 ###
 grid:	10
@@ -556,64 +560,6 @@ vert:	0	1	2	3
 ###
 trans:	0	0	0	255
 vert:	1	5	6	2
-###
-end
-objectEnd
-
-Stair case
-
-opt:	0
-
-Vertex:
-500	0	3500
-500	1000	3500
-1000	1000	3500
-1000	0	3500
-500	1000	5500
-500	2000	5500
-1000	2000	5500
-1000	1000	5500
-end
-
-Wall:
-grid:	10
-vert:	0	1	5	4
-lMask:	1	1	1	0
-###
-grid:	10
-vert:	7	6	2	3
-lMask:	1	1	1	0
-###
-end
-objectEnd
-
-Corridor two
-
-opt:	0
-
-Vertex:
-500	1000	5500
-500	2000	5500
-2500	2000	5500
-2500	1000	5500
-500	1000	6000
-500	2000	6000
-2500	2000	6000
-2500	1000	6000
-end
-
-Wall:
-vert:	0	1	2	3
-###
-vert:	4	5	1	0
-###
-vert:	1	5	6	2
-###
-vert:	3	2	6	7
-###
-vert:	4	0	3	7
-###
-vert:	7	6	5	4
 ###
 end
 objectEnd
