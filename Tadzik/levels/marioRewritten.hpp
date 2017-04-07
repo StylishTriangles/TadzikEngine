@@ -520,7 +520,7 @@ public:
             if (wasHit) {
                 if (velocity.x==0) {
                     velocity.x = Utils::sgn(Utils::randFloat(-1, 1))*10;
-                    setScale(abs(getScale().x)*Utils::sgn(velocity.x), getScale().y);
+                    setScale(std::abs(getScale().x)*Utils::sgn(velocity.x), getScale().y);
                 }
                 else {
                     velocity.x = 0;
