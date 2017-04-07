@@ -35,6 +35,20 @@ public:
         int tileSize;
     };
 
+    class BlockInSpritesheet {
+    public:
+        BlockInSpritesheet() {}
+        BlockInSpritesheet(SpriteSheet* s, sf::IntRect pos, int ID = 0) {
+            sps = s;
+            position = pos;
+            item_ID = ID;
+        }
+
+        int item_ID;
+        sf::IntRect position;
+        SpriteSheet* sps;
+    };
+
     class Effect: public sf::Drawable, sf::Transformable {
     public:
         Effect(sf::Sprite& s, MARIO2* g, sf::Vector2f vel) {
@@ -132,6 +146,11 @@ public:
             setPosition(position);
             setColor(c);
         }
+        StaticTile(BlockInSpritesheet& b, sf::Vector2f position, sf::Color c = sf::Color::White) {
+            b.sps->setSpriteTexture(this, b.position);
+            setPosition(position);
+            setColor(c);
+        }
     };
 
     class Tile_Breakable: public Tile {
@@ -170,7 +189,7 @@ public:
         }
         void onCollision(MovingEntity* m, float area) {
             m->velocity.y*=0.99;
-            m->velocity.y-=0.5*(area/(32*32));
+            m->velocity.y-=0.35*(area/(32*32));
             if (m->velocity.y<0 && area/(32*32)<0.5)
                 m->canJump = true;
         }
@@ -356,6 +375,7 @@ public:
                 currentAnimationType=FALL;
             }
             prevVelocity=velocity;
+            prevGlobalBounds = getGlobalBounds();
         }
 
         void jump() {
@@ -511,42 +531,32 @@ public:
         mapSize = sf::Vector2f(mapa.getSize().x*tileSize, mapa.getSize().y*tileSize);
         for (int x=0; x<mapa.getSize().x; x++) {
             for (int y=0; y<mapa.getSize().y; y++) {
-                if (colorCompare(mapa.getPixel(x, y), sf::Color(0, 0, 0))) { ///ZWYKLY KLOCEK
-                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
-                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
-                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(0, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
+                sf::Color color = mapa.getPixel(x, y);
+                if (color.b==255 && color.a!=0) {
+                    if      (color.a == 255) vecTiles.push_back(new StaticTile(vecBlocks[color.r/30][color.g/30], sf::Vector2f(x*tileSize, y*tileSize)));
+                    else if (color.a == 200) vecHitboxlessFront.push_back(StaticTile(vecBlocks[color.r/30][color.g/30], sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
+                    else if (color.a == 100) vecHitboxlessBack.push_back(StaticTile(vecBlocks[color.r/30][color.g/30], sf::Vector2f(x*tileSize, y*tileSize)));
                 }
-                if (colorCompare(mapa.getPixel(x, y), sf::Color(100, 50, 0))) { ///DRZEWO
-                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
-                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
-                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(1, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
 
-                }
-                if (colorCompare(mapa.getPixel(x, y), sf::Color(0, 255, 0))) { ///LISCIE
-                    if      (mapa.getPixel(x, y).a == 255) vecTiles.push_back(new StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
-                    else if (mapa.getPixel(x, y).a == 200) vecHitboxlessFront.push_back(StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize), sf::Color(200, 200, 200)));
-                    else if (mapa.getPixel(x, y).a == 100) vecHitboxlessBack.push_back(StaticTile(tileSpriteSheet, sf::IntRect(2, 0, 1, 1), sf::Vector2f(x*tileSize, y*tileSize)));
-
-                }
-                else if(mapa.getPixel(x, y)==sf::Color(200, 100, 100)) {
+                if(mapa.getPixel(x, y)==sf::Color(200, 100, 100)) {
                     vecTiles.push_back(new Tile_Breakable(&aBreakableTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(255, 0, 0)) {
+                if(mapa.getPixel(x, y)==sf::Color(255, 0, 0)) {
                     vecEnemies.push_back(new NME_Snek(&aSnekWalk, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(255, 1, 0)) {
+                if(mapa.getPixel(x, y)==sf::Color(255, 1, 0)) {
                     vecEnemies.push_back(new NME_Armadillo(&aArmadillo, sf::Vector2f(x*tileSize, y*tileSize), this, &aArmadillo_));
                 }
                 else if(mapa.getPixel(x, y)==sf::Color(0, 200, 0)) {
                     TADZIK.setPosition(x*tileSize, y*tileSize);
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(200, 0, 100)) {
+                if(mapa.getPixel(x, y)==sf::Color(200, 0, 100)) {
                     vecTiles.push_back(new Tile_PowerUp(&aPowerUpTile, sf::Vector2f(x*tileSize, y*tileSize), &aPowerUpTile_, this));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(0, 0, 255)) {
+                if(mapa.getPixel(x, y)==sf::Color(0, 255, 0)) {
                     vecTiles.push_back(new Tile_Water(&aWater, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
-                else if(mapa.getPixel(x, y)==sf::Color(255, 100, 0)) {
+                if(mapa.getPixel(x, y)==sf::Color(255, 100, 0)) {
                     vecTiles.push_back(new Tile_Timed(&aTimedTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
             }
@@ -555,6 +565,18 @@ public:
 
     void onSceneLoadToMemory() {
         tileSpriteSheet.loadFromFile("files/textures/mario/tileSpritesheet.png", 32);
+
+        vecBlocks.resize(5);
+        for (int i=0; i<5; i++) {
+            vecBlocks[i].resize(5);
+        }
+        for (int i=0; i<5; i++) {
+            for (int j=0; j<5; j++) {
+                vecBlocks[i][j]=BlockInSpritesheet(&tileSpriteSheet, sf::IntRect(i, j, 1, 1));
+            }
+        }
+
+//        BISwood = BlockInSpritesheet(&tileSpriteSheet, sf::IntRect(1, 0, 1, 1));
 
         texBackground.loadFromFile("files/textures/mario/background.png");
         texBreakableTile.loadFromFile("files/textures/mario/breakable1.png");
@@ -576,9 +598,9 @@ public:
         spsSnekWalk.loadFromFile("files/textures/mario/snekWalk.png");
         aSnekWalk.setSpriteSheet(&spsSnekWalk, 44, sf::milliseconds(100));
         spsArmadillo.loadFromFile("files/textures/mario/armadillo.png");
-        aArmadillo.setSpriteSheet(&spsArmadillo, 39, sf::milliseconds(100));
+        aArmadillo.setSpriteSheet(&spsArmadillo, 30, sf::milliseconds(100));
         spsArmadillo_.loadFromFile("files/textures/mario/armadillo.png");
-        aArmadillo_.setSpriteSheet(&spsArmadillo_, 39, sf::milliseconds(100));
+        aArmadillo_.setSpriteSheet(&spsArmadillo_, 30, sf::milliseconds(100));
 
         spsPowerup.loadFromFile("files/textures/mario/powerup.png");
         aPowerup.setSpriteSheet(&spsPowerup, 32, sf::seconds(1000000));
@@ -813,5 +835,7 @@ protected:
     int score = 10000;
 
     float parallax = 0.6;
+
+    std::vector <std::vector <BlockInSpritesheet> > vecBlocks;
 };
 #endif //MARIO2
