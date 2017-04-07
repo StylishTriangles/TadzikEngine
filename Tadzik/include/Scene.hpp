@@ -69,12 +69,30 @@ public:
         consoleBuff.clear();
     }
 
+    bool isUnlocked(){
+        return unlocked;
+    }
+
+    void setLocked(bool l){
+        unlocked = l;
+    }
+
+    bool isPaused(){
+        return paused;
+    }
+
+    void setPaused(bool l){
+        paused = l;
+    }
+
     sf::RenderWindow* window;
 protected:
     std::string name;
     SceneManager* sceneManager=nullptr;
     ImVector <char*> consoleCommands;
     ImVector <coloredText> consoleBuff;
+    bool unlocked=false;
+    bool paused=false;
 };
 
 #endif // SCENE_HPP

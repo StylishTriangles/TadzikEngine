@@ -26,15 +26,8 @@ namespace sf{
 //*****
 
 #include "../include/SceneManager.hpp"
-#include "../levels/trex.hpp"
-#include "../levels/clicker.hpp"
-#include "../levels/jumper.hpp"
-#include "../levels/synth3d.hpp"
-#include "../levels/marioRewritten.hpp"
-#include "../levels/levelselect.hpp"
-#include "../levels/shooter2D.hpp"
-#include "../levels/rpg.hpp"
-#include "../levels/isayparty.hpp"
+#include "../include/Launcher.hpp"
+
 
 int main(){
     Common::loadFonts();
@@ -53,28 +46,18 @@ int main(){
     ImGui::SFML::Init(window);
     SceneManager sceneManager(&window);
 
-    //sceneManager.registerScene<TREX>("TREX", &window);
-    //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
-    //sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO>("MARIO", &window);
-    //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    //sceneManager.registerScene<RPG>("RPG", &window);
-    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
-    //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
-    //sceneManager.setActiveScene("TREX");
-    //sceneManager.setActiveScene("JUMPER");
-    //sceneManager.setActiveScene("CLICKER");
-    //sceneManager.setActiveScene("SYNTH3D");
-    //sceneManager.setActiveScene("MARIO");
-    //sceneManager.setActiveScene("LEVELSELECT");
-    //sceneManager.setActiveScene("SHOOTER2D");
-    //sceneManager.setActiveScene("RPG");
-    //sceneManager.setActiveScene("ISAYPARTY");
+    sceneManager.registerScene<LAUNCHER>("LAUNCHER", &window);
+    sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
+    sceneManager.registerScene<MARIO2>("MARIO2", &window);
+    sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
+    sceneManager.registerScene<RPG>("RPG", &window);
+    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
 
-    //sceneManager.justLaunchIt<SYNTH3D>("SYNTH3D");
-    //sceneManager.justLaunchIt<SHOOTER2D>("SHOOTER2D");
-    sceneManager.justLaunchIt<MARIO2>("MARIO2");
+    sceneManager.setActiveScene("LAUNCHER");
 
     sf::Clock deltaClock;
     while(window.isOpen()){
@@ -84,7 +67,8 @@ int main(){
             if(event.type == sf::Event::Closed )
                 window.close();
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
-                window.close();
+                //window.close();
+                sceneManager.getActiveScene()->setPaused(!sceneManager.getActiveScene()->isPaused());
             }
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
                 window.capture().saveToFile("screenshots/"+Utils::getDate()+".png");
@@ -100,7 +84,21 @@ int main(){
         sf::Time dT = deltaClock.getElapsedTime();
         deltaClock.restart();
         ImGui::SFML::Update(window, dT);
-		sceneManager.runSceneFrame(dT);
+        if(sceneManager.getActiveScene()->isPaused() && sceneManager.getActiveSceneName() != "LAUNCHER"){
+            ImGui::Begin("Paused");
+            if(ImGui::Button("Continue")){
+                sceneManager.getActiveScene()->setPaused(false);
+                sceneManager.setActiveScene(sceneManager.getActiveSceneName());
+            }
+            if(ImGui::Button("Menu")){
+                sceneManager.getActiveScene()->setPaused(false);
+                sceneManager.setActiveScene("LAUNCHER");
+            }
+            ImGui::End();
+        }
+        else
+            sceneManager.runSceneFrame(dT);
+
         sceneManager.getFPS(dT);
 
         window.resetGLStates();

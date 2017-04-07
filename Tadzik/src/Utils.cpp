@@ -11,13 +11,13 @@ sf::FloatRect getBiggerBoundingBox(sf::Sprite& sp){
     return retBox;
 }
 
-void drawBoundingBox(sf::Sprite& sp, sf::RenderWindow* window){
+void drawBoundingBox(sf::Sprite& sp, sf::RenderTarget* target){
     sf::RectangleShape shp(sf::Vector2f(sp.getGlobalBounds().width, sp.getGlobalBounds().height));
     shp.setPosition(sf::Vector2f(sp.getGlobalBounds().left, sp.getGlobalBounds().top));
     shp.setOutlineColor(sf::Color::Green);
     shp.setFillColor(sf::Color(0,0,0,0));
     shp.setOutlineThickness(1);
-    window->draw(shp);
+    target->draw(shp);
 }
 
 float randFloat(float from, float to) {
