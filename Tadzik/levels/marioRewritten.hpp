@@ -485,6 +485,37 @@ public:
             setScale(2, 2);
             hiding = a1;
         }
+        void updateEnemy(sf::Time deltaTime) {
+            update(deltaTime.asMilliseconds()*velocity.x);
+            move(0, velocity.y);
+            sf::FloatRect intersection;
+            for (auto a:game->vecTiles) {
+                if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
+                    if (a->collidable) {
+                        move(0, -Utils::sgn(velocity.y)*intersection.height);
+                        velocity.y=0;
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
+                }
+            }
+            move(velocity.x, 0);
+            intersection = sf::FloatRect(0, 0, 0, 0);
+            for (auto a:game->vecTiles) {
+                if (getGlobalBounds().intersects(a->getGlobalBounds(), intersection)) {
+                    if (a->collidable) {
+                        move(-Utils::sgn(velocity.x)*intersection.width, 0);
+                        velocity.x*=-1;
+                        flipSprite();
+                    }
+                    a->onCollision(this, Utils::getArea(intersection));
+                }
+            }
+            velocity.y+=0.5;
+            if (wasHit) {
+                rotate(velocity.x*deltaTime.asMilliseconds()*0.1);
+            }
+            //velocity.x*=0.9;
+        }
         void onHit() {
             if (wasHit) {
                 if (velocity.x==0) {
@@ -620,7 +651,7 @@ public:
         aTadzikJump.resize(3);
         aTadzikRun.resize(3);
 
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<2; i++) {
             spsTadzikRun[i].loadFromFile("files/textures/mario/player/playerRun"+Utils::stringify(i)+".png");
             spsTadzikIdle[i].loadFromFile("files/textures/mario/player/playerIdle"+Utils::stringify(i)+".png");
             spsTadzikJump[i].loadFromFile("files/textures/mario/player/playerJump"+Utils::stringify(i)+".png");
@@ -775,7 +806,6 @@ public:
         rGame.display();
         window->draw(sf::Sprite(rGame.getTexture()));
 
-        std::cout << score << '\r';
         score-=deltaTime.asSeconds()*20;
     }
 

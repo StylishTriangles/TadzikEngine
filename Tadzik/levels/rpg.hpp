@@ -87,7 +87,6 @@ public:
                 }
             }
         }
-        std::cout << "success";
     }
 
     float distance(sf::Sprite spA, sf::Sprite spB)

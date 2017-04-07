@@ -8,9 +8,10 @@
 #include <iostream>
 
 #include "../include/Common.hpp"
+#include "../include/SceneManager.hpp"
+#include "../include/Launcher.hpp"
 
-//******
-//temporary workaround
+///temporary workaround
 namespace sf{
     class KeyboardHacked: public sf::Keyboard{
     public:
@@ -23,10 +24,6 @@ namespace sf{
     };
 }
 #define Keyboard KeyboardHacked
-//*****
-
-#include "../include/SceneManager.hpp"
-#include "../include/Launcher.hpp"
 
 
 int main(){
@@ -48,11 +45,10 @@ int main(){
 
     sceneManager.registerScene<LAUNCHER>("LAUNCHER", &window);
     sceneManager.registerScene<TREX>("TREX", &window);
-    sceneManager.registerScene<CLICKER>("CLICKER", &window);
+    //sceneManager.registerScene<CLICKER>("CLICKER", &window);
     sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
     sceneManager.registerScene<MARIO2>("MARIO2", &window);
-    sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
     sceneManager.registerScene<RPG>("RPG", &window);
     sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
     sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
