@@ -63,9 +63,15 @@ public:
     std::string getActiveSceneName(){
         return actScene->getName();
     }
+
     void deliverEvent(sf::Event& e){
         actScene->deliverEvent(e);
     }
+
+    Scene* getActiveScene(){
+        return actScene;
+    }
+
     void runSceneFrame(sf::Time delta){
         actScene->draw(delta);
         if(cmdEnabled){
@@ -110,9 +116,10 @@ public:
             window->draw(fpsCounter);
         }
     }
+    std::unordered_map<std::string, Scene*> scenes;
 
 private:
-    std::unordered_map<std::string, Scene*> scenes;
+
     Scene* actScene= nullptr;
     sf::RenderWindow* window = nullptr;
 
