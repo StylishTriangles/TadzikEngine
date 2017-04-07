@@ -155,6 +155,26 @@ public:
         animWindmill.addFrame(AnimationFrame(&vecTextures[15], 120*2));
         animWindmill.addFrame(AnimationFrame(&vecTextures[6], 120*2));
 
+        vecTexturesDaftDJ.resize(8);
+            for(int i = 0; i < vecTexturesDaftDJ.size(); i++){
+                vecTexturesDaftDJ[i].loadFromFile("files/textures/isaydisco/DaftPunk1_DJ"+Utils::stringify(i)+".png");
+            }
+
+            vecTexturesDaftGuitar.resize(8);
+            for(int i = 0; i < 4; i++){
+                vecTexturesDaftGuitar[i].loadFromFile("files/textures/isaydisco/DaftPunk1_GF"+Utils::stringify(i)+".png");
+            }
+            for(int i = 0; i < 4; i++){
+                vecTexturesDaftGuitar[i+4].loadFromFile("files/textures/isaydisco/DaftPunk1_GG"+Utils::stringify(i)+".png");
+        }
+
+        for(int i = 0; i < 4; i++){
+            animDJ1.addFrame(AnimationFrame(&vecTexturesDaftDJ[i], 112*2));
+            animGuitar1.addFrame(AnimationFrame(&vecTexturesDaftGuitar[i], 112*2));
+            animDJ2.addFrame(AnimationFrame(&vecTexturesDaftDJ[i+4], 112*2));
+            animGuitar2.addFrame(AnimationFrame(&vecTexturesDaftGuitar[i+4], 112*2));
+        }
+
         vecSteps.resize(4);
         vecSteps[0] = DanceStep(&animHands, {0,2,4,6}, {HAND_LEFT, HAND_RIGHT, HAND_LEFT, HAND_RIGHT});
         vecSteps[1] = DanceStep(&animHips,  {0,2,4,6}, {HIPS_LEFT, HIPS_RIGHT, HIPS_LEFT, HIPS_RIGHT});
@@ -168,9 +188,9 @@ public:
 
         vecDiscoColors.push_back(sf::Color(64, 0, 77));
         vecDiscoColors.push_back(sf::Color(104, 0, 95));
-        vecDiscoColors.push_back(sf::Color(190,75,121));
-        vecDiscoColors.push_back(sf::Color(252,162,101));
-        vecDiscoColors.push_back(sf::Color(238,190,67));
+        //vecDiscoColors.push_back(sf::Color(190,75,121));
+        //vecDiscoColors.push_back(sf::Color(252,162,101));
+        //vecDiscoColors.push_back(sf::Color(238,190,67));
 
         vecDiscoReactionsGood.push_back("WOAH!");
         vecDiscoReactionsGood.push_back("Superb!");
@@ -183,6 +203,10 @@ public:
         vecDiscoReactionsBad.push_back("Awful");
         vecDiscoReactionsBad.push_back("Absolutely Disgusting");
         vecDiscoReactionsBad.push_back("Disgusting");
+
+        texBkgrnd.loadFromFile("files/textures/isaydisco/background.png");
+        background.setTexture(texBkgrnd);
+        background.setScale(5,5);
     }
 
     virtual void onSceneActivate(){
@@ -192,6 +216,15 @@ public:
         setDanceStep(&vecSteps[rand()%vecSteps.size()]);
         actSprite.sprite.setScale(4.f, 4.f);
         actSprite.sprite.setPosition(window->getSize().x/2-actSprite.sprite.getGlobalBounds().width/2, window->getSize().y/2);
+
+        spriteDaft1.setAnimation(&animDJ1);
+        spriteDaft2.setAnimation(&animGuitar1);
+        spriteDaft1.sprite.setScale(4.f, 4.f);
+        spriteDaft2.sprite.setScale(4.f, 4.f);
+        spriteDaft1.sprite.setPosition(actSprite.sprite.getPosition());
+        spriteDaft2.sprite.setPosition(actSprite.sprite.getPosition());
+        spriteDaft1.sprite.move(-200, 0);
+        spriteDaft2.sprite.move(-300, 0);
 
         setDanceStep(&vecSteps[0]);
         loadNewTrack();
@@ -226,8 +259,16 @@ public:
             kt.update(dT);
         }
         actSprite.update(dT);
+        spriteDaft1.update(dT);
+        spriteDaft2.update(dT);
         if(actSprite.getReplays() != 0){
             setDanceStep(&vecSteps[rand()%vecSteps.size()]);
+        }
+        if(spriteDaft1.getReplays() != 0){
+            setDanceStepDP(1);
+        }
+        if(spriteDaft2.getReplays() != 0){
+            setDanceStepDP(2);
         }
         for(StepPose& sp: actStep->vecPoses){
             if(actSprite.getFrame() == sp.tempoPosition && !sp.used){
@@ -255,6 +296,10 @@ public:
         }
 
         window->clear(sf::Color::Black);
+        window->draw(background);
+        window->draw(spriteDaft1.sprite);
+        window->draw(spriteDaft2.sprite);
+
         for(auto txt: vecText){
             window->draw(txt.text);
         }
@@ -281,6 +326,21 @@ public:
             actStep->clearUsedPoses();
         actStep = d;
         actSprite.setAnimation(d->animation);
+    }
+
+    void setDanceStepDP(int idx){
+        if(idx==1){
+            Animation* a = &animDJ1;
+            if(Utils::randFloat(0.0, 1.0) >= 0.5)
+                a = &animDJ2;
+            spriteDaft1.setAnimation(a);
+        }
+        if(idx==2){
+            Animation* a = &animGuitar1;
+            if(Utils::randFloat(0.0, 1.0) >= 0.5)
+                a = &animGuitar2;
+            spriteDaft2.setAnimation(a);
+        }
     }
 
     virtual bool onConsoleUpdate(std::vector<std::string> args){
@@ -379,6 +439,8 @@ protected:
     std::vector<sf::Color> vecDiscoColors;
     std::vector<std::string> vecDiscoReactionsGood;
     std::vector<std::string> vecDiscoReactionsBad;
+    std::vector<sf::Texture> vecTexturesDaftDJ;
+    std::vector<sf::Texture> vecTexturesDaftGuitar;
 
     Track* actTrack;
 
@@ -388,7 +450,19 @@ protected:
     Animation animHands;
     Animation animHips;
     Animation animWindmill;
+
+    Animation animGuitar1;
+    Animation animGuitar2;
+    Animation animDJ1;
+    Animation animDJ2;
+
     AnimatedSprite actSprite;
+    AnimatedSprite spriteDaft1;
+    AnimatedSprite spriteDaft2;
+
+
+    sf::Texture texBkgrnd;
+    sf::Sprite background;
 
 };
 
