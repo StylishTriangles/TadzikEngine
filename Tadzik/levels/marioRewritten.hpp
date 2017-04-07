@@ -598,9 +598,9 @@ public:
         spsSnekWalk.loadFromFile("files/textures/mario/snekWalk.png");
         aSnekWalk.setSpriteSheet(&spsSnekWalk, 44, sf::milliseconds(100));
         spsArmadillo.loadFromFile("files/textures/mario/armadillo.png");
-        aArmadillo.setSpriteSheet(&spsArmadillo, 30, sf::milliseconds(100));
-        spsArmadillo_.loadFromFile("files/textures/mario/armadillo.png");
-        aArmadillo_.setSpriteSheet(&spsArmadillo_, 30, sf::milliseconds(100));
+        aArmadillo.setSpriteSheet(&spsArmadillo, 30, sf::milliseconds(150));
+        spsArmadillo_.loadFromFile("files/textures/mario/armadillo_ball.png");
+        aArmadillo_.setSpriteSheet(&spsArmadillo_, 26, sf::milliseconds(100));
 
         spsPowerup.loadFromFile("files/textures/mario/powerup.png");
         aPowerup.setSpriteSheet(&spsPowerup, 32, sf::seconds(1000000));

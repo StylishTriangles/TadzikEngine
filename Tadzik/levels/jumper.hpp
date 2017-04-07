@@ -302,7 +302,7 @@ public:
         //glupoty
         spTadzik.sprite.move(speedX, 0);
         speedX*=(1-airResistance);
-        spTadzik.update(abs(speedX)*deltaTime.asMilliseconds());
+        spTadzik.update(std::abs(speedX)*deltaTime.asMilliseconds());
         if (score>highScore) highScore=score;
         textScore.setString(Utils::stringify(highScore/10));
 

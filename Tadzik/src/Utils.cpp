@@ -1,5 +1,5 @@
 #include "../include/Utils.hpp"
-
+#include <cmath>
 namespace Utils{
 
 sf::FloatRect getBiggerBoundingBox(sf::Sprite& sp){
