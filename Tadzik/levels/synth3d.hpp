@@ -222,6 +222,79 @@ double Plane::signedDistanceTo(const sf::Vector3f& point) const
     return dotProduct(point, normal) + equation[3];
 }
 
+class MessageBox
+{
+public:
+    MessageBox();
+    void setPosition(ImVec2 position);
+    void setSize(ImVec2 sizeOfWindow);
+    void clear();
+    void push(std::string text, sf::Color color);
+    void update();
+protected:
+    std::vector <std::pair <std::string, ImVec4> > buffor;
+    bool positionSet;
+    ImVec2 pos;
+    bool sizeSet;
+    ImVec2 sizeWindow;
+};
+
+MessageBox::MessageBox() :
+    positionSet(false), sizeSet(false)
+{
+}
+
+void MessageBox::setPosition(ImVec2 position)
+{
+    positionSet = true;
+    pos = position;
+}
+
+void MessageBox::setSize(ImVec2 sizeOfWindow)
+{
+    sizeSet = true;
+    sizeWindow = sizeOfWindow;
+}
+
+void MessageBox::clear()
+{
+    buffor.clear();
+}
+
+void MessageBox::push(std::string text, sf::Color color)
+{
+    std::pair <std::string, ImVec4> temp;
+    temp.first = text;
+    temp.second = ImVec4(float(color.r) / 255.0f, float(color.g) / 255.0f, float(color.b) / 255.0f, float(color.a) / 255.0f);
+    buffor.push_back(temp);
+}
+
+void MessageBox::update()
+{
+    if(positionSet)
+    {
+        ImGui::SetNextWindowPos(pos);
+        positionSet = false;
+    }
+    if(sizeSet)
+    {
+        ImGui::SetNextWindowSize(sizeWindow);
+        sizeSet = false;
+    }
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
+    ImGui::Begin("Pager");
+    for(int i=0; i<buffor.size(); i++)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, buffor[i].second);
+        ImGui::TextWrapped(buffor[i].first.c_str());
+        ImGui::PopStyleColor();
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+}
+
 class SYNTH3D;
 
 class ObjectUtility
@@ -467,6 +540,12 @@ protected:
 
     ObjectUtility editMap;
     bool firstPerson;
+    bool editMode;
+    bool loadCharacter;
+    std::vector <bool> situation;
+    double timeElapsed;
+    bool storyMode;
+    MessageBox textOutput;
 };
 
 class Entity
@@ -2329,13 +2408,12 @@ void ObjectUtility::deleteTerrainPoint(int index)
     }
 }
 
-
 SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
     Scene(_name,mgr,w), c(this), cameraPos({0, 0, -50}), cameraAngle({0, 0, 0}),
     eyeDistance(-6), debug(0), offsetx(0), offsety(0), tick(1),
     gravity({0, -3.0f, 0}), catVelocity({0.0f, 0.0f, 10.0f}), mouseSpeed(7.5f),
     grabbedMouse(true), gBuffor(false), editMap(this, window->getSize()),
-    firstPerson(true)
+    firstPerson(true), editMode(false), loadCharacter(true), timeElapsed(0), storyMode(true)
 {
 }
 
@@ -2355,19 +2433,39 @@ void SYNTH3D::onSceneLoadToMemory()
     consoleCommands.push_back("enable_distanceCheck");
     consoleCommands.push_back("compare");
 
+
     //loadMap("human");
-    //loadMap("human_4");
-    //loadMap("backup");
-    //loadMap("backup");
-    loadMap("oblivion_room_3");
-    loadMap("human_4");
+    loadMap("oblivion_room_4");
+
+
+    if(loadCharacter)
+        loadMap("human_4");
     defTerrain = terrain;
     //loadEntities("oblivion_npc");
-    loadEntities("oblivion_room_npc");
+    if(loadCharacter)
+        loadEntities("oblivion_room_npc");
     //OptLines();
     //OptDots();
     c.update();
     bufforMousePos = sf::Mouse::getPosition(*window);
+    if(storyMode)
+    {
+        if(!editMode)
+        {
+            textOutput.setPosition(ImVec2(50, 50));
+            textOutput.setSize(ImVec2(400, 200));
+        }
+        textOutput.push("Use JKLI for movement, Space for jumping, Mouse for rotation, Press R to respawn, Press G to unlock mouse and ~ to open console", sf::Color(128, 128, 128));
+        textOutput.push("------------", sf::Color::Magenta);
+        textOutput.push("Oh no! It looks like you've been trapped inside someones uncomplete fantasy!\nQuick! Head to room two to resolve the graphics glitches!", sf::Color::Cyan);
+        situation.push_back(false);
+        situation.push_back(false);
+        situation.push_back(true);
+        situation.push_back(false);
+        situation.push_back(false);
+        situation.push_back(false);
+        situation.push_back(false);
+    }
 }
 
 void SYNTH3D::draw(sf::Time deltaTime)
@@ -2430,6 +2528,183 @@ void SYNTH3D::draw(sf::Time deltaTime)
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
     }
+    if(storyMode)
+    {
+        textOutput.update();
+        if(!situation[2])
+        {
+            if(situation[1])
+            {
+                timeElapsed += dt;
+            }
+
+            if(timeElapsed > 1000.0f)
+            {
+                situation[2] = true;
+                firstPerson = true;
+                character.clear();
+                world.clear();
+                terrain.clear();
+                defTerrain.clear();
+                loadMap("oblivion");
+                loadMap("human_4");
+                defTerrain = terrain;
+                loadEntities("oblivion_room_npc");
+                c.update();
+                character[0].position = sf::Vector3f(2000, 300, 200);
+                textOutput.clear();
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("Okay, got something done...\nListen! New approach here!\nI'm trying to get you in contact with the guy who's put you here.\nFollow the cat to get the necessary instructions. J", sf::Color::Cyan);
+                loadEntities("oblivion_npc");
+                situation[3] = true;
+            }
+        }
+
+        if(situation[3])
+        {
+            if(character[1].position.y < -1000)
+                character[1].position = sf::Vector3f(0, 50, 0);
+            character[1].setGravity(gravity);
+            character[1].setAcceleration(sf::Vector3f(0.7f, 0, 0.7f));
+            character[1].setDirection(sf::Vector3f(0.7f, 0, 0.7f), {0,0,0});
+            character[1].update(dt);
+            if(character[0].position.y < -500 and character[0].position.x > 4900 and character[0].position.z > 4000)
+            {
+                situation[3] = false;
+                character.clear();
+                world.clear();
+                terrain.clear();
+                defTerrain.clear();
+                loadMap("human_5");
+                defTerrain = terrain;
+                loadEntities("oblivion_room_npc");
+                character[0].position = sf::Vector3f(-4500, 300, -4500);
+                int terrainSize = world.size();
+
+                loadMap("car_map");
+                for(int i=terrainSize; i<world.size() - 1; i++)
+                {
+                    for(int j=0; j<world[i].size(); j++)
+                    {
+                        world[i].wallie[j].color = sf::Color(128, 128, 192);
+                    }
+                }
+                for(int j=0; j<world[world.size() - 1].size(); j++)
+                {
+                        world[world.size() - 1].wallie[j].color = sf::Color::Cyan;
+                        world[world.size() - 1].wallie[j].pSize = 1000;
+                }
+                loadMap("human_7");
+                for(int i=5 + terrainSize; i<world.size(); i++)
+                {
+                    for(int j=0; j<world[i].size(); j++)
+                    {
+                        world[i].wallie[j].color = sf::Color::Yellow;
+                    }
+                }
+                defTerrain = terrain;
+                c.update();
+                textOutput.setSize(ImVec2(400, 300));
+                textOutput.clear();
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("X here!\nThe synth engine was never a good idea, I tried to shut it down but johnson went rogue and trapped me here...", sf::Color::Yellow);
+                textOutput.push("[You]: Are you should we're talking about the same johnson? He's the one that got me here!\nHe said we should get in touch in order to get me out of this system!", sf::Color::Green);
+                textOutput.push("@$#!&&#HHHHHHHHH", sf::Color::Cyan);
+                textOutput.push("What the...", sf::Color::Yellow);
+                textOutput.push("What the...", sf::Color::Green);
+                textOutput.push("Is this what he said? You dense mother****er! He's the one that got you trapped in here!", sf::Color::Yellow);
+                textOutput.push("hahahahahahaha!", sf::Color::Cyan);
+                textOutput.push("<Johnson's laughter>", sf::Color(128, 128, 128));
+                textOutput.push("Quick! Follow me!", sf::Color::Yellow);
+                situation[4] = true;
+            }
+        }
+        if(situation[4])
+        {
+            if(!situation[5] and character[0].position.x > -300 and character[0].position.x < 300 and character[0].position.z > -300 and character[0].position.z < 300)
+            {
+                textOutput.clear();
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("I've started building this baby long before he imprisoned me, but never had time to finish...", sf::Color::Yellow);
+                textOutput.push("Damn! That's a beauty!", sf::Color::Green);
+                textOutput.push("Thanks T, little time for compliments we have. J doesn't know about this place, we should be safe. Lets finish the car and hit the road!", sf::Color::Yellow);
+                textOutput.push("@$#!&&#HHHHHHHHH", sf::Color::Cyan);
+                textOutput.push("Damn! Seems like he found out! Quick, we're low on time, it's a matter of minutes. Synth is an utter disaster but it was build on high hopes! It's a place dreams come true! Cmon T! Dream Hard! I know this baby ain't looking right but maybe, just maybe, it would hit 88 miles/hour if we use our imagination! Nothing will stand in our way! Hop on board T! Let's make our dreams come true!", sf::Color::Yellow);
+                textOutput.push("You Damn right X! Let's hit it!", sf::Color::Green);
+                for(int i=0; i<world.size(); i++)
+                {
+                    if(world[i].name == "Surface")
+                    {
+                        for(int j=0; j<world[i].size(); j++)
+                        {
+                            world[i].wallie[j].grid = 100;
+                            world[i].wallie[j].pSize = 100;
+                        }
+                        break;
+                    }
+                }
+                timeElapsed = 0;
+                situation[5] = true;
+            }
+            if(situation[5])
+            {
+                timeElapsed += dt;
+                if(timeElapsed > 2300.0f)
+                {
+                    situation[4] = false;
+                    firstPerson = false;
+                    character.clear();
+                    world.clear();
+                    terrain.clear();
+                    defTerrain.clear();
+                    loadCharacter = false;
+                    loadMap("finish_scene");
+                    for(int i=0; i<4; i++)
+                    {
+                        for(int j=0; j<world[i].size(); j++)
+                        {
+                            world[i].wallie[j].color = sf::Color(128, 128, 192);
+                        }
+                    }
+                    for(int i=6; i<8; i++)
+                    {
+                        for(int j=0; j<world[i].size(); j++)
+                        {
+                            world[i].wallie[j].color = sf::Color::Yellow;
+                        }
+                    }
+                    for(int j=0; j<world[8].size(); j++)
+                    {
+                            world[8].wallie[j].color = sf::Color::Cyan;
+                    }
+                    cameraPos = sf::Vector3f(92.1606f, 38.1001f, -654.582f);
+                    cameraAngle = sf::Vector3f(0, 0, 0);
+                    c.update();
+                    situation[6] = true;
+                    timeElapsed = 0;
+                    textOutput.clear();
+                    textOutput.push("------------", sf::Color::Magenta);
+                    textOutput.push("Weee!", sf::Color::Yellow);
+                    textOutput.push("WeeeHeeHee!", sf::Color::Green);
+                    textOutput.push("To infinity and beyond!", sf::Color::Blue);
+                }
+            }
+        }
+        if(situation[6])
+        {
+            timeElapsed += dt;
+            for(int i=terrain.size() - 1; i > terrain.size() - 5; i--)
+            {
+                terrain[i].z += float(dt) * 8;
+            }
+            if(timeElapsed > float(3200.0f))
+            {
+                textOutput.clear();
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("GAME OVER", sf::Color::Red);
+            }
+        }
+    }
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
@@ -2447,43 +2722,66 @@ void SYNTH3D::draw(sf::Time deltaTime)
         catVelocity.x = buffor.x*cosf(angle) + buffor.z*sinf(angle);
         catVelocity.z = buffor.z*cosf(angle) - buffor.x*sinf(angle);
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
-        character[0].setAcceleration(catVelocity);
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-        character[0].setAcceleration(-catVelocity);
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
-        character[0].setAcceleration({-catVelocity.z, 0, catVelocity.x});
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
-        character[0].setAcceleration({catVelocity.z, 0, -catVelocity.x});
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-        character[0].jump(60);
 
-    if(character[0].position.y < -1000)
+    if(loadCharacter)
     {
-        character[0].setPos({400, 350, 300});
-        character[0].setSpeed({0,0,0});
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+            character[0].setAcceleration(catVelocity);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+            character[0].setAcceleration(-catVelocity);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::J))
+            character[0].setAcceleration({-catVelocity.z, 0, catVelocity.x});
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+            character[0].setAcceleration({catVelocity.z, 0, -catVelocity.x});
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+            character[0].jump(60);
+        if(storyMode)
+        {
+            if(character[0].position.y < -1000 or sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+            {
+                character[0].setPos({1000, 500, 300});
+                character[0].setSpeed({0,0,0});
+            }
+            if(character[0].position.x > 2500 and character[0].position.z > 5000 and !situation[0])
+            {
+                c.enableRandomSort(true);
+                situation[0] = true;
+                textOutput.clear();
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("Oh no! It seems like you've only made this worse!\nHead back to room one, maybe this would help...", sf::Color::Cyan);
+            }
+            if(character[0].position.x < 1500 and character[0].position.z < 1500 and situation[0] and !situation[1])
+            {
+                c.enableRandomSort(false);
+                situation[1] = true;
+                textOutput.clear();
+                textOutput.push("Use arrows to rotate, JKLI for movement, Space for jumping, Press R to respawn, Press G to unlock mouse and ~ to open console", sf::Color(128, 128, 128));
+                textOutput.push("------------", sf::Color::Magenta);
+                textOutput.push("Uff... This is a little bit better. What a reliev.. pff! relief*\nI say you leave your body and think about it!", sf::Color::Cyan);
+                firstPerson = false;
+                situation[2] = false;
+            }
+        }
+        character[0].setGravity(gravity);
+        character[0].setDirection(catVelocity, {0,0,0});
+        character[0].update(dt);
+        if(firstPerson)
+        {
+            if(cameraAngle.x < -45)
+                cameraAngle.x = -45;
+            if(cameraAngle.x > 45)
+                cameraAngle.x = 45;
+            cameraPos = character[0].ellipsoidCenter + sf::Vector3f(0, 170, 0);
+            cameraAngle = sf::Vector3f(cameraAngle.x, catAngle.y * (360.0f / (2*M_PI)), 0);
+        }
     }
-    character[0].setGravity(gravity);
-    character[0].setDirection(catVelocity, {0,0,0});
-    character[0].update(dt);
-    //cameraPos = terrain[34];
-    if(firstPerson)
-    {
-        if(cameraAngle.x < -45)
-            cameraAngle.x = -45;
-        if(cameraAngle.x > 45)
-            cameraAngle.x = 45;
-        cameraPos = character[0].ellipsoidCenter + sf::Vector3f(0, 170, 0);
-        cameraAngle = sf::Vector3f(cameraAngle.x, catAngle.y * (360.0f / (2*M_PI)), 0);
-    }
-
 
     c.setPos(cameraPos);
     c.setAngle(cameraAngle);
     c.setEyeDistance(eyeDistance);
     c.display();
-
-    //editMap.show();
+    if(editMode)
+        editMap.show();
     c.update();
 }
 

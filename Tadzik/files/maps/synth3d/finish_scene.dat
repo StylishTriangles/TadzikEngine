@@ -425,3 +425,22 @@ lMask:	1	1	0	0
 ###
 end
 objectEnd
+
+Surface
+
+opt:	0
+
+Vertex:
+-50000	-150	-50000
+-50000	-150	50000
+50000	-150	50000
+50000	-150	-50000
+end
+
+Wall:
+grid:	1000
+trans:	0	0	0	0
+vert:	0	1	2	3
+###
+end
+objectEnd
