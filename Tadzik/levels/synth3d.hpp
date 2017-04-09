@@ -507,7 +507,6 @@ public:
     std::vector <Entity> character;
     void saveMap(std::string path);
 protected:
-    sf::Font font;
     Camera c;
     sf::Vector3f cameraPos;
     sf::Vector3f cameraAngle;
@@ -2419,10 +2418,6 @@ SYNTH3D::SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w) :
 
 void SYNTH3D::onSceneLoadToMemory()
 {
-    if (!font.loadFromFile("files/fonts/Carnevalee_Freakshow.ttf"))
-    {
-        std::cout << "cannot load font\n";
-    }
     consoleCommands.push_back("print_graph");
     consoleCommands.push_back("print_cycle");
     consoleCommands.push_back("print_info");
@@ -4944,7 +4939,7 @@ void Camera::identifyWalls(std::vector <Wall*> wallie)
                 if(characterSize > 50)
                     characterSize = 50;
                 t.setCharacterSize(characterSize);
-                t.setFont(p->font);
+                t.setFont(Common::Font::Carnevalee_Freakshow);
                 t.setOutlineThickness(2);
                 if(pSide == 1)
                     t.setColor(sf::Color::Blue);

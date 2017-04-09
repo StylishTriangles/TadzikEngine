@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <sstream>
 #include <ctime>
+#include <cmath>
 #include <sys/stat.h>
 
 namespace Utils{

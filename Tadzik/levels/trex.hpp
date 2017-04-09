@@ -81,7 +81,7 @@ public:
     virtual void draw(sf::Time deltaTime){
         if(gameOver){
             std::cout << result << std::endl;
-            textScore.setString("press space to play again");
+            textScore.setString("Your score: "+Utils::stringify((int)result)+"\nPress space to play again");
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
                 spTadzik.setAnimation(&animTadzikRun);
                 spTadzik.sprite.setPosition(offsetX, window->getSize().y-spTadzik.sprite.getGlobalBounds().height-offsetY);

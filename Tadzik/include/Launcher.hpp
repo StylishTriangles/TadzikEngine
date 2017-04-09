@@ -13,11 +13,10 @@
 #include "../include/Common.hpp"
 
 #include "../levels/trex.hpp"
-#include "../levels/clicker.hpp"
+//#include "../levels/clicker.hpp"
 #include "../levels/jumper.hpp"
 #include "../levels/synth3d.hpp"
 #include "../levels/marioRewritten.hpp"
-#include "../levels/levelselect.hpp"
 #include "../levels/shooter2D.hpp"
 #include "../levels/rpg.hpp"
 #include "../levels/isayparty.hpp"
@@ -33,10 +32,10 @@ public:
     }
 
     virtual void onSceneActivate() {
-        for(auto it = sceneManager->scenes.begin(); it != sceneManager->scenes.end(); it++){
-            Scene* s = it->second;
-            std::cout << s->getName() << "\n";
-        }
+        //for(auto it = sceneManager->scenes.begin(); it != sceneManager->scenes.end(); it++){
+        //    Scene* s = it->second;
+        //    std::cout << s->getName() << "\n";
+        //}
     }
 
     void deliverEvent(sf::Event& event){
@@ -57,15 +56,17 @@ public:
         ImGui::Begin("ARCADE MODE!");
         int ctr=0;
         for(auto it = sceneManager->scenes.begin(); it != sceneManager->scenes.end(); it++){
-            ImGui::SetNextWindowPos(sf::Vector2u(window->getSize().x - 100, window->getSize().y - 200+ctr*30));
-            if(it->second->isUnlocked())
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, sfColorToImColor(sf::Color(0, 255, 0, 255)));
-            else
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, sfColorToImColor(sf::Color(255, 255, 0, 255)));
-            if(ImGui::Button(it->second->getName().c_str())){
-                sceneManager->setActiveScene(it->second->getName());
+            if (it->second->getName()!="LAUNCHER") {
+                    ImGui::SetNextWindowPos(sf::Vector2u(window->getSize().x - 100, window->getSize().y - 200+ctr*30));
+                if(it->second->isUnlocked())
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, sfColorToImColor(sf::Color(0, 255, 0, 255)));
+                else
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, sfColorToImColor(sf::Color(255, 255, 0, 255)));
+                if(ImGui::Button(it->second->getName().c_str())){
+                    sceneManager->setActiveScene(it->second->getName());
+                }
+                ImGui::PopStyleColor();
             }
-            ImGui::PopStyleColor();
         }
         ImGui::End();
     }
