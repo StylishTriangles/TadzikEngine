@@ -349,7 +349,7 @@ public:
                         move(0, game->vecEnemies[i]->getGlobalBounds().top-getGlobalBounds().top-getGlobalBounds().height);
                         break;
                     }
-                    else {
+                    else if (Collision::PixelPerfectTest(*this, *(game->vecEnemies[i]))) {
                         levelDown();
                     }
                 }
@@ -513,8 +513,12 @@ public:
             velocity.y+=0.5;
             if (wasHit) {
                 rotate(velocity.x*deltaTime.asMilliseconds()*0.1);
+                for (int i=0; i<game->vecEnemies.size(); i++) {
+                    if (game->vecEnemies[i]!=this && Collision::PixelPerfectTest(*this, *(game->vecEnemies[i]))) {
+                        game->vecEnemies[i]->onKilled();
+                    }
+                }
             }
-            //velocity.x*=0.9;
         }
         void onHit() {
             if (wasHit) {
@@ -803,8 +807,15 @@ public:
             rGame.draw(a);
         for (auto a:vecEffects)
             rGame.draw(a);
+        if (debug) {
+            for (auto a:vecEnemies) {
+                Utils::drawBoundingBox(*a, &rGame);
+            }
+        }
         rGame.display();
-        window->draw(sf::Sprite(rGame.getTexture()));
+        sf::Sprite tmp = sf::Sprite(rGame.getTexture());
+        tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
+        window->draw(tmp);
 
         score-=deltaTime.asSeconds()*20;
     }
@@ -865,6 +876,7 @@ protected:
     sf::Vector2f mapSize;
     int tileSize = 32;
     int score = 10000;
+    bool debug = true;
 
     float parallax = 0.6;
 
