@@ -23,7 +23,7 @@ public:
 
     enum Direction { None = 0, Down = 1, Up = -1, Right = 1, Left = -1 };
 
-    class Entity
+    class Entity: public sf::Drawable
     {
     public:
         Entity(sf::Vector2f V, ARO::Anim* A)
@@ -45,10 +45,6 @@ public:
         bool isAttacking;
         std::vector<sf::Vector2i> equipment;
 
-        void draw(sf::RenderWindow* w)
-        {
-            w->draw(aSprite);
-        }
         void move(sf::Vector2f a)
         {
             aSprite.move(a);
@@ -86,6 +82,15 @@ public:
             erpeg->staticCollision(*this);
             aSprite.move(speedX,speedY);
 
+        }
+        sf::Vector2f getPosition()
+        {
+            return aSprite.getPosition();
+        }
+    private:
+        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+        {
+            target.draw(aSprite);
         }
     };
 
@@ -282,15 +287,62 @@ public:
                 if (spWall[i].getGlobalBounds().intersects(R))
                 {
                     E.speedY = 0;
-                    break;
                 }
         }
     }
 
+    void openChest(Chestwo, sf::Vector2f Pos, sf::Sprite s)
+    {
+        s.setPosition(Pos);
+        window->draw(s);
+
+    }
+
+    void fixView()
+    {
+        sf::Vector2i pos = rGame.mapCoordsToPixel(Player.getPosition(), view);
+        int scrollArea = 300;
+        if (pos.y > windowSize.y-scrollArea && Utils::getViewOffset(&rGame).y+windowSize.y<mapSize.y)
+        {
+            view.move(0, pos.y-windowSize.y+scrollArea);
+            if (Utils::getViewOffset(&rGame).y+windowSize.y>mapSize.y)
+            {
+                view.move(0, -Utils::getViewOffset(&rGame).y-windowSize.y+mapSize.y);
+            }
+        }
+        else if (pos.y < scrollArea && Utils::getViewOffset(&rGame).y>0)
+        {
+            view.move(0, pos.y-scrollArea);
+            if (Utils::getViewOffset(&rGame).y<0)
+            {
+                view.move(0, -Utils::getViewOffset(&rGame).y);
+            }
+        }
+        if (pos.x > windowSize.x-scrollArea && Utils::getViewOffset(&rGame).x+windowSize.x<mapSize.x)
+        {
+            view.move(pos.x-windowSize.x+scrollArea, 0);
+            if (Utils::getViewOffset(&rGame).x+windowSize.x>mapSize.x)
+            {
+                view.move(-Utils::getViewOffset(&rGame).x-windowSize.x+mapSize.x, 0);
+            }
+        }
+        else if (pos.x < scrollArea && Utils::getViewOffset(&rGame).x>0)
+        {
+            view.move(pos.x-scrollArea, 0);
+            if (Utils::getViewOffset(&rGame).x<0)
+            {
+                view.move(-Utils::getViewOffset(&rGame).x, 0);
+            }
+        }
+        rGame.setView(view);
+    }
+
+
     virtual void onSceneLoadToMemory()
     {
+        rGame.create(window->getSize().x,window->getSize().y);
 
-        window->setView(view);
+        ///window->setView(view);
         ///itemy
         texItemSheet.loadFromFile("files/textures/rpg/items.png");
         std::ifstream baseItem("files/maps/rpg/items.txt");
@@ -302,7 +354,7 @@ public:
             for(int i=0;    i<itemsInRow;   i++)
             {
                 baseItem >> id >> name >> value >> damage;
-              //  std::cout << id << name << value <<damage << std::endl;
+                //  std::cout << id << name << value <<damage << std::endl;
                 vecItem.push_back(Item(id,name,texItemSheet, sf::IntRect(i*sizeItem, j*sizeItem,sizeItem,sizeItem),value,damage));
             }
         }
@@ -368,7 +420,7 @@ public:
         texDoor.loadFromFile("files/textures/rpg/door.png");
         texDoorOpen.loadFromFile("files/textures/rpg/doorOpen.png");
 
-        window->setMouseCursorVisible(0);
+      //  window->setMouseCursorVisible(0);
         texCrosshair.loadFromFile("files/textures/rpg/crosshair.png");
         spCrosshair.setTexture(texCrosshair);
         spCrosshair.setOrigin(spCrosshair.getTextureRect().height * 0.5,
@@ -377,26 +429,51 @@ public:
         mapa.loadFromFile("files/maps/rpg/mapa1.png");
         chestPath="files/maps/rpg/chest1.txt";
         loadMap(mapa, chestPath);
+
+        temptext.setFont(Common::Font::Digital_7);
+        temptext.setScale(tilesize*0.1,0.1*tilesize);
+        temptext.setOrigin(sf::Vector2f(0,temptext.getLocalBounds().height));
+
+        windowSize = sf::Vector2i(window->getSize());
+        view = sf::View(sf::FloatRect(0, 0, window->getSize().x, window->getSize().y));
     }
 
     virtual void onSceneActivate() {}
 
-    void deliverEvent(sf::Event& event) {}
+    void deliverEvent(sf::Event& event)
+    {
+        if (event.type ==
+                sf::Event::KeyPressed && event.key.code == sf::Keyboard::Tab)
+        {
+            if(tab>1)
+                tab=1;
+            tab*=-1;
+            temptext.setString("Inventory");
+        }
+
+        if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::E)
+        {
+            for(int i=0; i<vecChest.size(); i++)
+                if(Collision::BoundingBoxTest(Player.aSprite,vecChest[i]))
+                {
+                    tab=i+2;
+                    temptext.setString("Chest"+Utils::stringify(i));
+                }
+        }
+    }
 
     virtual void draw(sf::Time deltaTime)
     {
         float dT = deltaTime.asMilliseconds();
 
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Tab))
-        {   if(tab>1)
-            tab=1;
-            tab*=-1;
-        }
+        fixView();
+
         if(tab>0)
         {
-            window->draw(inventoryBackground);
-        if(tab>1)
-            window->draw(vecItem[vecChest[tab-2].items[0].x]);
+            rGame.draw(inventoryBackground);
+            if(tab>1)
+                rGame.draw(vecItem[vecChest[tab-2].items[0].x]);
+            rGame.draw(temptext);
         }
         else
         {
@@ -516,8 +593,8 @@ public:
                         dT * (std::abs(Player.speedX) + std::abs(Player.speedY)) /
                         (2 * Player.basespeed));
                 Player.move(Player.speedX, Player.speedY);
-                view.setCenter(Player.aSprite.getPosition());
-                //window-> setView(view);
+                //view.setCenter(Player.aSprite.getPosition());
+                rGame.setView(view);
             }
             else
             {
@@ -550,20 +627,20 @@ public:
 
 
             // DRAW STARTS
-            window-> clear(sf::Color());
-            for (int i = 0; i < spGrass.size(); i++) window-> draw(spGrass[i]);
-            for (int i = 0; i < spWall.size(); i++)  window-> draw(spWall[i]);
+            rGame. clear(sf::Color());
+            for (int i = 0; i < spGrass.size(); i++) rGame. draw(spGrass[i]);
+            for (int i = 0; i < spWall.size(); i++)  rGame. draw(spWall[i]);
 
 
-            window->draw(spCrosshair);
+            rGame.draw(spCrosshair);
 
             for (int i = 0; i < vecChest.size(); i++)
             {
-                window->draw(vecChest[i]);
+                rGame.draw(vecChest[i]);
             }
-for(int i=0; i<vecChest.size();i++)
-   std::cout << "arek", window->draw(vecChest[i]);
-            Player.draw(window);
+            for(int i=0; i<vecChest.size(); i++)
+                std::cout << "arek", rGame.draw(vecChest[i]);
+            rGame.draw(Player);
 
             // SKELETON MOVEMENT
             for (int i = vecSkeleton.size()-1; i>=0; i--)
@@ -576,7 +653,8 @@ for(int i=0; i<vecChest.size();i++)
                     break;
                 }
                 vecSkeleton[i].AImove(Player.aSprite,this);
-                vecSkeleton[i].draw(window);
+                // vecSkeleton[i].draw(window);
+                rGame.draw(vecSkeleton[i]);
                 if(vecSkeleton[i].aSprite.getColor()==sf::Color(255,0,0))
                     vecSkeleton[i].aSprite.setColor(sf::Color(255,255,255));
 
@@ -594,22 +672,27 @@ for(int i=0; i<vecChest.size();i++)
             for (int i = 0; i < sliceVec.size(); i++)
             {
                 sliceVec[i].update(dT);
-                window->draw(sliceVec[i]);
+                rGame.draw(sliceVec[i]);
                 sliceVec[i].collide(vecSkeleton);
             }
-            if(sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-            {
-                for(int i=0; i<vecChest.size();i++)
-            if(Collision::BoundingBoxTest(Player.aSprite,vecChest[i]))
-                tab=i+2;
-            }
+            rGame.display();
+            window->draw(sf::Sprite(rGame.getTexture()));
+
+
+
         }
     }
 
 protected:
-    int tab=1;
+    sf::RenderTexture rGame;
 
-    sf::View view = sf::View(sf::FloatRect(0, 0, 1920, 1080));
+    int tab=-1;
+    sf::Text temptext;
+
+    sf::View view;
+
+    sf::Vector2i windowSize;
+    sf::Vector2i mapSize = sf::Vector2i(100000, 100000);
 
     sf::Image mapa;
     std::string chestPath;
