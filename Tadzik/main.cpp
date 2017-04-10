@@ -63,7 +63,9 @@ int main(){
             if(event.type == sf::Event::Closed )
                 window.close();
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
-                //window.close();
+                if (sceneManager.getActiveScene()->getName()=="LAUNCHER") {
+                    window.close();
+                }
                 sceneManager.getActiveScene()->setPaused(!sceneManager.getActiveScene()->isPaused());
             }
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
@@ -82,7 +84,7 @@ int main(){
         ImGui::SFML::Update(window, dT);
         if(sceneManager.getActiveScene()->isPaused() && sceneManager.getActiveSceneName() != "LAUNCHER"){
             ImGui::Begin("Paused");
-            if(ImGui::Button("Continue")){
+            if(ImGui::Button("Resume")){
                 sceneManager.getActiveScene()->setPaused(false);
                 sceneManager.setActiveScene(sceneManager.getActiveSceneName());
             }

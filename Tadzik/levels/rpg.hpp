@@ -609,7 +609,7 @@ for(int i=0; i<vecChest.size();i++)
 protected:
     int tab=1;
 
-    sf::View view = sf::View(sf::FloatRect(0, 0, 1920, 1080));
+    sf::View view = sf::View(sf::FloatRect(0, 0, 1280, 720));
 
     sf::Image mapa;
     std::string chestPath;

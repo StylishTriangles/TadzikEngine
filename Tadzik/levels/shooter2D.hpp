@@ -391,6 +391,7 @@ public:
 
         virtual void onHit (Bullet* bullet) {
             health-=bullet->damage;
+            healthBar.setScale(health/maxHealth, 1);
             velocity.x*=bullet->knockback;
             velocity.y*=bullet->knockback;
         }
@@ -1039,7 +1040,6 @@ public:
                             vecExplosions.push_back(aExplosion);
                         }
                         vecBullets.erase(vecBullets.begin()+j);
-                    vecEnemies[i]->healthBar.setScale((float)vecEnemies[i]->getGlobalBounds().width*(vecEnemies[i]->health/vecEnemies[i]->maxHealth), 1);
                     if (vecEnemies[i]->health<=0) {
                         vecEnemies[i]->onDrop();
                         vecEnemies[i]->onKilled();

@@ -101,6 +101,7 @@ struct AppConsole
             AddLog((*tmp)[i]);
         (*actScene)->clearBuffer();
 
+        ImGui::SetNextWindowPos(ImVec2(50, 50));
         ImGui::SetNextWindowSize(ImVec2(520,600), ImGuiSetCond_FirstUseEver);
         if (!ImGui::Begin(title, p_open))
         {

@@ -23,16 +23,11 @@ public:
         fpsCounter.setFillColor(sf::Color::Green);
     }
 
-    virtual ~SceneManager(){
-        std::cout << "Destructor of SceneManager{\n";
-        std::cout << scenes.size() << "\n";
-        auto itr = scenes.begin();
+    virtual ~SceneManager(){auto itr = scenes.begin();
         while (itr != scenes.end()) {
             delete itr->second;
             itr = scenes.erase(itr);
         }
-        std::cout << scenes.size() << "\n";
-        std::cout << "}\n";
     }
     template<typename T>
     void registerScene(std::string name, sf::RenderWindow* w){
@@ -77,11 +72,12 @@ public:
         if(cmdEnabled){
             gameConsole.Draw("Tadzik CMD", 0);
             std::vector <std::string> tmp = gameConsole.passToSceneManager();
-            if (tmp.size()>0)
+            if (tmp.size()>0) {
                 if (!coreEval(tmp))
                     gameConsole.AddLog("[error] Command not found\n");
                 else
                     gameConsole.AddLog("Command executed succesfully\n");
+            }
         }
     }
     void toogleCMD(){
