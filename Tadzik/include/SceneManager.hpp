@@ -53,7 +53,7 @@ public:
 
     //level finished
     void callMeBaby(){
-        actScene->setLocked(true);
+        actScene->setUnlocked(true);
         setActiveScene("LAUNCHER");
     }
 

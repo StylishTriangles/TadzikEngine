@@ -69,12 +69,12 @@ public:
         consoleBuff.clear();
     }
 
-    bool isUnlocked(){
-        return unlocked;
+    bool isLocked(){
+        return locked;
     }
 
-    void setLocked(bool l){
-        unlocked = l;
+    void setUnlocked(bool l){
+        locked = l;
     }
 
     bool isPaused(){
@@ -91,7 +91,7 @@ protected:
     SceneManager* sceneManager=nullptr;
     ImVector <char*> consoleCommands;
     ImVector <coloredText> consoleBuff;
-    bool unlocked=false;
+    bool locked=true;
     bool paused=false;
 };
 
