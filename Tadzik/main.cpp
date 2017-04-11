@@ -9,8 +9,7 @@
 
 #include "../include/Common.hpp"
 
-//******
-//temporary workaround
+///temporary workaround
 namespace sf{
     class KeyboardHacked: public sf::Keyboard{
     public:
@@ -23,7 +22,6 @@ namespace sf{
     };
 }
 #define Keyboard KeyboardHacked
-//*****
 
 #include "../include/SceneManager.hpp"
 #include "../include/Launcher.hpp"
@@ -35,9 +33,9 @@ int main(){
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     //sf::RenderWindow window(sf::VideoMode(1280, 720), "Tadzik", sf::Style::Default, settings);
-    sf::RenderWindow window(sf::VideoMode(1280, 960), "Tadzik", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1280, 960), "Tadzik", sf::Style::Fullscreen, settings);
     //sf::RenderWindow window(sf::VideoMode(1366, 768), "Tadzik", sf::Style::Fullscreen, settings);
-    //sf::RenderWindow window(sf::VideoMode(1920, 1080), "Tadzik", sf::Style::Fullscreen, settings);
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Tadzik", sf::Style::Fullscreen, settings);
     //sf::RenderWindow window(sf::VideoMode(640, 480), "Tadzik", sf::Style::Default, settings);
     //window.setFramerateLimit(400);
     window.setFramerateLimit(60);
@@ -47,18 +45,16 @@ int main(){
     SceneManager sceneManager(&window);
 
     sceneManager.registerScene<LAUNCHER>("LAUNCHER", &window);
-    //sceneManager.registerScene<TREX>("TREX", &window);
+    sceneManager.registerScene<TREX>("TREX", &window);
     //sceneManager.registerScene<CLICKER>("CLICKER", &window);
-    //sceneManager.registerScene<JUMPER>("JUMPER", &window);
+    sceneManager.registerScene<JUMPER>("JUMPER", &window);
     sceneManager.registerScene<SYNTH3D>("SYNTH3D", &window);
-    //sceneManager.registerScene<MARIO2>("MARIO2", &window);
-    //sceneManager.registerScene<LEVELSELECT>("LEVELSELECT", &window);
-    //sceneManager.registerScene<RPG>("RPG", &window);
-    //sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
-    //sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
+    sceneManager.registerScene<MARIO2>("MARIO2", &window);
+    sceneManager.registerScene<RPG>("RPG", &window);
+    sceneManager.registerScene<SHOOTER2D>("SHOOTER2D", &window);
+    sceneManager.registerScene<ISAYPARTY>("ISAYPARTY", &window);
 
-    //sceneManager.setActiveScene("LAUNCHER");
-    sceneManager.setActiveScene("SYNTH3D");
+    sceneManager.setActiveScene("LAUNCHER");
 
     sf::Clock deltaClock;
     while(window.isOpen()){
@@ -68,7 +64,9 @@ int main(){
             if(event.type == sf::Event::Closed )
                 window.close();
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
-                //window.close();
+                if (sceneManager.getActiveScene()->getName()=="LAUNCHER") {
+                    window.close();
+                }
                 sceneManager.getActiveScene()->setPaused(!sceneManager.getActiveScene()->isPaused());
             }
             else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F12) {
@@ -87,7 +85,7 @@ int main(){
         ImGui::SFML::Update(window, dT);
         if(sceneManager.getActiveScene()->isPaused() && sceneManager.getActiveSceneName() != "LAUNCHER"){
             ImGui::Begin("Paused");
-            if(ImGui::Button("Continue")){
+            if(ImGui::Button("Resume")){
                 sceneManager.getActiveScene()->setPaused(false);
                 sceneManager.setActiveScene(sceneManager.getActiveSceneName());
             }

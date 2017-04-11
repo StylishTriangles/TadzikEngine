@@ -74,7 +74,7 @@ public:
             tAmmo.setString(Utils::stringify(game->TADZIK.weapons[game->TADZIK.currentWeapon].ammo));
             tAllAmmo.setString(Utils::stringify(game->TADZIK.weapons[game->TADZIK.currentWeapon].mags));
             tLights.setString(Utils::stringify(game->TADZIK.lights));
-            healthBar.setTextureRect(sf::IntRect(0, 0, game->TADZIK.health/100*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
+            healthBar.setTextureRect(sf::IntRect(0, 0, (game->TADZIK.health/100)*game->texHealthBar.getSize().x, healthBar.getTextureRect().height));
             activeWeapon.setTexture(game->TADZIK.weapons[game->TADZIK.currentWeapon].texture);
         }
         void setFont(sf::Font* f, sf::Color c) {
@@ -145,12 +145,12 @@ public:
         lightSource(sf::Vector2f pos, sf::Texture* t1, sf::Texture* t2, SHOOTER2D* g, sf::Color color = sf::Color::White) {
             x=pos.x, y=pos.y;
             glow.setTexture(*t2);
-            glow.setOrigin(glow.getTextureRect().width/2, glow.getTextureRect().height/2);
+            Utils::setOriginInCenter(glow);
             glow.setPosition(sf::Vector2f(x, y));
             glow.setColor(color);
 
             sprite.setTexture(*t1);
-            sprite.setOrigin(sprite.getTextureRect().width/2, sprite.getTextureRect().height/2);
+            Utils::setOriginInCenter(sprite);
             sprite.setPosition(sf::Vector2f(x, y));
             //sprite.setColor(sf::Color(255-(255-color.r)/50, 255-(255-color.g)/50, 255-(255-color.b)/50));
             sprite.setColor(color);
@@ -391,6 +391,7 @@ public:
 
         virtual void onHit (Bullet* bullet) {
             health-=bullet->damage;
+            healthBar.setScale(health/maxHealth, 1);
             velocity.x*=bullet->knockback;
             velocity.y*=bullet->knockback;
         }
@@ -702,13 +703,13 @@ public:
     }
 
     void onSceneLoadToMemory() {
+        texBackground.loadFromFile("files/textures/shooter2D/background.png");
+        texBackground.setRepeated(true);
+        spBackground.setTexture(texBackground);
+        spBackground.setTextureRect(sf::IntRect(0, 0, 100000, 100000));
         texWall.loadFromFile("files/textures/shooter2D/wall1.png");
         spWall.setTexture(texWall);
-        spWall.setOrigin(tileSize/2, tileSize/2);
-
-        loadMap(1);
-
-        gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
+        Utils::setOriginInCenter(spWall);
 
         deathMessage.setFont(Common::Font::Days_Later);
         deathMessage.setPosition(640, 360);
@@ -750,14 +751,6 @@ public:
         texRunner.loadFromFile("files/textures/shooter2D/nmeRunner.png");
         texBoss.loadFromFile("files/textures/shooter2D/nmeBoss.png");
 
-        loadWeapons();
-        TADZIK.addWeapon(vecWeapons[0]);
-        //TADZIK.addWeapon(vecWeapons[1]);
-        //TADZIK.addWeapon(vecWeapons[2]);
-        TADZIK.addWeapon(vecWeapons[3]);
-        TADZIK.currentWeapon = 0;
-
-
         texPUPGiveHealth.loadFromFile("files/textures/shooter2D/texPUPGiveHealth.png");
         texPUPGiveAmmo.loadFromFile("files/textures/shooter2D/texPUPGiveAmmo.png");
 
@@ -783,6 +776,15 @@ public:
     }
 
     void onSceneActivate() {
+        loadMap(1);
+        gameView.reset(sf::FloatRect(0, 0, mapSize.x, mapSize.y));
+        loadWeapons();
+        TADZIK.addWeapon(vecWeapons[0]);
+        //TADZIK.addWeapon(vecWeapons[1]);
+        //TADZIK.addWeapon(vecWeapons[2]);
+        TADZIK.addWeapon(vecWeapons[3]);
+        TADZIK.currentWeapon = 0;
+
         window->setMouseCursorVisible(false);
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         waveClock.restart();
@@ -926,7 +928,7 @@ public:
         Weapon tmpWeapon;
         tmpWeapon.bullet.setTexture(texBullet1);
         tmpWeapon.bullet.setScale(0.2, 0.2);
-        tmpWeapon.bullet.setOrigin(tmpWeapon.bullet.getTextureRect().width/2, tmpWeapon.bullet.getTextureRect().height/2);
+        Utils::setOriginInCenter(tmpWeapon.bullet);
         file.open("files/resource/shooter2D/weapons.dat");
         while (!file.eof()) {
             file >> tmpWeapon.name;
@@ -997,7 +999,8 @@ public:
     }
 
     void allMapsCompleted() {
-        gameOver();
+        clearMap();
+        sceneManager->callMeBaby();
     }
 
     void deliverEvent(sf::Event& event){
@@ -1039,7 +1042,6 @@ public:
                             vecExplosions.push_back(aExplosion);
                         }
                         vecBullets.erase(vecBullets.begin()+j);
-                    vecEnemies[i]->healthBar.setScale((float)vecEnemies[i]->getGlobalBounds().width*(vecEnemies[i]->health/vecEnemies[i]->maxHealth), 1);
                     if (vecEnemies[i]->health<=0) {
                         vecEnemies[i]->onDrop();
                         vecEnemies[i]->onKilled();
@@ -1239,9 +1241,10 @@ public:
         sf::Vector2f tmpDirect = sf::Vector2f(rGame.mapPixelToCoords(sf::Mouse::getPosition(*window))) - TADZIK.getPosition();
         TADZIK.setRotation(atan2(tmpDirect.y, tmpDirect.x)*180/M_PI);
 
-        rGame.clear(sf::Color(255,
-                              255-100*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
-                              255-100*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
+        rGame.draw(spBackground);
+        spBackground.setColor(sf::Color(255.0f,
+                              255.0f-100.0f*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time),
+                              255.0f-100.0f*(waveClock.getElapsedTime().asSeconds()/vecWaves[currentWave].time)));
 
         rGame.draw(sf::Sprite(rMisc.getTexture())); //krew i te sprawy
 
@@ -1319,8 +1322,8 @@ public:
         ///EKSPLOZJE
         for (int i=vecExplosions.size()-1; i>=0; --i) {
             for (int j=vecEnemies.size()-1; j>=0; --j) {
-                if (Collision::PixelPerfectTest(*vecEnemies[j], vecExplosions[i]) && vecEnemies[i]->canBeHit()) {
-                    vecEnemies[i]->health-=50;
+                if (Collision::PixelPerfectTest(*vecEnemies[j], vecExplosions[i]) && vecEnemies[j]->canBeHit()) {
+                    vecEnemies[j]->health-=50;
                 }
             }
             vecExplosions[i].update(deltaTime.asMilliseconds());
@@ -1397,6 +1400,7 @@ protected:
     sf::Sprite spCrosshair;
     sf::Sprite spBlood;
     sf::Sprite spWall;
+    sf::Sprite spBackground;
 
     ARO::Anim animExplosion;
     ARO::AnimSprite aExplosion;

@@ -164,4 +164,9 @@ float getArea(sf::FloatRect r) {
 
 }
 
+sf::Vector2f getSpriteCenter(const sf::Sprite& s) {
+    return sf::Vector2f(s.getGlobalBounds().left+s.getGlobalBounds().width/2,
+                        s.getGlobalBounds().top+s.getGlobalBounds().height/2);
+}
+
 }

@@ -37,6 +37,7 @@ float vecLength(sf::Vector3f vec);
 bool fileExists(const std::string& filename);
 sf::Vector2f getViewOffset(sf::RenderTarget* rendertarget);
 float getArea(sf::FloatRect f);
+sf::Vector2f getSpriteCenter(const sf::Sprite& s);
 }
 
 #endif //UTILS_HPP

@@ -48,13 +48,12 @@ public:
         textScore.setFont(Common::Font::Comic_Sans);
 
         texBackground.loadFromFile("files/textures/jumper/background.png");
+        texBackground.setRepeated(true);
         background1.setTexture(texBackground);
-        background2.setTexture(texBackground);
-        background1.setScale((float)window->getSize().x/(float)background1.getTextureRect().width,
-                             (float)window->getSize().y/(float)background1.getTextureRect().height);
-        background2.setScale((float)window->getSize().x/(float)background2.getTextureRect().width,
-                             (float)window->getSize().y/(float)background2.getTextureRect().height);
-        background2.setPosition(0, -0.99*window->getSize().y);
+        background1.setTextureRect(sf::IntRect(0, 0, texBackground.getSize().x, 1000000));
+        background1.setPosition(0, -1000000);
+        background1.setScale((float)window->getSize().x/(float)texBackground.getSize().x,
+                             (float)window->getSize().y/(float)texBackground.getSize().y);
 
         texPlayerRun1.loadFromFile("files/textures/universal/playerRun1.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun1, 500));
         texPlayerRun2.loadFromFile("files/textures/universal/playerRun2.png"), TadzikRun.addFrame(AnimationFrame(&texPlayerRun2, 500));
@@ -92,7 +91,7 @@ public:
     }
 
     virtual void onSceneActivate() {
-
+        gameOver();
     }
 
     void deliverEvent(sf::Event& event){
@@ -127,8 +126,7 @@ public:
         isJumping=false;
         isStanding=false;
         isSuperman=false;
-        background1.setPosition(0, 0);
-        background2.setPosition(0, -0.99*window->getSize().y);
+        background1.setPosition(0, -100000);
         spTadzik.sprite.setPosition(window->getSize().x/2-spTadzik.sprite.getTextureRect().width/2,
                                     window->getSize().y-spTadzik.sprite.getTextureRect().height*6);
         spTadzik.sprite.setScale(std::abs(spTadzik.sprite.getScale().x), spTadzik.sprite.getScale().y);
@@ -161,7 +159,6 @@ public:
             clock.restart();
         }
         background1.move(0, scrolling);
-        background2.move(0, scrolling);
         for (unsigned int i=0; i<platforms.size(); ++i) {
             platforms[i].sprite.move(0, scrolling);
         }
@@ -241,7 +238,6 @@ public:
                 }
                 else {
                     background1.move(0, -speedY);
-                    background2.move(0, -speedY);
                     for (unsigned int i=0; i<platforms.size(); ++i) {
                         platforms[i].sprite.move(0, -speedY);
                     }
@@ -277,14 +273,6 @@ public:
             prevSpeedX=speedX;
         }
 
-        //naprawianie tla
-        if (background1.getPosition().y>window->getSize().y) {
-            background1.move(0, -1.98*window->getSize().y);
-        }
-        if (background2.getPosition().y>window->getSize().y) {
-            background2.move(0, -1.98*window->getSize().y);
-        }
-
         //dodawanie platform i powerupow
         if (score - lastPlatformGenerated > window->getSize().y/2) {
             if (Utils::randFloat(0, 50)<10) {
@@ -309,7 +297,6 @@ public:
         //rysowanie
         window->clear();
         window->draw(background1);
-        window->draw(background2);
         window->draw(textScore);
 
 
@@ -333,6 +320,9 @@ public:
                 window->draw(powerups[i]);
         }
         window->draw(spTadzik.sprite);
+        if (highScore>2000) {
+            sceneManager->callMeBaby();
+        }
     }
 
 protected:
@@ -353,7 +343,6 @@ protected:
     sf::Text textScore;
 
     sf::Sprite background1;
-    sf::Sprite background2;
     sf::Sprite tmpPlatform;
     sf::Sprite powerup1;
 
