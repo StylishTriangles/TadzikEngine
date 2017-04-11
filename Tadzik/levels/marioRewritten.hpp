@@ -674,9 +674,9 @@ public:
 
     void onSceneActivate() {
         loadMap("files/maps/mario/map3.png");
-        rGame.create(window->getSize().x, window->getSize().y);
+        rGame.create(1280, 720);
         windowSize = sf::Vector2f(window->getSize());
-        gameView.reset(sf::FloatRect(0, 0, window->getSize().x, window->getSize().y));
+        gameView.reset(sf::FloatRect(0, 0, rGame.getSize().x, rGame.getSize().y));
     }
 
     void onSceneDeactivate() {
@@ -802,7 +802,6 @@ public:
         for (auto a:vecEnemies)
             rGame.draw(*a);
         rGame.draw(TADZIK);
-        //Utils::drawBoundingBox(TADZIK, &rGame);
         for (auto a:vecHitboxlessFront)
             rGame.draw(a);
         for (auto a:vecEffects)
@@ -811,10 +810,11 @@ public:
             for (auto a:vecEnemies) {
                 Utils::drawBoundingBox(*a, &rGame);
             }
+            Utils::drawBoundingBox(TADZIK, &rGame);
         }
         rGame.display();
         sf::Sprite tmp = sf::Sprite(rGame.getTexture());
-        tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
+        //tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
         window->draw(tmp);
 
         score-=deltaTime.asSeconds()*20;
@@ -876,7 +876,7 @@ protected:
     sf::Vector2f mapSize;
     int tileSize = 32;
     int score = 10000;
-    bool debug = true;
+    bool debug = false;
 
     float parallax = 0.6;
 
