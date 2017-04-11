@@ -69,6 +69,8 @@ public:
         vecLvlData[5].sprite.setPosition(window->getSize().x-sWidth-margin, margin+sHeight*0.5 + (window->getSize().y - margin-sHeight)/2.0);
         vecLvlData[6].sprite.setPosition(window->getSize().x-sWidth-margin, margin);
 
+        player = sf::Sprite(texMario);
+        player.setPosition(window->getSize().x/2.0 - sWidth/2.0, window->getSize().y/2.0 - sHeight/2.0);
     }
 
     virtual void onSceneActivate() {
@@ -85,6 +87,22 @@ public:
     }
 
     virtual void draw(sf::Time deltaTime) {
+        float tedeuszWajhePrzeusz=200;
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+            player.move(-tedeuszWajhePrzeusz*deltaTime.asSeconds(), 0);
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+            player.move(tedeuszWajhePrzeusz*deltaTime.asSeconds(), 0);
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+            player.move(0, -tedeuszWajhePrzeusz*deltaTime.asSeconds());
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+            player.move(0, tedeuszWajhePrzeusz*deltaTime.asSeconds());
+
+        for(int i = 0; i < vecLvlData.size(); i++){
+            if(Collision::PixelPerfectTest(vecLvlData[i].sprite, player)){
+                sceneManager->setActiveScene(vecLvlData[i].nginName);
+            }
+        }
+
         window->clear();
         for(int i = 0; i < vecLvlData.size(); i++){
             window->draw(vecLvlData[i].sprite);
@@ -103,6 +121,7 @@ public:
                 sceneManager->setActiveScene(vecLvlData[i].nginName);
             }
         }
+        window->draw(player);
     }
 
 protected:
@@ -114,6 +133,7 @@ protected:
     sf::Texture texShooter2d;
     sf::Texture texDisco;
     std::vector<LevelData> vecLvlData;
+    sf::Sprite player; //test
 
     int margin = 75;
 };

@@ -73,7 +73,7 @@ public:
         return locked;
     }
 
-    void setUnlocked(bool l){
+    void setLocked(bool l){
         locked = l;
     }
 
