@@ -45,10 +45,14 @@ public:
         texTREX.loadFromFile("files/textures/icons/trex.png");
         texJumper.loadFromFile("files/textures/icons/jumper.png");
         texSynth3d.loadFromFile("files/textures/icons/synth3de.png");
-        texMario.loadFromFile("files/textures/icons/mario.png");
+        texMario.loadFromFile("files/textures/icons/player.png");
         texRpg.loadFromFile("files/textures/icons/RPG.png");
         texShooter2d.loadFromFile("files/textures/icons/shooter2d.png");
         texDisco.loadFromFile("files/textures/icons/iSayParty.png");
+
+        texBackground.loadFromFile("files/textures/icons/background.png");
+        spBackground.setTexture(texBackground);
+        spBackground.setScale(window->getSize().x/texBackground.getSize().x, window->getSize().y/texBackground.getSize().y);
 
 
         vecLvlData.push_back(LevelData("Trex", "TREX", &texTREX));
@@ -70,11 +74,12 @@ public:
         vecLvlData[6].sprite.setPosition(window->getSize().x-sWidth-margin, margin);
 
         player = sf::Sprite(texMario);
+        player.setScale(5, 5);
         player.setPosition(window->getSize().x/2.0 - sWidth/2.0, window->getSize().y/2.0 - sHeight/2.0);
     }
 
-    virtual void onSceneActivate() {
-
+    void onSceneActivate() {
+        player.setPosition(window->getSize().x/2.0, window->getSize().y/2.0);
     }
 
     void deliverEvent(sf::Event& event){
@@ -104,6 +109,7 @@ public:
         }
 
         window->clear();
+        window->draw(spBackground);
         for(int i = 0; i < vecLvlData.size(); i++){
             window->draw(vecLvlData[i].sprite);
             sf::Text description = sf::Text(vecLvlData[i].name, Common::Font::Comic_Sans);
@@ -132,8 +138,10 @@ protected:
     sf::Texture texRpg;
     sf::Texture texShooter2d;
     sf::Texture texDisco;
+    sf::Texture texBackground;
     std::vector<LevelData> vecLvlData;
     sf::Sprite player; //test
+    sf::Sprite spBackground;
 
     int margin = 75;
 };
