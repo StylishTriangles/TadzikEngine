@@ -99,6 +99,9 @@ public:
                 description.setColor(sf::Color(52.0, 25.0, 255.0, 255.0));
             }
             window->draw(description);
+            if (Utils::isMouseOnSprite(vecLvlData[i].sprite, window) && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+                sceneManager->setActiveScene(vecLvlData[i].nginName);
+            }
         }
     }
 

@@ -61,7 +61,6 @@ public:
         void changeAnimation(ARO::Anim* a)
         {
             aSprite.move(sf::Vector2f(aSprite.getAnim()->width-a->width, aSprite.getAnim()->height-a->height)*aSprite.getScale().x);
-            std::cout << "\n" <<  aSprite.getAnim()->width-a->width << "\t" << aSprite.getAnim()->width-a->width;
             aSprite.setAnimation(a);
         }
         void AImove(const sf::Sprite s, RPG* erpeg)
@@ -639,7 +638,7 @@ public:
                 rGame.draw(vecChest[i]);
             }
             for(int i=0; i<vecChest.size(); i++)
-                std::cout << "arek", rGame.draw(vecChest[i]);
+                rGame.draw(vecChest[i]);
             rGame.draw(Player);
 
             // SKELETON MOVEMENT
