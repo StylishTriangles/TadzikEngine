@@ -195,6 +195,17 @@ public:
         }
     };
 
+    class Tile_Finish: public Tile {
+    public:
+        Tile_Finish(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
+            setLooped(true);
+            collidable = false;
+        }
+        void onCollision(MovingEntity* m, float area) {
+            game->levelFinished = true;
+        }
+    };
+
     class Tile_Timed: public Tile {
     public:
         Tile_Timed(ARO::Anim* a, sf::Vector2f pos, MARIO2* g) : Tile(a, pos, g) {
@@ -305,7 +316,7 @@ public:
             for (auto a:game->vecTiles) {
                 if (getGlobalBounds().intersects(a->getGlobalBounds(), intersectionTMP)) {
                     if (a->collidable) {
-                        float t = Utils::getMagnitude(getPosition(), a->getPosition());
+                        float t = Utils::getMagnitude(getPosition(), Utils::getSpriteCenter(*a));
                         if (t<minDistance) {
                             minDistance = t;
                             tileCollided = a;
@@ -593,6 +604,13 @@ public:
                 if(mapa.getPixel(x, y)==sf::Color(0, 255, 0)) {
                     vecTiles.push_back(new Tile_Water(&aWater, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
+                if(mapa.getPixel(x, y)==sf::Color(100, 100, 0)) {
+                    vecTiles.push_back(new Tile_Finish(&aFinishPole, sf::Vector2f(x*tileSize, y*tileSize), this));
+                }
+                if(mapa.getPixel(x, y)==sf::Color(100, 101, 0)) {
+                    vecTiles.push_back(new Tile_Finish(&aFinishPole, sf::Vector2f(x*tileSize, y*tileSize), this));
+                    vecTiles.back()->nextFrame();
+                }
                 if(mapa.getPixel(x, y)==sf::Color(255, 100, 0)) {
                     vecTiles.push_back(new Tile_Timed(&aTimedTile, sf::Vector2f(x*tileSize, y*tileSize), this));
                 }
@@ -645,6 +663,9 @@ public:
         spsWater.loadFromFile("files/textures/mario/water.png");
         aWater.setSpriteSheet(&spsWater, 32, sf::seconds(1000000));
 
+        spsFinishPole.loadFromFile("files/textures/mario/pole.png");
+        aFinishPole.setSpriteSheet(&spsFinishPole, 32, sf::seconds(1000000));
+
         spsTadzikFall.resize(3);
         spsTadzikIdle.resize(3);
         spsTadzikJump.resize(3);
@@ -675,8 +696,10 @@ public:
     void onSceneActivate() {
         loadMap("files/maps/mario/map3.png");
         rGame.create(1280, 720);
-        windowSize = sf::Vector2f(window->getSize());
+        //windowSize = sf::Vector2f(window->getSize());
         gameView.reset(sf::FloatRect(0, 0, rGame.getSize().x, rGame.getSize().y));
+        spBackground.setPosition(0, 0);
+        levelFinished = false;
     }
 
     void onSceneDeactivate() {
@@ -702,7 +725,7 @@ public:
         ///OGARNIANIE VIEW
         sf::Vector2i pos = rGame.mapCoordsToPixel(TADZIK.getPosition(), gameView);
         int scrollAreaRight = windowSize.x*(4.0f/8.0f);
-        int scrollAreaLeft = windowSize.y*(1.0f/5.0f);
+        int scrollAreaLeft = windowSize.x*(1.0f/5.0f);
         if (pos.x > windowSize.x-scrollAreaRight && Utils::getViewOffset(&rGame).x+windowSize.x<mapSize.x) {
             gameView.move(pos.x-windowSize.x+scrollAreaRight, 0);
             spBackground.move((pos.x-windowSize.x+scrollAreaRight)*(1.0-parallax), 0);
@@ -814,10 +837,14 @@ public:
         }
         rGame.display();
         sf::Sprite tmp = sf::Sprite(rGame.getTexture());
-        //tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
+        tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
         window->draw(tmp);
 
         score-=deltaTime.asSeconds()*20;
+        if (levelFinished) {
+            gameOver();
+            sceneManager->callMeBaby();
+        }
     }
 
 protected:
@@ -837,6 +864,7 @@ protected:
     sf::Texture spsPowerup;
     sf::Texture spsWater;
     sf::Texture spsTimedTile;
+    sf::Texture spsFinishPole;
 
     std::vector <sf::Texture> spsTadzikRun;
     std::vector <sf::Texture> spsTadzikIdle;
@@ -853,6 +881,7 @@ protected:
     ARO::Anim aPowerUpTile_;
     ARO::Anim aWater;
     ARO::Anim aTimedTile;
+    ARO::Anim aFinishPole;
 
     ARO::Anim aPowerup;
 
@@ -872,11 +901,12 @@ protected:
     std::vector <Tile> vecHitboxlessFront;
     std::vector <Tile> vecHitboxlessBack;
 
-    sf::Vector2f windowSize;
+    sf::Vector2f windowSize = sf::Vector2f(1280, 720);
     sf::Vector2f mapSize;
     int tileSize = 32;
     int score = 10000;
     bool debug = false;
+    bool levelFinished = false;
 
     float parallax = 0.6;
 
