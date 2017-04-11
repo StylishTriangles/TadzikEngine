@@ -498,7 +498,7 @@ public:
     friend class Camera;
     SYNTH3D(std::string _name, SceneManager* mgr, sf::RenderWindow* w);
     virtual void onSceneLoadToMemory();
-    void onSceneActivate() {}
+    virtual void onSceneActivate();
     void draw(sf::Time deltaTime);
     void checkCollision(collisionPacket* colPackage, int beginning, int ending);
     std::vector <sf::Vector3f> terrain;
@@ -2427,22 +2427,33 @@ void SYNTH3D::onSceneLoadToMemory()
     consoleCommands.push_back("enable_identifyWalls");
     consoleCommands.push_back("enable_distanceCheck");
     consoleCommands.push_back("compare");
+    situation.resize(7);
+}
 
-
-    //loadMap("human");
+void SYNTH3D::onSceneActivate()
+{
+    firstPerson = true;
+    editMode = false;
+    loadCharacter = true;
+    storyMode = true;
+    character.clear();
+    world.clear();
+    terrain.clear();
+    defTerrain.clear();
+    timeElapsed = 0;
+    cameraPos = sf::Vector3f(0, 0, -50);
+    cameraAngle = sf::Vector3f(0, 0, 0);
+    catVelocity = sf::Vector3f(0.0f, 0.0f, 10.0f);
+    catAngle = sf::Vector3f(0.0f, 0.0f, 0.0f);
     loadMap("oblivion_room_4");
-
-
     if(loadCharacter)
         loadMap("human_4");
     defTerrain = terrain;
-    //loadEntities("oblivion_npc");
     if(loadCharacter)
         loadEntities("oblivion_room_npc");
     //OptLines();
     //OptDots();
     c.update();
-    bufforMousePos = sf::Mouse::getPosition(*window);
     if(storyMode)
     {
         if(!editMode)
@@ -2450,17 +2461,20 @@ void SYNTH3D::onSceneLoadToMemory()
             textOutput.setPosition(ImVec2(50, 50));
             textOutput.setSize(ImVec2(400, 200));
         }
+        textOutput.clear();
         textOutput.push("Use JKLI for movement, Space for jumping, Mouse for rotation, Press R to respawn, Press G to unlock mouse and ~ to open console", sf::Color(128, 128, 128));
         textOutput.push("------------", sf::Color::Magenta);
         textOutput.push("Oh no! It looks like you've been trapped inside someones uncomplete fantasy!\nQuick! Head to room two to resolve the graphics glitches!", sf::Color::Cyan);
-        situation.push_back(false);
-        situation.push_back(false);
-        situation.push_back(true);
-        situation.push_back(false);
-        situation.push_back(false);
-        situation.push_back(false);
-        situation.push_back(false);
+        situation[0] = false;
+        situation[1] = false;
+        situation[2] = true;
+        situation[3] = false;
+        situation[4] = false;
+        situation[5] = false;
+        situation[6] = false;
     }
+    sf::Mouse::setPosition(sf::Vector2i(window->getSize().x/2, window->getSize().y/2));
+    bufforMousePos = sf::Mouse::getPosition(*window);
 }
 
 void SYNTH3D::draw(sf::Time deltaTime)
@@ -2694,9 +2708,7 @@ void SYNTH3D::draw(sf::Time deltaTime)
             }
             if(timeElapsed > float(3200.0f))
             {
-                textOutput.clear();
-                textOutput.push("------------", sf::Color::Magenta);
-                textOutput.push("GAME OVER", sf::Color::Red);
+                sceneManager->callMeBaby();
             }
         }
     }
