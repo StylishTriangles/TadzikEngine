@@ -320,7 +320,7 @@ public:
                 window->draw(powerups[i]);
         }
         window->draw(spTadzik.sprite);
-        if (highScore>2000) {
+        if (highScore>20000) {
             sceneManager->callMeBaby();
         }
     }

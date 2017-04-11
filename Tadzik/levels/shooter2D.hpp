@@ -811,6 +811,7 @@ public:
         clearMap();
         levelNumber++;
         loadMap(levelNumber);
+        rMisc.clear(sf::Color(255, 255, 255, 0));
     }
 
     void loadMap(unsigned int levelNumber) {
@@ -1210,6 +1211,7 @@ public:
 
     void draw(sf::Time deltaTime) {
         window->clear();
+        window->setMouseCursorVisible(false);
         fixView();
 
         /// INPUT MYSZKI

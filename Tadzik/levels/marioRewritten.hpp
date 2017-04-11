@@ -837,8 +837,9 @@ public:
         }
         rGame.display();
         sf::Sprite tmp = sf::Sprite(rGame.getTexture());
-        tmp.setScale(window->getSize().y/(mapSize.y), window->getSize().y/(mapSize.y));
+        tmp.setScale(window->getSize().y/(mapSize.y-16), window->getSize().y/(mapSize.y-16));
         window->draw(tmp);
+        //std::cout << mapSize.y;
 
         score-=deltaTime.asSeconds()*20;
         if (levelFinished) {
