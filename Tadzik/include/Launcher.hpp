@@ -51,9 +51,6 @@ public:
         texDisco.loadFromFile("files/textures/icons/iSayParty.png");
 
         texBackground.loadFromFile("files/textures/icons/background.png");
-        spBackground.setTexture(texBackground);
-        spBackground.setScale(window->getSize().x/texBackground.getSize().x, window->getSize().y/texBackground.getSize().y);
-
 
         vecLvlData.push_back(LevelData("Trex", "TREX", &texTREX));
         vecLvlData.push_back(LevelData("Jumper", "JUMPER", &texJumper));
@@ -65,17 +62,24 @@ public:
 
         int sWidth = vecLvlData[0].sprite.getGlobalBounds().width, sHeight = vecLvlData[0].sprite.getGlobalBounds().height;
 
-        vecLvlData[0].sprite.setPosition(margin, margin);
+        vecLvlData[0].sprite.setPosition(margin, margin*1.3);
         vecLvlData[1].sprite.setPosition(margin, margin+sHeight*0.5 + (window->getSize().y - margin-sHeight)/2.0);
         vecLvlData[2].sprite.setPosition(window->getSize().x*(0.25)-sWidth/2.0, window->getSize().y-sHeight-margin);
         vecLvlData[3].sprite.setPosition(window->getSize().x*(0.5)-sWidth/2.0, window->getSize().y-sHeight-margin);
         vecLvlData[4].sprite.setPosition(window->getSize().x*(0.75)-sWidth/2.0, window->getSize().y-sHeight-margin);
         vecLvlData[5].sprite.setPosition(window->getSize().x-sWidth-margin, margin+sHeight*0.5 + (window->getSize().y - margin-sHeight)/2.0);
-        vecLvlData[6].sprite.setPosition(window->getSize().x-sWidth-margin, margin);
+        vecLvlData[6].sprite.setPosition(window->getSize().x-sWidth-margin, margin*1.3);
 
         player = sf::Sprite(texMario);
         player.setScale(5, 5);
         player.setPosition(window->getSize().x/2.0 - sWidth/2.0, window->getSize().y/2.0 - sHeight/2.0);
+
+        backgroundTexture.loadFromFile("files/textures/icons/background.png");
+        logoTexture.loadFromFile("files/textures/icons/logo.png");
+
+        backgroundSprite = sf::Sprite(backgroundTexture);
+        logoSprite = sf::Sprite(logoTexture);
+        logoSprite.setScale(3.0, 3.0);
     }
 
     void onSceneActivate() {
@@ -109,7 +113,13 @@ public:
         }
 
         window->clear();
-        window->draw(spBackground);
+        backgroundSprite.setScale(
+            window->getSize().x / backgroundSprite.getLocalBounds().width,
+            window->getSize().y / backgroundSprite.getLocalBounds().height);
+        window->draw(backgroundSprite);
+        logoSprite.setPosition(window->getSize().x/2-logoSprite.getGlobalBounds().width/2, margin);
+        window->draw(logoSprite);
+
         for(int i = 0; i < vecLvlData.size(); i++){
             window->draw(vecLvlData[i].sprite);
             sf::Text description = sf::Text(vecLvlData[i].name, Common::Font::Comic_Sans);
@@ -141,7 +151,11 @@ protected:
     sf::Texture texBackground;
     std::vector<LevelData> vecLvlData;
     sf::Sprite player; //test
-    sf::Sprite spBackground;
+
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
+    sf::Texture logoTexture;
+    sf::Sprite logoSprite;
 
     int margin = 75;
 };
