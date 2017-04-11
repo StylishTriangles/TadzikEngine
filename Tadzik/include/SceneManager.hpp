@@ -23,7 +23,8 @@ public:
         fpsCounter.setFillColor(sf::Color::Green);
     }
 
-    virtual ~SceneManager(){auto itr = scenes.begin();
+    virtual ~SceneManager(){
+        auto itr = scenes.begin();
         while (itr != scenes.end()) {
             delete itr->second;
             itr = scenes.erase(itr);
@@ -53,7 +54,6 @@ public:
     //level finished
     void callMeBaby(){
         actScene->setLocked(true);
-        actScene->onSceneDeactivate();
         setActiveScene("LAUNCHER");
     }
 
