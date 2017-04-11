@@ -647,8 +647,8 @@ public:
         spBackground.setTexture(texBackground);
         texBackground.setRepeated(true);
         spBackground.setTextureRect(sf::IntRect(0, 0, 1000000000, texBackground.getSize().y));
-        spBackground.setScale((double)window->getSize().y/(double)texBackground.getSize().y,
-                              (double)window->getSize().y/(double)texBackground.getSize().y);
+        spBackground.setScale((double)window->getSize().y/(double)texBackground.getSize().y*(double)0.70710678118,
+                              (double)window->getSize().y/(double)texBackground.getSize().y*(double)0.70710678118);
 
         spsSnekWalk.loadFromFile("files/textures/mario/snekWalk.png");
         aSnekWalk.setSpriteSheet(&spsSnekWalk, 44, sf::milliseconds(100));
