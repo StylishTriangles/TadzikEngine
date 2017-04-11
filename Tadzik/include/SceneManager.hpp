@@ -49,6 +49,14 @@ public:
         actScene->onSceneActivate();
     }
 
+
+    //level finished
+    void callMeBaby(){
+        actScene->setLocked(true);
+        actScene->onSceneDeactivate();
+        setActiveScene("LAUNCHER");
+    }
+
     template<typename T>
     void justLaunchIt(std::string nameId) {
         registerScene<T>(nameId, window);
@@ -112,6 +120,7 @@ public:
             window->draw(fpsCounter);
         }
     }
+
     std::unordered_map<std::string, Scene*> scenes;
 
 private:

@@ -134,6 +134,10 @@ public:
             textScore.setString("score: " + Utils::stringify((int)result));
 
             result += speedX/10.0;
+
+            if(result >= 512){
+                sceneManager->callMeBaby();
+            }
         }
         window->clear(sf::Color::Black); //kolor okna
         window->draw(background[0]);

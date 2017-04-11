@@ -319,6 +319,11 @@ public:
 
         dbgText.setString(Utils::stringify(actSprite.getFrame())+"/"+Utils::stringify(actSprite.framesSize()));
         window->draw(dbgText);
+
+        if(score >= 100){
+            sceneManager->callMeBaby();
+            actMusic.stop();
+        }
     }
 
     void setDanceStep(DanceStep* d){
