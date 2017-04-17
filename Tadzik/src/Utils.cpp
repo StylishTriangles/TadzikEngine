@@ -112,7 +112,10 @@ sf::Vector2f rotatedPoint(sf::Vector2f p, sf::Vector2f center, float d) {
 
 void normalize(sf::Vector2f &v) {
     float length = sqrt(v.x*v.x+v.y*v.y);
-    v = sf::Vector2f(v.x/length, v.y/length);
+    if (length==0)
+        v = sf::Vector2f(0, 0);
+    else
+        v = sf::Vector2f(v.x/length, v.y/length);
 }
 
 float dotProduct(sf::Vector3f a, sf::Vector3f b)
@@ -143,6 +146,10 @@ float vecSquaredLength(sf::Vector3f vec)
 float vecLength(sf::Vector3f vec)
 {
     return sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
+
+float vecLength(sf::Vector2f vec) {
+    return sqrtf(vec.x*vec.x+vec.y*vec.y);
 }
 
 bool fileExists(const std::string& filename)

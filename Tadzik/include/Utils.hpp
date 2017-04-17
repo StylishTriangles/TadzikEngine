@@ -34,6 +34,7 @@ void normalize3f(sf::Vector3f& vec);
 void vecSetLength(sf::Vector3f& vec, float length);
 float vecSquaredLength(sf::Vector3f vec);
 float vecLength(sf::Vector3f vec);
+float vecLength(sf::Vector2f vec);
 bool fileExists(const std::string& filename);
 sf::Vector2f getViewOffset(sf::RenderTarget* rendertarget);
 float getArea(sf::FloatRect f);

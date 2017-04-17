@@ -633,7 +633,7 @@ public:
 
 //        BISwood = BlockInSpritesheet(&tileSpriteSheet, sf::IntRect(1, 0, 1, 1));
 
-        texBackground.loadFromFile("files/textures/mario/background.png");
+        texBackground.loadFromFile("files/textures/mario/background4.png");
         texBreakableTile.loadFromFile("files/textures/mario/breakable1.png");
         texPowerUpTile.loadFromFile("files/textures/mario/powerUpTileActive.png");
         texPowerUpTile_.loadFromFile("files/textures/mario/powerUpTileInactive.png");

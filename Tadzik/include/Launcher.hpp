@@ -45,7 +45,7 @@ public:
         texTREX.loadFromFile("files/textures/icons/trex.png");
         texJumper.loadFromFile("files/textures/icons/jumper.png");
         texSynth3d.loadFromFile("files/textures/icons/synth3de.png");
-        texMario.loadFromFile("files/textures/icons/player.png");
+        texMario.loadFromFile("files/textures/icons/mario.png");
         texRpg.loadFromFile("files/textures/icons/RPG.png");
         texShooter2d.loadFromFile("files/textures/icons/shooter2d.png");
         texDisco.loadFromFile("files/textures/icons/iSayParty.png");
@@ -54,36 +54,43 @@ public:
 
         vecLvlData.push_back(LevelData("Trex", "TREX", &texTREX));
         vecLvlData.push_back(LevelData("Jumper", "JUMPER", &texJumper));
-        vecLvlData.push_back(LevelData("Synth3d", "SYNTH3D", &texSynth3d));
+        vecLvlData.push_back(LevelData("Synth3D", "SYNTH3D", &texSynth3d));
         vecLvlData.push_back(LevelData("Mario", "MARIO2", &texMario));
         vecLvlData.push_back(LevelData("Rpg", "RPG", &texRpg));
-        vecLvlData.push_back(LevelData("Shooter 2d", "SHOOTER2D", &texShooter2d));
-        vecLvlData.push_back(LevelData("Disco Tadeuszek", "ISAYPARTY", &texDisco));
+        vecLvlData.push_back(LevelData("Shooter 2D", "SHOOTER2D", &texShooter2d));
+        vecLvlData.push_back(LevelData("Dance Party", "ISAYPARTY", &texDisco));
 
         int sWidth = vecLvlData[0].sprite.getGlobalBounds().width, sHeight = vecLvlData[0].sprite.getGlobalBounds().height;
 
-        vecLvlData[0].sprite.setPosition(margin, margin*1.3);
-        vecLvlData[1].sprite.setPosition(margin, margin+sHeight*0.5 + (window->getSize().y - margin-sHeight)/2.0);
-        vecLvlData[2].sprite.setPosition(window->getSize().x*(0.25)-sWidth/2.0, window->getSize().y-sHeight-margin);
-        vecLvlData[3].sprite.setPosition(window->getSize().x*(0.5)-sWidth/2.0, window->getSize().y-sHeight-margin);
-        vecLvlData[4].sprite.setPosition(window->getSize().x*(0.75)-sWidth/2.0, window->getSize().y-sHeight-margin);
-        vecLvlData[5].sprite.setPosition(window->getSize().x-sWidth-margin, margin+sHeight*0.5 + (window->getSize().y - margin-sHeight)/2.0);
-        vecLvlData[6].sprite.setPosition(window->getSize().x-sWidth-margin, margin*1.3);
-
-        player = sf::Sprite(texMario);
-        player.setScale(5, 5);
-        player.setPosition(window->getSize().x/2.0 - sWidth/2.0, window->getSize().y/2.0 - sHeight/2.0);
+        vecLvlData[0].sprite.setPosition(window->getSize().x*0.25f, window->getSize().y*0.25f);
+        vecLvlData[1].sprite.setPosition(window->getSize().x*0.2f, window->getSize().y*0.5f);
+        vecLvlData[2].sprite.setPosition(window->getSize().x*0.3f, window->getSize().y*0.72f);
+        vecLvlData[3].sprite.setPosition(window->getSize().x*0.5f, window->getSize().y*0.8f);
+        vecLvlData[4].sprite.setPosition(window->getSize().x*0.7f, window->getSize().y*0.7f);
+        vecLvlData[5].sprite.setPosition(window->getSize().x*0.8f, window->getSize().y*0.55f);
+        vecLvlData[6].sprite.setPosition(window->getSize().x*0.7f, window->getSize().y*0.25f);
 
         backgroundTexture.loadFromFile("files/textures/icons/background.png");
         logoTexture.loadFromFile("files/textures/icons/logo.png");
 
         backgroundSprite = sf::Sprite(backgroundTexture);
         logoSprite = sf::Sprite(logoTexture);
-        logoSprite.setScale(3.0, 3.0);
+        logoSprite.setScale(5.0, 5.0);
+        logoSprite.setPosition(window->getSize().x/2-logoSprite.getGlobalBounds().width/2, margin+100);
+
+        spsLeft.loadFromFile("files/textures/icons/playerLeft.png");
+        spsRight.loadFromFile("files/textures/icons/playerRight.png");
+        aLeft.setSpriteSheet(&spsLeft, 5, sf::milliseconds(500));
+        aRight.setSpriteSheet(&spsRight, 5, sf::milliseconds(500));
+        aspPlayer.setAnimation(&aLeft);
+
+        aspPlayer.setScale(5.0f, 5.0f);
+        aspPlayer.setPosition(window->getSize().x/2.0 - sWidth/2.0, window->getSize().y/2.0 - sHeight/2.0);
     }
 
     void onSceneActivate() {
-        player.setPosition(window->getSize().x/2.0, window->getSize().y/2.0);
+        aspPlayer.setPosition(window->getSize().x/2.0, window->getSize().y/2.0);
+        vel = sf::Vector2f(0, 0);
     }
 
     void deliverEvent(sf::Event& event){
@@ -98,16 +105,29 @@ public:
     virtual void draw(sf::Time deltaTime) {
         float tedeuszWajhePrzeusz=200;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-            player.move(-tedeuszWajhePrzeusz*deltaTime.asSeconds(), 0);
+            vel.x-=50;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            player.move(tedeuszWajhePrzeusz*deltaTime.asSeconds(), 0);
+            vel.x+=50;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            player.move(0, -tedeuszWajhePrzeusz*deltaTime.asSeconds());
+            vel.y-=50;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-            player.move(0, tedeuszWajhePrzeusz*deltaTime.asSeconds());
+            vel.y+=50;
+
+        float l = std::min(500.0f, Utils::vecLength(vel));
+        Utils::normalize(vel);
+        vel*=l;
+
+        aspPlayer.move(vel.x*deltaTime.asSeconds(), vel.y*deltaTime.asSeconds());
+        aspPlayer.update(l*deltaTime.asMilliseconds()/100.0f);
+        vel*=0.9f;
+        if (vel.x<0 && aspPlayer.getAnim()!=&aLeft)
+            aspPlayer.setAnimation(&aLeft);
+
+        if (vel.x>0 && aspPlayer.getAnim()!=&aRight)
+            aspPlayer.setAnimation(&aRight);
 
         for(int i = 0; i < vecLvlData.size(); i++){
-            if(Collision::PixelPerfectTest(vecLvlData[i].sprite, player)){
+            if(Collision::PixelPerfectTest(vecLvlData[i].sprite, aspPlayer)){
                 sceneManager->setActiveScene(vecLvlData[i].nginName);
             }
         }
@@ -117,7 +137,6 @@ public:
             window->getSize().x / backgroundSprite.getLocalBounds().width,
             window->getSize().y / backgroundSprite.getLocalBounds().height);
         window->draw(backgroundSprite);
-        logoSprite.setPosition(window->getSize().x/2-logoSprite.getGlobalBounds().width/2, margin);
         window->draw(logoSprite);
 
         for(int i = 0; i < vecLvlData.size(); i++){
@@ -137,7 +156,7 @@ public:
                 sceneManager->setActiveScene(vecLvlData[i].nginName);
             }
         }
-        window->draw(player);
+        window->draw(aspPlayer);
     }
 
 protected:
@@ -149,8 +168,13 @@ protected:
     sf::Texture texShooter2d;
     sf::Texture texDisco;
     sf::Texture texBackground;
+    sf::Texture spsLeft;
+    sf::Texture spsRight;
     std::vector<LevelData> vecLvlData;
-    sf::Sprite player; //test
+
+    ARO::AnimSprite aspPlayer; //test
+    ARO::Anim aLeft;
+    ARO::Anim aRight;
 
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
@@ -158,6 +182,7 @@ protected:
     sf::Sprite logoSprite;
 
     int margin = 75;
+    sf::Vector2f vel = sf::Vector2f(0, 0);
 };
 
 #endif // LAUNCHER_HPP

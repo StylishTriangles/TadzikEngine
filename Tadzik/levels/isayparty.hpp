@@ -186,10 +186,10 @@ public:
         dbgText.move(100, 0);       //martwe pixele ftw
         dbgText.setFont(Common::Font::Comic_Sans);
 
-        vecDiscoColors.push_back(sf::Color(64, 0, 77));
-        vecDiscoColors.push_back(sf::Color(104, 0, 95));
-        //vecDiscoColors.push_back(sf::Color(190,75,121));
-        //vecDiscoColors.push_back(sf::Color(252,162,101));
+        vecDiscoColors.push_back(sf::Color(255, 255, 255));
+        vecDiscoColors.push_back(sf::Color(0, 255, 0));
+        vecDiscoColors.push_back(sf::Color(255, 255, 0));
+        vecDiscoColors.push_back(sf::Color(0 ,255,255));
         //vecDiscoColors.push_back(sf::Color(238,190,67));
 
         vecDiscoReactionsGood.push_back("WOAH!");
@@ -206,7 +206,7 @@ public:
 
         texBkgrnd.loadFromFile("files/textures/isaydisco/background.png");
         background.setTexture(texBkgrnd);
-        background.setScale(5,5);
+        background.setScale((float)window->getSize().x/(float)texBkgrnd.getSize().x, (float)window->getSize().y/(float)texBkgrnd.getSize().y);
     }
 
     virtual void onSceneActivate(){
